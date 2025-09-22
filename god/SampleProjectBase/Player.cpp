@@ -1,7 +1,7 @@
 #include "Player.h"
 #include "Input.h" // キー入力用
 #include <DirectXCollision.h>
-#include "Geometory.h" // 追加（線描画用）
+#include "Geometory.h" //（線描画用）
 #include <fstream>
 #include "Shader.h"
 #include "Model.h"
