@@ -9,6 +9,7 @@
 Player::Player()
     : m_model(std::make_shared<Model>())
     , m_position(0.0f, 0.0f, 0.0f)
+    , m_rotation(0.0f, 0.0f, 0.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
     , m_isJumping(false)
     , m_boxExtents(1.0f, 1.0f, 1.0f)
@@ -79,6 +80,16 @@ void Player::SetPosition(const DirectX::XMFLOAT3& pos)
 DirectX::XMFLOAT3 Player::GetPosition() const
 {
     return m_position;
+}
+
+void Player::SetRotation(const DirectX::XMFLOAT3& rot)
+{
+    m_rotation = rot;
+}
+
+DirectX::XMFLOAT3 Player::GetRotation() const
+{
+    return m_rotation;
 }
 
 DirectX::BoundingBox Player::GetBoundingBox() const

@@ -83,7 +83,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		flag |= aiProcess_PopulateArmatureData;				// 標準的なボーン,アーマチュアの設定
 		if (flip) flag |= aiProcess_ConvertToLeftHanded;	// 左手系変更オプションがまとまったもの
 	}
-	
+
 	// assimpで読み込み
 	m_pScene = importer->ReadFile(file, flag);
 	if (!m_pScene) {
@@ -92,7 +92,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		return false;
 	}
 	assert(m_pScene);
-	
+
 	// ボーン情報配列準備
 	DebugLog::log(DebugLog::INFO_LOG, "ボーン情報配列準備");
 	CreateBone(m_pScene->mRootNode);
@@ -353,7 +353,7 @@ void Model::CreateBone(const aiNode* node)
 	BONE bone;
 
 	m_Bone[node->mName.C_Str()] = bone;
-	DebugLog::log(DebugLog::INFO_LOG,"BoneName = ", node->mName.C_Str());
+	DebugLog::log(DebugLog::INFO_LOG, "BoneName = ", node->mName.C_Str());
 
 	for (unsigned int n = 0; n < node->mNumChildren; n++)
 	{
@@ -534,7 +534,7 @@ std::vector<Model::BONE> Model::GetBoneInfo(const aiMesh* mesh) {
 			bone.Meshname = std::string(mesh->mBones[bidx]->mNode->mName.C_Str());
 		}
 		else {
-			DebugLog::log(DebugLog::WARNING_LOG,"ノード情報がNULL");
+			DebugLog::log(DebugLog::WARNING_LOG, "ノード情報がNULL");
 		}
 
 		// アーマチュアノード名
@@ -543,7 +543,7 @@ std::vector<Model::BONE> Model::GetBoneInfo(const aiMesh* mesh) {
 			bone.Armaturename = std::string(mesh->mBones[bidx]->mArmature->mName.C_Str());
 		}
 		else {
-			DebugLog::log(DebugLog::WARNING_LOG,"アーマチュア情報がNULL");
+			DebugLog::log(DebugLog::WARNING_LOG, "アーマチュア情報がNULL");
 		}
 		// ボーンオフセット行列取得
 		bone.OffsetMatrix = aiMtxToDxMtx(mesh->mBones[bidx]->mOffsetMatrix);

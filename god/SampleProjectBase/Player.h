@@ -21,6 +21,8 @@ public:
     void Update(float tick);
     void SetPosition(const DirectX::XMFLOAT3& pos);
     DirectX::XMFLOAT3 GetPosition() const;
+    void SetRotation(const DirectX::XMFLOAT3& rot);
+    DirectX::XMFLOAT3 GetRotation() const;
 
     // 当たり判定AABB取得
     DirectX::BoundingBox GetBoundingBox() const;
@@ -32,6 +34,8 @@ private:
 
     std::shared_ptr<Model> m_model;
     DirectX::XMFLOAT3 m_position; // プレイヤー座標
+    DirectX::XMFLOAT3 m_rotation; // プレイヤーの回転（ラジアン）
+    DirectX::XMFLOAT3 m_scale;    // プレイヤーのスケール
     DirectX::XMFLOAT3 m_velocity;
     bool m_isJumping;
 

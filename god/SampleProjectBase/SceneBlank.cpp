@@ -37,9 +37,12 @@ void SceneBlank::Init()
 
     // プレイヤー生成
     CreateObj<Player>("Player");
-    GetObj<Player>("Player")->Load("Assets/Model/Akai/Akai.fbx", 0.01f, true);
+    Player* player = GetObj<Player>("Player");
+    player->Load("Assets/Model/armor/armor.fbx", 1.01f, false);
     // 初期位置
-    GetObj<Player>("Player")->SetPosition({ 0.0f, 0.0f, 0.0f });
+    player->SetPosition({ 0.0f, 0.0f, 0.0f });
+
+    player->SetRotation({ -DirectX::XM_PI / 2.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
     // テクスチャ生成
     g_uiTex = new Texture();
@@ -94,11 +97,16 @@ void SceneBlank::Draw()
     // プレイヤーのワールド行列（座標反映）
     if (player) {
         XMFLOAT3 pos = player->GetPosition();
-        // --- ここを変更：Y軸+90度回転（右向き）を追加 ---
-        Matrix rot = Matrix::CreateRotationY(DirectX::XMConvertToRadians(90.0f)); // 右向き
-        Matrix world = rot * Matrix::CreateTranslation(pos.x, pos.y, pos.z) * player->GetModel()->GetScaleBaseMatrix();
+        XMFLOAT3 rot = player->GetRotation();
+
+        // ワールド行列を生成
+        Matrix scaleMat = player->GetModel()->GetScaleBaseMatrix();
+        Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+        Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+        Matrix world = scaleMat * rotMat * transMat;
+
+        // シェーダーに渡すために転置
         XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-        // --- ここまで ---
 
         // 定数バッファの更新
         shader[0]->WriteBuffer(0, mat);
@@ -109,11 +117,9 @@ void SceneBlank::Draw()
         player->SetVertexShader(shader[0]);
         player->SetPixelShader(shader[1]);
 
-        if (player) {
-            // ...（モデル描画処理）...
-            player->Draw();
-            player->DrawBoundingBox();
-        }
+        // プレイヤー描画
+        player->Draw();
+        player->DrawBoundingBox();
     }
 
     // --- ここからUI描画 ----
@@ -135,7 +141,7 @@ void SceneBlank::Draw()
     SimpleUI::Clear();
     // 画像付きUIを右上に追加
     // 画像テクスチャはInitで生成したものをグローバルやメンバで保持しておくこと
-    SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, {1,1,1,1}, g_uiTex);
+    SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1,1,1,1 }, g_uiTex);
 
     // ビュー・プロジェクション行列を単位行列にしてUI描画
     DirectX::XMFLOAT4X4 identity;

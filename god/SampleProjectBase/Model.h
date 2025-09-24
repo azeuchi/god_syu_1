@@ -93,7 +93,7 @@ public:
 	bool Load(const char* file, float scaleBase = 1.0f, bool flip = false, bool simple = false);
 	void LoadAnimation(const char* FileName, const char* Name, bool flip);
 	void Draw(int texSlot = 0);
-	
+
 	void UpdateAnimation(const char* AnimationName, int Frame);
 	void UpdateBoneMatrix(const aiNode* node, const Matrix& matrix);
 

@@ -114,6 +114,7 @@ void SceneRoot::Init()
 		pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Idle.fbx", "Idle", true);
 		pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Walk.fbx", "Walk", true);
 	}*/
+
 	Model* pPlane = CreateObj<Model>("ModelPlane");
 	pPlane->Load("Assets/Model/plane/plane.fbx");
 
