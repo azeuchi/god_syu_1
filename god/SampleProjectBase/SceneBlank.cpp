@@ -38,11 +38,11 @@ void SceneBlank::Init()
     // プレイヤー生成
     CreateObj<Player>("Player");
     Player* player = GetObj<Player>("Player");
-    player->Load("Assets/Model/armor/armor.fbx", 1.01f, false);
+    player->Load("Assets/Model/knight/knight.fbx", 0.02f, false, true);
     // 初期位置
     player->SetPosition({ 0.0f, 0.0f, 0.0f });
 
-    player->SetRotation({ -DirectX::XM_PI / 2.0f, DirectX::XM_PI / 2.0f, 0.0f });
+    player->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
     // テクスチャ生成
     g_uiTex = new Texture();

@@ -57,7 +57,7 @@ public:
 		const void* idx;
 	};
 
-	// ウェイト情報　20231225 追加
+	// ウェイト情報　
 	struct WEIGHT {
 		std::string bonename;						// ボーン名
 		std::string meshname;						// メッシュ名

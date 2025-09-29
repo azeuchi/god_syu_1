@@ -289,5 +289,8 @@
     <FxCompile Include="VS_Object.hlsl">
       <Filter>リソース ファイル\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="VS_SkinMeshAnimation.hlsl">
+      <Filter>リソース ファイル\VertexShader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

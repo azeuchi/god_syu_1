@@ -211,6 +211,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		// テクスチャ
 		aiString path;
 		if (m_pScene->mMaterials[i]->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), path) == AI_SUCCESS) {
+			DebugLog::log(DebugLog::INFO_LOG, "Try to load texture: ", path.C_Str());
 			HRESULT hr;
 			// ファイル形式チェック
 			if (strstr(path.C_Str(), ".psd"))
@@ -251,6 +252,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 			if (FAILED(hr)) {
 				Error(path.C_Str());
 				material.texture = nullptr;
+				DebugLog::log(DebugLog::ERROR_LOG, "Failed to create texture: ", path.C_Str());
 			}
 		}
 		else {
@@ -261,6 +263,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		m_materials.push_back(material);
 	}
 
+	DebugLog::log(DebugLog::INFO_LOG, "Loaded Material Count = ", (int)m_materials.size());
 	DebugLog::log(DebugLog::INFO_LOG, "モデル読み込み完了");
 	return true;
 }
@@ -284,7 +287,13 @@ void Model::Draw(int texSlot)
 	while (it != m_meshes.end())
 	{
 		if (texSlot >= 0)
+		{
+			if (m_materials.empty() || m_materials[it->materialID].texture.get() == nullptr)
+			{
+				DebugLog::log(DebugLog::WARNING_LOG, "Texture is NULL when drawing mesh.");
+			}
 			m_pPS->SetTexture(texSlot, m_materials[it->materialID].texture.get());
+		}
 		it->mesh->Draw();
 		++it;
 	}

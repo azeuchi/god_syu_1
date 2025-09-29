@@ -13,7 +13,8 @@ public:
 	void Update(float tick);
 	void Draw();
 private:
-
+	int m_Frame = 0;
+	bool m_playIdle = false;
 };
 
 #endif // __SCENE_BLANK_H___
