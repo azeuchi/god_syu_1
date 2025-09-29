@@ -435,11 +435,11 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 	}
 
 	// 20230909 転置
-	/*for (auto& bcmtx : m_bonecombmtxcontainer)
+	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		// 転置する
 		bcmtx.Transpose();
-	}*/
+	}
 
 	BoneUpdate();
 
