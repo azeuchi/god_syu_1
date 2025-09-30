@@ -6,24 +6,24 @@
 #include "CameraBase.h"
 #include "LightBase.h"
 #include "Shader.h"
-#include "Player.h" // 追加
-#include "SimpleUI.h" // 追加
+#include "Player.h"
+#include "SimpleUI.h"
 #include "Texture.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-Texture* g_uiTex = nullptr; // ←グローバル変数の本体を定義
+Texture* g_uiTex = nullptr;
 
 void SceneBlank::Init()
 {
-    // シェーダーの読み込み
+    // シェーダーの読み込み 
     Shader* shader[] = {
-        CreateObj<VertexShader>("VS_Object"),
+        CreateObj<VertexShader>("VS_SkinMeshAnimation"),
         CreateObj<PixelShader>("PS_TexColor"),
     };
     const char* file[] = {
-        "Assets/Shader/VS_Object.cso",
+        "Assets/Shader/VS_SkinMeshAnimation.cso",
         "Assets/Shader/PS_TexColor.cso",
     };
     int shaderNum = _countof(shader);
@@ -38,15 +38,21 @@ void SceneBlank::Init()
     // プレイヤー生成
     CreateObj<Player>("Player");
     Player* player = GetObj<Player>("Player");
-    player->Load("Assets/Model/knight/knight.fbx", 0.02f, false, true);
-    // 初期位置
-    player->SetPosition({ 0.0f, 0.0f, 0.0f });
 
-    player->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
+    // アイドルアニメーションの読み込み
+    if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f,true , false))
+    {
+        // 読み込みに失敗した場合
+        MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。\nファイルパスやファイル名を確認してください。", "Model Load Error", MB_OK);
+    }
+
+    // 初期位置・回転
+    player->SetPosition({ 0.0f, 0.0f, 0.0f });
+    player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 
     // テクスチャ生成
     g_uiTex = new Texture();
-    g_uiTex->Create("Assets/UI/apple.jpg"); // ここでパスを指定
+    g_uiTex->Create("Assets/UI/apple.jpg");
 }
 
 void SceneBlank::Uninit()
@@ -59,6 +65,9 @@ void SceneBlank::Uninit()
 
 void SceneBlank::Update(float tick)
 {
+    // アニメーションフレーム更新
+    m_Frame++;
+
     // プレイヤー操作
     Player* player = GetObj<Player>("Player");
     if (player) {
@@ -89,8 +98,9 @@ void SceneBlank::Draw()
         {camPos.x, camPos.y, camPos.z, 0.0f}
     };
 
+    // シェーダーの取得 (アニメーション対応シェーダーを取得)
     Shader* shader[] = {
-        GetObj<Shader>("VS_Object"),
+        GetObj<Shader>("VS_SkinMeshAnimation"),
         GetObj<Shader>("PS_TexColor"),
     };
 
@@ -108,12 +118,16 @@ void SceneBlank::Draw()
         // シェーダーに渡すために転置
         XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
 
+      
         // 定数バッファの更新
-        shader[0]->WriteBuffer(0, mat);
-        shader[0]->WriteBuffer(1, light);
-        shader[1]->WriteBuffer(0, light);
-        shader[1]->WriteBuffer(1, camera);
+        shader[0]->WriteBuffer(0, mat);     // 頂点シェーダーには行列のみ渡す
+        shader[1]->WriteBuffer(0, light);   // ピクセルシェーダーにはライト情報を渡す
+        shader[1]->WriteBuffer(1, camera);  // ピクセルシェーダーにはカメラ情報を渡す
 
+        // アニメーションの更新
+        player->GetModel()->UpdateAnimation("Idle", m_Frame);
+
+        // シェーダーをセット
         player->SetVertexShader(shader[0]);
         player->SetPixelShader(shader[1]);
 
@@ -126,10 +140,10 @@ void SceneBlank::Draw()
     // 画面サイズ（例: 1280x720）に合わせて右上に配置
     constexpr float screenWidth = 1280.0f;
     constexpr float screenHeight = 720.0f;
-    float uiWidth = 200.0f;   // ← 画像の幅（ピクセル単位）
-    float uiHeight = 50.0f;   // ← 画像の高さ（ピクセル単位）
-    float x = screenWidth - uiWidth - 20.0f; // ← X座標（右端から20px内側）
-    float y = 20.0f;                        // ← Y座標（上端から20px下）
+    float uiWidth = 200.0f;
+    float uiHeight = 50.0f;
+    float x = screenWidth - uiWidth - 20.0f;
+    float y = 20.0f;
 
     // ピクセル→NDC変換
     float ndcX = (x / screenWidth) * 2.0f - 1.0f;
@@ -137,13 +151,9 @@ void SceneBlank::Draw()
     float ndcW = (uiWidth / screenWidth) * 2.0f;
     float ndcH = (uiHeight / screenHeight) * 2.0f;
 
-    // UIリストをクリアして再追加（毎フレーム呼ぶ場合）
     SimpleUI::Clear();
-    // 画像付きUIを右上に追加
-    // 画像テクスチャはInitで生成したものをグローバルやメンバで保持しておくこと
     SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1,1,1,1 }, g_uiTex);
 
-    // ビュー・プロジェクション行列を単位行列にしてUI描画
     DirectX::XMFLOAT4X4 identity;
     DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
     SimpleUI::SetMatrix(identity, identity, identity);

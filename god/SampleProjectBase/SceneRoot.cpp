@@ -107,13 +107,13 @@ void SceneRoot::Init()
 	GetObj<Model>("Rock2")->Load("Assets/Model/Rock-Set/Rock_2/Rock_2.fbx", 0.005f, true, true);
 
 	// アニメーション用モデル読み込み 重いので見たいとき以外はコメントアウト
-	Model* pAnimModel = CreateObj<Model>("Akai");
-	if (pAnimModel->Load("Assets/Model/Akai/Akai.fbx", 0.01f, true))
-	{
-		pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Run.fbx", "Run", true);
-		pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Idle.fbx", "Idle", true);
-		pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Walk.fbx", "Walk", true);
-	}
+	//Model* pAnimModel = CreateObj<Model>("Akai");
+	//if (pAnimModel->Load("Assets/Model/Akai/Akai.fbx", 0.01f, true))
+	//{
+	//	pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Run.fbx", "Run", true);
+	//	pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Idle.fbx", "Idle", true);
+	//	pAnimModel->LoadAnimation("Assets/Model/Akai/Akai_Walk.fbx", "Walk", true);
+	//}
 
 	Model* pPlane = CreateObj<Model>("ModelPlane");
 	pPlane->Load("Assets/Model/plane/plane.fbx");

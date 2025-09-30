@@ -3,6 +3,7 @@
 #include "DebugLog.h"
 
 #include <assimp/postprocess.h>
+#include <unordered_set>
 
 #if _MSC_VER >= 1920
 #ifdef _DEBUG
@@ -32,7 +33,15 @@ Model::Model()
 	importer = new Assimp::Importer();
 }
 Model::~Model() {
+	// Assimp Importerの解放
+	delete importer;
 
+	// LoadAnimationで読み込んだaiSceneを解放
+	for (auto& anim : m_Animation)
+	{
+		aiReleaseImport(anim.second);
+	}
+	m_Animation.clear();
 }
 
 void Model::SetVertexShader(Shader* vs)
@@ -273,8 +282,24 @@ void Model::LoadAnimation(const char* FileName, const char* Name, bool flip)
 {
 	int flag = 0;
 	if (flip) flag |= aiProcess_ConvertToLeftHanded;	// 左手系変更オプションがまとまったもの
-	m_Animation[Name] = aiImportFile(FileName, flag);
-	assert(m_Animation[Name]);
+
+	const aiScene* pAnimScene = aiImportFile(FileName, flag);
+
+	if (!pAnimScene)
+	{
+		DebugLog::log(DebugLog::ERROR_LOG, "Failed to load animation file, check the path: ", FileName);
+		return;
+	}
+
+	if (!pAnimScene->HasAnimations())
+	{
+		DebugLog::log(DebugLog::WARNING_LOG, "Animation file loaded, but it contains no animations: ", FileName);
+		aiReleaseImport(pAnimScene);
+		return;
+	}
+
+	m_Animation[Name] = pAnimScene;
+	DebugLog::log(DebugLog::INFO_LOG, "Animation loaded successfully: ", Name);
 }
 
 void Model::Draw(int texSlot)
@@ -374,8 +399,26 @@ void Model::CreateBone(const aiNode* node)
 // アニメーション更新
 void Model::UpdateAnimation(const char* AnimationName, int Frame)
 {
-	if (m_Animation.count(AnimationName) == 0) return;
-	if (!m_Animation[AnimationName]->HasAnimations()) return;
+	aiAnimation* animation = nullptr;
+
+	// まず、メインシーンに埋め込まれたアニメーションを探す
+	if (m_pScene && m_pScene->HasAnimations())
+	{
+		// FBX内の最初のアニメーションを再生する
+		animation = m_pScene->mAnimations[0];
+	}
+	// 次に、以前の仕組み（別ファイル）で読み込んだアニメーションを探す
+	else if (m_Animation.count(AnimationName) > 0 && m_Animation.at(AnimationName) != nullptr)
+	{
+		if (m_Animation.at(AnimationName)->HasAnimations())
+			animation = m_Animation.at(AnimationName)->mAnimations[0];
+	}
+
+	// どちらの方法でもアニメーションが見つからなければ処理を中断
+	if (!animation)
+	{
+		return;
+	}
 
 	Matrix rootMatrix;
 	// SRTから行列を生成
@@ -394,11 +437,20 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 	rootMatrix = scalemtx * rotmtx * transmtx;							// 20231231 DX化
 
 	//アニメーションデータからボーンマトリクス算出
-	aiAnimation* animation = m_Animation[AnimationName]->mAnimations[0];
-
 	for (unsigned int c = 0; c < animation->mNumChannels; c++)
 	{
 		aiNodeAnim* nodeAnim = animation->mChannels[c];
+
+		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0)
+		{
+			static std::unordered_set<std::string> warnedNames;
+			if (warnedNames.find(nodeAnim->mNodeName.C_Str()) == warnedNames.end())
+			{
+				DebugLog::log(DebugLog::WARNING_LOG, "Animation bone not found in model skeleton, skipping: ", nodeAnim->mNodeName.C_Str());
+				warnedNames.insert(nodeAnim->mNodeName.C_Str());
+			}
+			continue;
+		}
 
 		BONE* bone = &m_Bone[nodeAnim->mNodeName.C_Str()];
 		int f;
@@ -442,7 +494,6 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 	}
 
 	BoneUpdate();
-
 }
 
 void Model::UpdateBoneMatrix(const aiNode* node, const Matrix& matrix)
