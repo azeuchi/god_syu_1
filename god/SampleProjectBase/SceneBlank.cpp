@@ -39,16 +39,22 @@ void SceneBlank::Init()
     CreateObj<Player>("Player");
     Player* player = GetObj<Player>("Player");
 
-    // アイドルアニメーションの読み込み
-    if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f,true , false))
+    // アイドルアニメーション（モデルの基本情報として）の読み込み
+    if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
     {
         // 読み込みに失敗した場合
         MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。\nファイルパスやファイル名を確認してください。", "Model Load Error", MB_OK);
     }
 
+    // 追加: 歩行アニメーションの読み込み
+    player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
+
     // 初期位置・回転
     player->SetPosition({ 0.0f, 0.0f, 0.0f });
     player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
+
+    // 追加: プレイヤーステートの初期化
+    m_playerState = PlayerState::IDLE;
 
     // テクスチャ生成
     g_uiTex = new Texture();
@@ -65,13 +71,42 @@ void SceneBlank::Uninit()
 
 void SceneBlank::Update(float tick)
 {
-    // アニメーションフレーム更新
-    m_Frame++;
-
     // プレイヤー操作
     Player* player = GetObj<Player>("Player");
     if (player) {
         player->Update(tick);
+
+        // 変更: プレイヤーの状態遷移とフレーム更新のロジック
+        PlayerState oldState = m_playerState;
+
+        // プレイヤーの移動速度などをチェックして状態を決定する (今回は速度のX,Z成分で判定)
+        Vector3 velocity = player->GetVelocity();
+        if (fabs(velocity.x) > 0.0f || fabs(velocity.z) > 0.0f)
+        {
+            m_playerState = PlayerState::WALKING;
+        }
+        else
+        {
+            m_playerState = PlayerState::IDLE;
+        }
+
+        // 状態が切り替わった瞬間に、新しいアニメーションのフレームをリセット
+        if (oldState != m_playerState)
+        {
+            if (m_playerState == PlayerState::IDLE) m_idleFrame = 0;
+            if (m_playerState == PlayerState::WALKING) m_walkFrame = 0;
+        }
+
+        // 現在の状態に応じてフレームを更新
+        switch (m_playerState)
+        {
+        case PlayerState::IDLE:
+            m_idleFrame++;
+            break;
+        case PlayerState::WALKING:
+            m_walkFrame++;
+            break;
+        }
     }
 }
 
@@ -118,14 +153,25 @@ void SceneBlank::Draw()
         // シェーダーに渡すために転置
         XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
 
-      
+
         // 定数バッファの更新
         shader[0]->WriteBuffer(0, mat);     // 頂点シェーダーには行列のみ渡す
         shader[1]->WriteBuffer(0, light);   // ピクセルシェーダーにはライト情報を渡す
         shader[1]->WriteBuffer(1, camera);  // ピクセルシェーダーにはカメラ情報を渡す
 
-        // アニメーションの更新
-        player->GetModel()->UpdateAnimation("Idle", m_Frame);
+        // 変更: プレイヤーの状態に応じてアニメーションを更新
+        switch (m_playerState)
+        {
+        case PlayerState::IDLE:
+            // "Idle"という名前のアニメーションはLoadAnimationで登録していないため、
+            // モデル本体（Idle.fbx）に含まれるアニメーションが再生される
+            player->GetModel()->UpdateAnimation("Idle", m_idleFrame);
+            break;
+        case PlayerState::WALKING:
+            // "Walk"という名前で登録したアニメーションを再生する
+            player->GetModel()->UpdateAnimation("Walk", m_walkFrame);
+            break;
+        }
 
         // シェーダーをセット
         player->SetVertexShader(shader[0]);

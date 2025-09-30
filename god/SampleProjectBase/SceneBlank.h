@@ -5,6 +5,13 @@
 #include "Ball.h"
 #include <vector>
 
+// プレイヤーの状態を定義するenum
+enum class PlayerState
+{
+	IDLE,
+	WALKING,
+};
+
 class SceneBlank : public SceneBase
 {
 public:
@@ -13,8 +20,12 @@ public:
 	void Update(float tick);
 	void Draw();
 private:
-	int m_Frame = 0;
-	bool m_playIdle = false;
+	//各アニメーションのフレーム数を管理する変数に変更
+	int m_idleFrame = 0;
+	int m_walkFrame = 0;
+
+	// プレイヤーの現在の状態を保持する変数
+	PlayerState m_playerState = PlayerState::IDLE;
 };
 
 #endif // __SCENE_BLANK_H___

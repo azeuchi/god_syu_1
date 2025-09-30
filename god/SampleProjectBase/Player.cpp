@@ -10,6 +10,7 @@ Player::Player()
     : m_model(std::make_shared<Model>())
     , m_position(0.0f, 0.0f, 0.0f)
     , m_rotation(0.0f, 0.0f, 0.0f)
+    , m_scale(1.0f, 1.0f, 1.0f) // 変更: m_scaleを初期化
     , m_velocity(0.0f, 0.0f, 0.0f)
     , m_isJumping(false)
     , m_boxExtents(1.0f, 1.0f, 1.0f)
@@ -46,11 +47,16 @@ Model* Player::GetModel()
 
 void Player::Update(float tick)
 {
+    // 変更: 毎フレーム、水平方向の速度をリセット
+    m_velocity.x = 0.0f;
+    m_velocity.z = 0.0f;
+
     // 右クリック中は移動しない
     if (!IsKeyPress(VK_RBUTTON)) {
-        float speed = 5.0f * tick;
-        if (IsKeyPress('A')) m_position.x -= speed;
-        if (IsKeyPress('D')) m_position.x += speed;
+        float speed = 5.0f; // 変更: tickを乗算する前の基本速度
+        // 変更: 位置を直接変更せず、速度を設定する
+        if (IsKeyPress('A')) m_velocity.x = -speed;
+        if (IsKeyPress('D')) m_velocity.x = speed;
 
         // ジャンプ（Wキーまたはスペースキーでジャンプ）
         if (!m_isJumping && (IsKeyTrigger('W') || IsKeyTrigger(VK_SPACE))) {
@@ -61,11 +67,18 @@ void Player::Update(float tick)
     // 重力
     if (m_isJumping) {
         m_velocity.y -= 18.0f * tick; // 重力加速度
-        m_position.y += m_velocity.y * tick;
+    }
 
-        // 地面判定（y=0を地面とする）
-        if (m_position.y <= 0.0f) {
-            m_position.y = 0.0f;
+    // 変更: 最終的な速度を元に位置を更新
+    m_position.x += m_velocity.x * tick;
+    m_position.y += m_velocity.y * tick;
+
+
+    // 地面判定（y=0を地面とする）
+    if (m_position.y <= 0.0f) {
+        m_position.y = 0.0f;
+        // isJumpingがtrueの場合のみ速度と状態をリセット
+        if (m_isJumping) {
             m_velocity.y = 0.0f;
             m_isJumping = false;
         }
@@ -90,6 +103,12 @@ void Player::SetRotation(const DirectX::XMFLOAT3& rot)
 DirectX::XMFLOAT3 Player::GetRotation() const
 {
     return m_rotation;
+}
+
+// 追加: GetVelocity関数の実装
+DirectX::XMFLOAT3 Player::GetVelocity() const
+{
+    return m_velocity;
 }
 
 DirectX::BoundingBox Player::GetBoundingBox() const

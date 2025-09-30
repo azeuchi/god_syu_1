@@ -401,17 +401,18 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 {
 	aiAnimation* animation = nullptr;
 
-	// まず、メインシーンに埋め込まれたアニメーションを探す
-	if (m_pScene && m_pScene->HasAnimations())
-	{
-		// FBX内の最初のアニメーションを再生する
-		animation = m_pScene->mAnimations[0];
-	}
-	// 次に、以前の仕組み（別ファイル）で読み込んだアニメーションを探す
-	else if (m_Animation.count(AnimationName) > 0 && m_Animation.at(AnimationName) != nullptr)
+	// アニメーションの検索順序を変更
+	// 最初に、別ファイルから読み込んだアニメーション（m_Animation）を探す
+	if (m_Animation.count(AnimationName) > 0 && m_Animation.at(AnimationName) != nullptr)
 	{
 		if (m_Animation.at(AnimationName)->HasAnimations())
 			animation = m_Animation.at(AnimationName)->mAnimations[0];
+	}
+	// m_Animationにない場合、メインシーンに埋め込まれたアニメーションをフォールバックとして探す
+	else if (m_pScene && m_pScene->HasAnimations())
+	{
+		// FBX内の最初のアニメーションを再生する
+		animation = m_pScene->mAnimations[0];
 	}
 
 	// どちらの方法でもアニメーションが見つからなければ処理を中断

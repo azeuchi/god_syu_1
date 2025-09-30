@@ -3,7 +3,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include <string>
-#include "Geometory.h" 
+#include "Geometory.h"
 
 class Player
 {
@@ -23,6 +23,9 @@ public:
     DirectX::XMFLOAT3 GetPosition() const;
     void SetRotation(const DirectX::XMFLOAT3& rot);
     DirectX::XMFLOAT3 GetRotation() const;
+
+    // ’Ç‰Á: ‘¬“x‚ğæ“¾‚·‚é‚½‚ß‚ÌŠÖ”
+    DirectX::XMFLOAT3 GetVelocity() const;
 
     // “–‚½‚è”»’èAABBæ“¾
     DirectX::BoundingBox GetBoundingBox() const;
