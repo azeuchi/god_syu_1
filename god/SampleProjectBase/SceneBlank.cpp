@@ -17,7 +17,6 @@ Texture* g_uiTex = nullptr;
 
 void SceneBlank::Init()
 {
-    // シェーダーの読み込み 
     Shader* shader[] = {
         CreateObj<VertexShader>("VS_SkinMeshAnimation"),
         CreateObj<PixelShader>("PS_TexColor"),
@@ -39,23 +38,24 @@ void SceneBlank::Init()
     CreateObj<Player>("Player");
     Player* player = GetObj<Player>("Player");
 
-    // アイドルアニメーション（モデルの基本情報として）の読み込み
+    // 各種アニメーションの読み込み
     if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
     {
-        MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。\nファイルパスやファイル名を確認してください。", "Model Load Error", MB_OK);
+        MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
     }
     player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
+    player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
+
 
     // 初期位置・回転
     player->SetPosition({ 0.0f, 0.0f, 0.0f });
-    player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
+    player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f }); // 右向きからスタート
 
-    // 追加: アニメーションの初期状態を設定
+    // アニメーションの初期状態を設定
     m_currentState = { "Idle", 0 };
-    m_previousState = { "Idle", 0 }; // 最初はどちらもアイドル
-    m_blendFactor = 1.0f;            // ブレンドはしない
+    m_previousState = { "Idle", 0 };
+    m_blendFactor = 1.0f;
 
-    // テクスチャ生成
     g_uiTex = new Texture();
     g_uiTex->Create("Assets/UI/apple.jpg");
 }
@@ -74,36 +74,66 @@ void SceneBlank::Update(float tick)
     if (player) {
         player->Update(tick);
 
-        // 変更: 状態遷移とブレンド率の更新ロジック
-        // プレイヤーの速度から目標となる状態を決定
+        // プレイヤーの向きと移動方向から状態を決定する
         Vector3 velocity = player->GetVelocity();
-        PlayerState targetState = (fabs(velocity.x) > 0.0f || fabs(velocity.z) > 0.0f) ? PlayerState::WALKING : PlayerState::IDLE;
+        Vector3 rotation = player->GetRotation();
+        PlayerState targetState = PlayerState::IDLE;
 
-        // 目標のアニメーション名を取得
-        const char* targetAnimName = (targetState == PlayerState::WALKING) ? "Walk" : "Idle";
+        // 水平方向の移動があるかチェック
+        if (Vector2(velocity.x, velocity.z).LengthSquared() > 0.01f)
+        {
+            // プレイヤーの前方ベクトルを計算
+            Matrix rotMat = Matrix::CreateRotationY(rotation.y);
+            // 変更: モデルの向きに合わせて前方ベクトルを-Z軸にする
+            Vector3 forward = Vector3::Transform(Vector3(0.0f, 0.0f, -1.0f), rotMat);
 
-        // 現在再生中のアニメーションと目標が違う場合、遷移処理を開始
+            // 移動方向ベクトル（y軸を無視して正規化）
+            Vector3 moveDir = velocity;
+            moveDir.y = 0.0f;
+            moveDir.Normalize();
+
+            // 前方ベクトルと移動方向ベクトルの内積を計算
+            float dot = forward.Dot(moveDir);
+
+            if (dot > 0.5f) // 概ね前方に移動している
+            {
+                targetState = PlayerState::WALKING;
+            }
+            else if (dot < -0.5f) // 概ね後方に移動している
+            {
+                targetState = PlayerState::WALKING_BACK;
+            }
+            else // 横方向の移動は、いったん前進として扱う
+            {
+                targetState = PlayerState::WALKING;
+            }
+        }
+
+        // 状態からアニメーション名を決定
+        const char* targetAnimName = "Idle";
+        switch (targetState)
+        {
+        case PlayerState::WALKING:      targetAnimName = "Walk"; break;
+        case PlayerState::WALKING_BACK: targetAnimName = "WalkBack"; break;
+        }
+
+        // 遷移処理
         if (strcmp(m_currentState.name, targetAnimName) != 0)
         {
-            m_previousState = m_currentState;     // 今の状態を過去の状態として保存
-            m_currentState.name = targetAnimName; // 新しい状態を設定
-            m_currentState.frame = 0;             // 新しいアニメーションは最初から再生
-            m_blendFactor = 0.0f;                 // ブレンドを開始
+            m_previousState = m_currentState;
+            m_currentState.name = targetAnimName;
+            m_currentState.frame = 0;
+            m_blendFactor = 0.0f;
         }
 
         // ブレンド率を更新
         if (m_blendFactor < 1.0f)
         {
             m_blendFactor += tick / m_transitionDuration;
-            if (m_blendFactor > 1.0f)
-            {
-                m_blendFactor = 1.0f;
-            }
+            if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
         }
 
-        // 現在のアニメーションのフレームを更新
         m_currentState.frame++;
-        // 遷移中のアニメーション（前のアニメーション）はフレームを固定するため更新しない
     }
 }
 
@@ -148,7 +178,6 @@ void SceneBlank::Draw()
         shader[1]->WriteBuffer(0, light);
         shader[1]->WriteBuffer(1, camera);
 
-        // 変更: 新しいブレンド用関数を呼び出す
         player->GetModel()->UpdateWithBlend(
             m_currentState.name, m_currentState.frame,
             m_previousState.name, m_previousState.frame,
@@ -156,12 +185,12 @@ void SceneBlank::Draw()
 
         player->SetVertexShader(shader[0]);
         player->SetPixelShader(shader[1]);
-
         player->Draw();
         player->DrawBoundingBox();
     }
 
-    // --- UI描画 ---
+    // --- ここからUI描画 ----
+    // 画面サイズ（例: 1280x720）に合わせて右上に配置
     constexpr float screenWidth = 1280.0f;
     constexpr float screenHeight = 720.0f;
     float uiWidth = 200.0f;
@@ -169,6 +198,7 @@ void SceneBlank::Draw()
     float x = screenWidth - uiWidth - 20.0f;
     float y = 20.0f;
 
+    // ピクセル→NDC変換
     float ndcX = (x / screenWidth) * 2.0f - 1.0f;
     float ndcY = 1.0f - (y / screenHeight) * 2.0f;
     float ndcW = (uiWidth / screenWidth) * 2.0f;

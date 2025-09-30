@@ -47,14 +47,14 @@ Model* Player::GetModel()
 
 void Player::Update(float tick)
 {
-    // 変更: 毎フレーム、水平方向の速度をリセット
+    //  毎フレーム、水平方向の速度をリセット
     m_velocity.x = 0.0f;
     m_velocity.z = 0.0f;
 
     // 右クリック中は移動しない
     if (!IsKeyPress(VK_RBUTTON)) {
-        float speed = 5.0f; // 変更: tickを乗算する前の基本速度
-        // 変更: 位置を直接変更せず、速度を設定する
+        float speed = 2.0f; // tickを乗算する前の基本速度
+        //位置を直接変更せず、速度を設定する
         if (IsKeyPress('A')) m_velocity.x = -speed;
         if (IsKeyPress('D')) m_velocity.x = speed;
 
@@ -69,7 +69,7 @@ void Player::Update(float tick)
         m_velocity.y -= 18.0f * tick; // 重力加速度
     }
 
-    // 変更: 最終的な速度を元に位置を更新
+    // 最終的な速度を元に位置を更新
     m_position.x += m_velocity.x * tick;
     m_position.y += m_velocity.y * tick;
 

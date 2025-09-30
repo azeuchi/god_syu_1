@@ -5,6 +5,15 @@
 #include <assimp/postprocess.h>
 #include <unordered_set>
 
+// Matrix::Identity の定義
+const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
+	1.f, 0.f, 0.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 0.f, 0.f, 1.f
+};
+
+
 #if _MSC_VER >= 1920
 #ifdef _DEBUG
 #pragma comment(lib, "assimp/x64/Debug/assimp-vc142-mtd.lib")
@@ -16,13 +25,6 @@
 #pragma comment(lib, "assimp/x64/Debug/assimp-vc141-mtd.lib")
 #endif
 #endif
-
-const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
-	1.f, 0.f, 0.f, 0.f,
-	0.f, 1.f, 0.f, 0.f,
-	0.f, 0.f, 1.f, 0.f,
-	0.f, 0.f, 0.f, 1.f
-};
 
 std::shared_ptr<VertexShader> Model::m_defVS = nullptr;
 std::shared_ptr<PixelShader> Model::m_defPS = nullptr;
@@ -363,35 +365,29 @@ void Model::CreateBone(const aiNode* node)
 
 }
 
-// 変更: この関数はブレンド関数のラッパー（簡易版）として機能するように変更
 void Model::UpdateAnimation(const char* AnimationName, int Frame)
 {
 	UpdateWithBlend(AnimationName, Frame, AnimationName, Frame, 1.0f);
 }
 
-// 追加: アニメーションをブレンドして更新する
 void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor)
 {
-	// ブレンド率が1.0以上なら、新しいアニメーションだけを計算すればよい
 	if (blendFactor >= 1.0f)
 	{
 		CalculateAnimationPose(newAnimName, newFrame, m_bonecombmtxcontainer);
 	}
 	else
 	{
-		// 新旧両方のアニメーション姿勢を計算
 		std::vector<Matrix> newPose, oldPose;
 		CalculateAnimationPose(newAnimName, newFrame, newPose);
 		CalculateAnimationPose(oldAnimName, oldFrame, oldPose);
 
 		if (newPose.empty() || oldPose.empty() || newPose.size() != oldPose.size())
 		{
-			// どちらかの計算に失敗したら、新しいポーズをそのまま使う
 			m_bonecombmtxcontainer = newPose;
 		}
 		else
 		{
-			// 両方のポーズを補間（ブレンド）する
 			size_t boneCount = newPose.size();
 			m_bonecombmtxcontainer.resize(boneCount);
 
@@ -403,12 +399,16 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 				oldPose[i].Decompose(oldScale, oldRot, oldTrans);
 				newPose[i].Decompose(newScale, newRot, newTrans);
 
-				// 各要素を線形補間（回転は球面線形補間）
 				Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
 				Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
+
+				// 変更: クォータニオンのドット積を確認し、値が負なら片方を反転させて最短経路で補間するようにする
+				if (oldRot.Dot(newRot) < 0.0f)
+				{
+					newRot = -newRot;
+				}
 				Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
 
-				// 補間結果から最終的な行列を再合成
 				m_bonecombmtxcontainer[i] = Matrix::CreateScale(finalScale) *
 					Matrix::CreateFromQuaternion(finalRot) *
 					Matrix::CreateTranslation(finalTrans);
@@ -416,7 +416,6 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 		}
 	}
 
-	// 転置して定数バッファに書き込む
 	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		bcmtx.Transpose();
@@ -424,10 +423,8 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	BoneUpdate();
 }
 
-// 追加: 特定のアニメーション・フレームのボーン姿勢を計算する
 void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
 {
-	// 1. アニメーションデータを特定する
 	aiAnimation* animation = nullptr;
 	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
 	{
@@ -440,11 +437,10 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 	}
 	if (!animation) return;
 
-	// 2. 各ボーンのローカルなアニメーション行列を計算する
 	std::vector<Matrix> animMatrices(m_Bone.size());
 	for (auto& boneData : m_Bone)
 	{
-		animMatrices[boneData.second.idx] = Matrix::Identity; // いったん単位行列で初期化
+		animMatrices[boneData.second.idx] = Matrix::Identity;
 	}
 
 	for (unsigned int c = 0; c < animation->mNumChannels; c++)
@@ -460,8 +456,8 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 		int posFrame = frame % nodeAnim->mNumPositionKeys;
 		aiVector3D pos = nodeAnim->mPositionKeys[posFrame].mValue;
 
-		int scaleFrame = frame % nodeAnim->mNumScalingKeys;
-		aiVector3D scale = nodeAnim->mScalingKeys[scaleFrame].mValue;
+		int scaleFrame = (nodeAnim->mNumScalingKeys > 0) ? (frame % nodeAnim->mNumScalingKeys) : 0;
+		aiVector3D scale = (nodeAnim->mNumScalingKeys > 0) ? nodeAnim->mScalingKeys[scaleFrame].mValue : aiVector3D(1.0f, 1.0f, 1.0f);
 
 		Matrix scaleMat = Matrix::CreateScale(scale.x, scale.y, scale.z);
 		Matrix rotMat = Matrix::CreateFromQuaternion({ rot.x, rot.y, rot.z, rot.w });
@@ -470,13 +466,11 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 		animMatrices[bone->idx] = scaleMat * rotMat * transMat;
 	}
 
-	// 3. 再帰的に親子関係を辿って最終的な行列を計算する
 	outPose.resize(m_Bone.size());
 	Matrix rootMatrix = Matrix::Identity;
 	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, animMatrices, outPose);
 }
 
-// 追加: CalculateAnimationPose内で使用する再帰関数
 void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose)
 {
 	std::string nodeName = node->mName.C_Str();
@@ -485,7 +479,7 @@ void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& paren
 	if (m_Bone.count(nodeName) > 0)
 	{
 		int boneIdx = m_Bone[nodeName].idx;
-		nodeTransform = animMatrices[boneIdx]; // アニメーションデータがあればそちらを優先
+		nodeTransform = animMatrices[boneIdx];
 	}
 
 	Matrix globalTransform = nodeTransform * parentMatrix;
