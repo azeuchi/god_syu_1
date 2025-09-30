@@ -57,29 +57,27 @@ public:
 		const void* idx;
 	};
 
-	// ウェイト情報　
 	struct WEIGHT {
-		std::string bonename;						// ボーン名
-		std::string meshname;						// メッシュ名
-		float weight;								// ウェイト値
-		int	vertexindex;							// 頂点インデックス
+		std::string bonename;
+		std::string meshname;
+		float weight;
+		int	vertexindex;
 	};
 
-	//ボーン構造体
 	struct BONE
 	{
-		std::string Bonename;						// ボーン名
-		std::string Meshname;						// メッシュ名
-		std::string Armaturename;					// アーマチュア名
+		std::string Bonename;
+		std::string Meshname;
+		std::string Armaturename;
 		SimpleMath::Matrix Matrix;
 		SimpleMath::Matrix AnimationMatrix;
 		SimpleMath::Matrix OffsetMatrix;
 		int			idx;
-		std::vector<WEIGHT> weights;				// このボーンが影響を与える頂点インデックス・ウェイト値
+		std::vector<WEIGHT> weights;
 	};
 
 	struct CBBoneCombMatrix {
-		XMFLOAT4X4 BoneCombMtx[400];						// ボーンコンビネーション行列
+		XMFLOAT4X4 BoneCombMtx[400];
 	};
 public:
 	Model();
@@ -95,6 +93,10 @@ public:
 	void Draw(int texSlot = 0);
 
 	void UpdateAnimation(const char* AnimationName, int Frame);
+
+	// 追加: アニメーションをブレンドするための関数
+	void UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor);
+
 	void UpdateBoneMatrix(const aiNode* node, const Matrix& matrix);
 
 	void RemakeVertex(int vtxSize, const std::function<void(RemakeInfo& data)>& func);
@@ -105,22 +107,28 @@ public:
 private:
 	void MakeDefaultShader();
 	bool CreateConstantBufferWrite(
-		ID3D11Device* device,					// デバイスオブジェクト
-		unsigned int bytesize,					// コンスタントバッファサイズ
-		ID3D11Buffer** pConstantBuffer			// コンスタントバッファ
+		ID3D11Device* device,
+		unsigned int bytesize,
+		ID3D11Buffer** pConstantBuffer
 	);
 	std::vector<BONE> GetBoneInfo(const aiMesh* mesh);
 	DirectX::SimpleMath::Matrix aiMtxToDxMtx(const aiMatrix4x4& aimatrix);
 
-private:
-	Assimp::Importer* importer = nullptr;					// assimpの設定
-	const aiScene* m_pScene = nullptr;						// ロード済みモデル情報
-	static std::shared_ptr<VertexShader> m_defVS;			// 頂点シェーダー
-	static std::shared_ptr<PixelShader> m_defPS;			// ピクセルシェーダー
-	std::vector<Matrix> m_bonecombmtxcontainer;				// ボーンコンビネーション行列の配列
+	// 追加: 特定のアニメーション・フレームのボーン姿勢を計算するヘルパー関数
+	void CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose);
+	// 追加: ↑の関数内で使う再帰関数
+	void CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose);
 
-	std::unordered_map<std::string, BONE> m_Bone;			// ボーンデータ（名前で参照）
-	ID3D11Buffer* m_BoneCombMtxCBuffer = nullptr;						// 定数バッファ
+
+private:
+	Assimp::Importer* importer = nullptr;
+	const aiScene* m_pScene = nullptr;
+	static std::shared_ptr<VertexShader> m_defVS;
+	static std::shared_ptr<PixelShader> m_defPS;
+	std::vector<Matrix> m_bonecombmtxcontainer;
+
+	std::unordered_map<std::string, BONE> m_Bone;
+	ID3D11Buffer* m_BoneCombMtxCBuffer = nullptr;
 	std::unordered_map<std::string, const aiScene*> m_Animation;
 
 private:
@@ -128,7 +136,7 @@ private:
 	Materials m_materials;
 	VertexShader* m_pVS;
 	PixelShader* m_pPS;
-	float m_scaleBase = 1.0f;		// モデルのスケール倍率 座標変換時に扱うのでmodelクラス内では現状扱わない
+	float m_scaleBase = 1.0f;
 	char* filepath;
 };
 

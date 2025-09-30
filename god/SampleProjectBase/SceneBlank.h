@@ -5,7 +5,7 @@
 #include "Ball.h"
 #include <vector>
 
-// プレイヤーの状態を定義するenum
+//変更: プレイヤーの状態enumはシンプルに
 enum class PlayerState
 {
 	IDLE,
@@ -20,12 +20,19 @@ public:
 	void Update(float tick);
 	void Draw();
 private:
-	//各アニメーションのフレーム数を管理する変数に変更
-	int m_idleFrame = 0;
-	int m_walkFrame = 0;
+	// アニメーションの状態を管理する構造体
+	struct AnimationState
+	{
+		const char* name = nullptr;
+		int frame = 0;
+	};
 
-	// プレイヤーの現在の状態を保持する変数
-	PlayerState m_playerState = PlayerState::IDLE;
+	// アニメーション管理変数を刷新
+	AnimationState m_currentState;      // 現在のアニメーション
+	AnimationState m_previousState;     // 遷移前のアニメーション
+
+	float m_blendFactor = 1.0f;         // ブレンド率 (0.0: previous -> 1.0: current)
+	const float m_transitionDuration = 0.2f; // アニメーション遷移にかかる時間（秒）
 };
 
 #endif // __SCENE_BLANK_H___

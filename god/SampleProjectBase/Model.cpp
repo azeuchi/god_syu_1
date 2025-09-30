@@ -17,6 +17,13 @@
 #endif
 #endif
 
+const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
+	1.f, 0.f, 0.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 0.f, 0.f, 1.f
+};
+
 std::shared_ptr<VertexShader> Model::m_defVS = nullptr;
 std::shared_ptr<PixelShader> Model::m_defPS = nullptr;
 
@@ -24,7 +31,7 @@ Model::Model()
 	: m_pVS(nullptr)
 	, m_pPS(nullptr)
 {
-	if (!m_defVS && !m_defPS) // どちらもnullptr
+	if (!m_defVS && !m_defPS)
 	{
 		MakeDefaultShader();
 	}
@@ -33,10 +40,7 @@ Model::Model()
 	importer = new Assimp::Importer();
 }
 Model::~Model() {
-	// Assimp Importerの解放
 	delete importer;
-
-	// LoadAnimationで読み込んだaiSceneを解放
 	for (auto& anim : m_Animation)
 	{
 		aiReleaseImport(anim.second);
@@ -80,20 +84,19 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 	int flag = 0;
 	if (simpleMode)
 	{
-		flag |= aiProcess_Triangulate;					// 非三角ポリゴンを三角に割る
-		flag |= aiProcess_JoinIdenticalVertices;		// 同一位置頂点を一つに統合する
-		flag |= aiProcess_FlipUVs;						//　UV値をY軸を基準に反転させる
-		flag |= aiProcess_PreTransformVertices;			// ノードを一つに統合 !!アニメーション情報が消えることに注意!!
-		if (flip) flag |= aiProcess_MakeLeftHanded;		// 左手系座標に変換
+		flag |= aiProcess_Triangulate;
+		flag |= aiProcess_JoinIdenticalVertices;
+		flag |= aiProcess_FlipUVs;
+		flag |= aiProcess_PreTransformVertices;
+		if (flip) flag |= aiProcess_MakeLeftHanded;
 	}
 	else
 	{
-		flag |= aiProcessPreset_TargetRealtime_MaxQuality;	// リアルタイム レンダリング用にデータを最適化するデフォルトの後処理構成。
-		flag |= aiProcess_PopulateArmatureData;				// 標準的なボーン,アーマチュアの設定
-		if (flip) flag |= aiProcess_ConvertToLeftHanded;	// 左手系変更オプションがまとまったもの
+		flag |= aiProcessPreset_TargetRealtime_MaxQuality;
+		flag |= aiProcess_PopulateArmatureData;
+		if (flip) flag |= aiProcess_ConvertToLeftHanded;
 	}
 
-	// assimpで読み込み
 	m_pScene = importer->ReadFile(file, flag);
 	if (!m_pScene) {
 		Error(importer->GetErrorString());
@@ -102,35 +105,28 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 	}
 	assert(m_pScene);
 
-	// ボーン情報配列準備
 	DebugLog::log(DebugLog::INFO_LOG, "ボーン情報配列準備");
 	CreateBone(m_pScene->mRootNode);
 
-	// ボーンの配列インデックスを格納する
 	unsigned int num = 0;
 	for (auto& data : m_Bone) {
 		data.second.idx = num;
 		num++;
 	}
 
-	// メッシュの作成
 	aiVector3D zero(0.0f, 0.0f, 0.0f);
 	for (unsigned int i = 0; i < m_pScene->mNumMeshes; ++i)
 	{
 		Mesh mesh = {};
-
-		// 頂点の作成
 		std::vector<Vertex> vtx;
 		vtx.resize(m_pScene->mMeshes[i]->mNumVertices);
 		for (unsigned int j = 0; j < vtx.size(); ++j)
 		{
-			// 値の吸出し
 			aiVector3D pos = m_pScene->mMeshes[i]->mVertices[j];
 			aiVector3D uv = m_pScene->mMeshes[i]->HasTextureCoords(0) ?
 				m_pScene->mMeshes[i]->mTextureCoords[0][j] : zero;
 			aiVector3D normal = m_pScene->mMeshes[i]->HasNormals() ?
 				m_pScene->mMeshes[i]->mNormals[j] : zero;
-			// 値を設定
 			vtx[j] = {
 				DirectX::XMFLOAT3(pos.x, pos.y, pos.z),
 				DirectX::XMFLOAT3(normal.x, normal.y, normal.z),
@@ -140,26 +136,21 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 			};
 		}
 
-		// ボーン情報取得
 		std::vector<BONE> boneList = GetBoneInfo(m_pScene->mMeshes[i]);
-
-		// 頂点情報にボーン情報紐づけ
 		for (auto& bone : boneList)
 		{
 			for (auto& w : bone.weights)
 			{
 				int& idx = vtx[w.vertexindex].boneCount;
-				vtx[w.vertexindex].boneIndex[idx] = m_Bone[w.bonename].idx;		// indexをセット
-				vtx[w.vertexindex].boneWeight[idx] = w.weight;					// weight値をセット
-				//ボーンの配列番号をセット
+				vtx[w.vertexindex].boneIndex[idx] = m_Bone[w.bonename].idx;
+				vtx[w.vertexindex].boneWeight[idx] = w.weight;
 				idx++;
 				assert(idx <= 4);
 			}
 		}
 
-		// インデックスの作成
 		std::vector<unsigned int> idx;
-		idx.resize(m_pScene->mMeshes[i]->mNumFaces * 3); // faceはポリゴンの数を表す(１ポリゴンで3インデックス
+		idx.resize(m_pScene->mMeshes[i]->mNumFaces * 3);
 		for (unsigned int j = 0; j < m_pScene->mMeshes[i]->mNumFaces; ++j)
 		{
 			aiFace face = m_pScene->mMeshes[i]->mFaces[j];
@@ -169,10 +160,8 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 			idx[faceIdx + 2] = face.mIndices[2];
 		}
 
-		// マテリアルの割り当て
 		mesh.materialID = m_pScene->mMeshes[i]->mMaterialIndex;
 
-		// メッシュを元に頂点バッファ作成
 		MeshBuffer::Description desc = {};
 		desc.pVtx = vtx.data();
 		desc.vtxSize = sizeof(Vertex);
@@ -182,32 +171,23 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		desc.idxCount = static_cast<UINT>(idx.size());
 		desc.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		mesh.mesh = std::make_shared<MeshBuffer>(desc);
-
-		// メッシュ追加
 		m_meshes.push_back(mesh);
 	}
 
-	// 定数バッファ生成　20230909-02
 	CreateConstantBufferWrite(
-		GetDevice(),					// デバイスオブジェクト
-		sizeof(CBBoneCombMatrix),		// コンスタントバッファサイズ
-		&m_BoneCombMtxCBuffer);			// コンスタントバッファ
-
+		GetDevice(),
+		sizeof(CBBoneCombMatrix),
+		&m_BoneCombMtxCBuffer);
 	assert(m_BoneCombMtxCBuffer);
 
-	//--- マテリアルの作成
-	// ファイルの探索
 	std::string dir = file;
 	dir = dir.substr(0, dir.find_last_of('/') + 1);
-	// マテリアル
 	aiColor3D color(0.0f, 0.0f, 0.0f);
 	DirectX::XMFLOAT4 diffuse(1.0f, 1.0f, 1.0f, 1.0f);
 	DirectX::XMFLOAT4 ambient(0.3f, 0.3f, 0.3f, 1.0f);
 	for (unsigned int i = 0; i < m_pScene->mNumMaterials; ++i)
 	{
 		Material material = {};
-
-		// 各種パラメーター
 		float shininess;
 		material.diffuse = m_pScene->mMaterials[i]->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS ?
 			DirectX::XMFLOAT4(color.r, color.g, color.b, 1.0f) : diffuse;
@@ -217,27 +197,22 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		material.specular = m_pScene->mMaterials[i]->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS ?
 			DirectX::XMFLOAT4(color.r, color.g, color.b, shininess) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, shininess);
 
-		// テクスチャ
 		aiString path;
 		if (m_pScene->mMaterials[i]->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), path) == AI_SUCCESS) {
 			DebugLog::log(DebugLog::INFO_LOG, "Try to load texture: ", path.C_Str());
 			HRESULT hr;
-			// ファイル形式チェック
 			if (strstr(path.C_Str(), ".psd"))
 			{
 				DebugLog::log(DebugLog::ERROR_LOG, "モデルのテクスチャにpsdファイルが指定されています。psd読み込みには非対応。");
 				Error("モデルのテクスチャにpsdファイルが指定されています。psd読み込みには非対応。");
 			}
-			// そのまま探索
 			material.texture = std::make_shared<Texture>();
 			hr = material.texture->Create(path.C_Str());
-			// モデルと同じ階層を探索
 			if (FAILED(hr)) {
 				std::string file = dir;
 				file += path.C_Str();
 				hr = material.texture->Create(file.c_str());
 			}
-			// ファイル名のみで探索
 			if (FAILED(hr)) {
 				std::string file = path.C_Str();
 				if (size_t idx = file.find_last_of('\\'); idx != std::string::npos)
@@ -246,8 +221,6 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 					file = dir + file;
 					hr = material.texture->Create(file.c_str());
 				}
-
-				// ファイル目のパスが"\\ではなく"/"の場合の対応
 				if (FAILED(hr)) {
 					if (size_t idx = file.find_last_of('/'); idx != std::string::npos)
 					{
@@ -257,7 +230,6 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 					}
 				}
 			}
-			// 失敗
 			if (FAILED(hr)) {
 				Error(path.C_Str());
 				material.texture = nullptr;
@@ -267,8 +239,6 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		else {
 			material.texture = nullptr;
 		}
-
-		// マテリアル追加
 		m_materials.push_back(material);
 	}
 
@@ -281,7 +251,7 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 void Model::LoadAnimation(const char* FileName, const char* Name, bool flip)
 {
 	int flag = 0;
-	if (flip) flag |= aiProcess_ConvertToLeftHanded;	// 左手系変更オプションがまとまったもの
+	if (flip) flag |= aiProcess_ConvertToLeftHanded;
 
 	const aiScene* pAnimScene = aiImportFile(FileName, flag);
 
@@ -307,7 +277,6 @@ void Model::Draw(int texSlot)
 	m_pVS->Bind();
 	m_pPS->Bind();
 	auto it = m_meshes.begin();
-	// 20230909-02 レジスタ５にセット
 	GetContext()->VSSetConstantBuffers(5, 1, &m_BoneCombMtxCBuffer);
 	while (it != m_meshes.end())
 	{
@@ -327,7 +296,6 @@ void Model::Draw(int texSlot)
 void Model::RemakeVertex(int vtxSize, const std::function<void(RemakeInfo& data)>& func)
 {
 	auto it = m_meshes.begin();
-
 	while (it != m_meshes.end())
 	{
 		MeshBuffer::Description desc = it->mesh->GetDesc();
@@ -381,7 +349,6 @@ float4 main(PS_IN pin) : SV_TARGET
 	m_defPS->Compile(psCode);
 }
 
-// 再帰的ボーン生成
 void Model::CreateBone(const aiNode* node)
 {
 	BONE bone;
@@ -396,106 +363,145 @@ void Model::CreateBone(const aiNode* node)
 
 }
 
-// アニメーション更新
+// 変更: この関数はブレンド関数のラッパー（簡易版）として機能するように変更
 void Model::UpdateAnimation(const char* AnimationName, int Frame)
 {
-	aiAnimation* animation = nullptr;
+	UpdateWithBlend(AnimationName, Frame, AnimationName, Frame, 1.0f);
+}
 
-	// アニメーションの検索順序を変更
-	// 最初に、別ファイルから読み込んだアニメーション（m_Animation）を探す
-	if (m_Animation.count(AnimationName) > 0 && m_Animation.at(AnimationName) != nullptr)
+// 追加: アニメーションをブレンドして更新する
+void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor)
+{
+	// ブレンド率が1.0以上なら、新しいアニメーションだけを計算すればよい
+	if (blendFactor >= 1.0f)
 	{
-		if (m_Animation.at(AnimationName)->HasAnimations())
-			animation = m_Animation.at(AnimationName)->mAnimations[0];
+		CalculateAnimationPose(newAnimName, newFrame, m_bonecombmtxcontainer);
 	}
-	// m_Animationにない場合、メインシーンに埋め込まれたアニメーションをフォールバックとして探す
+	else
+	{
+		// 新旧両方のアニメーション姿勢を計算
+		std::vector<Matrix> newPose, oldPose;
+		CalculateAnimationPose(newAnimName, newFrame, newPose);
+		CalculateAnimationPose(oldAnimName, oldFrame, oldPose);
+
+		if (newPose.empty() || oldPose.empty() || newPose.size() != oldPose.size())
+		{
+			// どちらかの計算に失敗したら、新しいポーズをそのまま使う
+			m_bonecombmtxcontainer = newPose;
+		}
+		else
+		{
+			// 両方のポーズを補間（ブレンド）する
+			size_t boneCount = newPose.size();
+			m_bonecombmtxcontainer.resize(boneCount);
+
+			for (size_t i = 0; i < boneCount; ++i)
+			{
+				Vector3 oldScale, oldTrans, newScale, newTrans;
+				Quaternion oldRot, newRot;
+
+				oldPose[i].Decompose(oldScale, oldRot, oldTrans);
+				newPose[i].Decompose(newScale, newRot, newTrans);
+
+				// 各要素を線形補間（回転は球面線形補間）
+				Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
+				Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
+				Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
+
+				// 補間結果から最終的な行列を再合成
+				m_bonecombmtxcontainer[i] = Matrix::CreateScale(finalScale) *
+					Matrix::CreateFromQuaternion(finalRot) *
+					Matrix::CreateTranslation(finalTrans);
+			}
+		}
+	}
+
+	// 転置して定数バッファに書き込む
+	for (auto& bcmtx : m_bonecombmtxcontainer)
+	{
+		bcmtx.Transpose();
+	}
+	BoneUpdate();
+}
+
+// 追加: 特定のアニメーション・フレームのボーン姿勢を計算する
+void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
+{
+	// 1. アニメーションデータを特定する
+	aiAnimation* animation = nullptr;
+	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
+	{
+		if (m_Animation.at(animName)->HasAnimations())
+			animation = m_Animation.at(animName)->mAnimations[0];
+	}
 	else if (m_pScene && m_pScene->HasAnimations())
 	{
-		// FBX内の最初のアニメーションを再生する
 		animation = m_pScene->mAnimations[0];
 	}
+	if (!animation) return;
 
-	// どちらの方法でもアニメーションが見つからなければ処理を中断
-	if (!animation)
+	// 2. 各ボーンのローカルなアニメーション行列を計算する
+	std::vector<Matrix> animMatrices(m_Bone.size());
+	for (auto& boneData : m_Bone)
 	{
-		return;
+		animMatrices[boneData.second.idx] = Matrix::Identity; // いったん単位行列で初期化
 	}
 
-	Matrix rootMatrix;
-	// SRTから行列を生成
-	Vector3 scale = { 1.0f, 1.0f, 1.0f };		// 20231231 DX化
-	Vector3 position = { 0.0f, 0.0f, 0.0f };	// 20231231 DX化
-	Quaternion rotation;						// 20231231 DX化
-	rotation.x = 0.0f;							// 20231231 DX化
-	rotation.y = 0.0f;							// 20231231 DX化
-	rotation.z = 0.0f;							// 20231231 DX化
-	rotation.w = 1.0f;							// 20231231 DX化
-
-	Matrix scalemtx = Matrix::CreateScale(scale.x, scale.y, scale.z);					// 20231231 DX化
-	Matrix rotmtx = Matrix::CreateFromQuaternion(rotation);								// 20231231 DX化
-	Matrix transmtx = Matrix::CreateTranslation(position.x, position.y, position.z);	// 20231231 DX化
-
-	rootMatrix = scalemtx * rotmtx * transmtx;							// 20231231 DX化
-
-	//アニメーションデータからボーンマトリクス算出
 	for (unsigned int c = 0; c < animation->mNumChannels; c++)
 	{
 		aiNodeAnim* nodeAnim = animation->mChannels[c];
-
-		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0)
-		{
-			static std::unordered_set<std::string> warnedNames;
-			if (warnedNames.find(nodeAnim->mNodeName.C_Str()) == warnedNames.end())
-			{
-				DebugLog::log(DebugLog::WARNING_LOG, "Animation bone not found in model skeleton, skipping: ", nodeAnim->mNodeName.C_Str());
-				warnedNames.insert(nodeAnim->mNodeName.C_Str());
-			}
-			continue;
-		}
+		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0) continue;
 
 		BONE* bone = &m_Bone[nodeAnim->mNodeName.C_Str()];
-		int f;
 
-		f = Frame % nodeAnim->mNumRotationKeys;				//簡易実装
-		aiQuaternion rot = nodeAnim->mRotationKeys[f].mValue;
+		int rotFrame = frame % nodeAnim->mNumRotationKeys;
+		aiQuaternion rot = nodeAnim->mRotationKeys[rotFrame].mValue;
 
-		f = Frame % nodeAnim->mNumPositionKeys;				//簡易実装
-		aiVector3D pos = nodeAnim->mPositionKeys[f].mValue;
+		int posFrame = frame % nodeAnim->mNumPositionKeys;
+		aiVector3D pos = nodeAnim->mPositionKeys[posFrame].mValue;
 
-		// SRTから行列を生成
-		Vector3 scale = { 1.0f, 1.0f, 1.0f };				// 20231231 DX化
-		Vector3 position = { pos.x, pos.y, pos.z };			// 20231231 DX化
-		Quaternion rotation;								// 20231231 DX化
-		rotation.x = rot.x;									// 20231231 DX化
-		rotation.y = rot.y;									// 20231231 DX化
-		rotation.z = rot.z;									// 20231231 DX化
-		rotation.w = rot.w;									// 20231231 DX化
+		int scaleFrame = frame % nodeAnim->mNumScalingKeys;
+		aiVector3D scale = nodeAnim->mScalingKeys[scaleFrame].mValue;
 
-		Matrix scalemtx = Matrix::CreateScale(scale.x, scale.y, scale.z);					// 20231231 DX化
-		Matrix rotmtx = Matrix::CreateFromQuaternion(rotation);								// 20231231 DX化
-		Matrix transmtx = Matrix::CreateTranslation(position.x, position.y, position.z);	// 20231231 DX化
+		Matrix scaleMat = Matrix::CreateScale(scale.x, scale.y, scale.z);
+		Matrix rotMat = Matrix::CreateFromQuaternion({ rot.x, rot.y, rot.z, rot.w });
+		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 
-		bone->AnimationMatrix = scalemtx * rotmtx * transmtx;								// 20231231 DX化
+		animMatrices[bone->idx] = scaleMat * rotMat * transMat;
 	}
 
-	UpdateBoneMatrix(m_pScene->mRootNode, rootMatrix);
-
-	// 定数バッファに書き込むための情報を生成
-	m_bonecombmtxcontainer.clear();
-	m_bonecombmtxcontainer.resize(m_Bone.size());
-	for (auto data : m_Bone) {
-		m_bonecombmtxcontainer[data.second.idx] = data.second.Matrix;
-	}
-
-	// 20230909 転置
-	for (auto& bcmtx : m_bonecombmtxcontainer)
-	{
-		// 転置する
-		bcmtx.Transpose();
-	}
-
-	BoneUpdate();
+	// 3. 再帰的に親子関係を辿って最終的な行列を計算する
+	outPose.resize(m_Bone.size());
+	Matrix rootMatrix = Matrix::Identity;
+	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, animMatrices, outPose);
 }
+
+// 追加: CalculateAnimationPose内で使用する再帰関数
+void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose)
+{
+	std::string nodeName = node->mName.C_Str();
+	Matrix nodeTransform = aiMtxToDxMtx(node->mTransformation);
+
+	if (m_Bone.count(nodeName) > 0)
+	{
+		int boneIdx = m_Bone[nodeName].idx;
+		nodeTransform = animMatrices[boneIdx]; // アニメーションデータがあればそちらを優先
+	}
+
+	Matrix globalTransform = nodeTransform * parentMatrix;
+
+	if (m_Bone.count(nodeName) > 0)
+	{
+		int boneIdx = m_Bone[nodeName].idx;
+		outPose[boneIdx] = m_Bone[nodeName].OffsetMatrix * globalTransform;
+	}
+
+	for (unsigned int i = 0; i < node->mNumChildren; ++i)
+	{
+		CalculateBoneMatrixRecursive(node->mChildren[i], globalTransform, animMatrices, outPose);
+	}
+}
+
 
 void Model::UpdateBoneMatrix(const aiNode* node, const Matrix& matrix)
 {
@@ -505,17 +511,9 @@ void Model::UpdateBoneMatrix(const aiNode* node, const Matrix& matrix)
 		Error("ノード(ボーン)名が取得できていないorない");
 		return;
 	}
-	// 引数で渡されたノード名をキーとしてボーン情報を取得する
 	BONE* bone = &m_Bone[node->mName.C_Str()];
-
-	//マトリクスの乗算順番に注意
-
-	// ボーンコンビネーション行列生成				
-	Matrix bonecombinationmtx = bone->OffsetMatrix * bone->AnimationMatrix * matrix;	// ボーンオフセット行列×ボーンアニメメーション行列×逆ボーンオフセット行列
-
-	bone->Matrix = bonecombinationmtx;			// ボーンコンビネーション行列をボーン情報に反映させる
-
-	// 自分の姿勢を表す行列を作成
+	Matrix bonecombinationmtx = bone->OffsetMatrix * bone->AnimationMatrix * matrix;
+	bone->Matrix = bonecombinationmtx;
 	Matrix mybonemtx = bone->AnimationMatrix * matrix;
 
 	for (unsigned int n = 0; n < node->mNumChildren; n++)
@@ -524,23 +522,18 @@ void Model::UpdateBoneMatrix(const aiNode* node, const Matrix& matrix)
 	}
 }
 
-/*----------------------------
-コンスタントバッファを作成(MAPで書き換え可能)
-------------------------------*/
 bool  Model::CreateConstantBufferWrite(
-	ID3D11Device* device,					// デバイスオブジェクト
-	unsigned int bytesize,					// コンスタントバッファサイズ
-	ID3D11Buffer** pConstantBuffer			// コンスタントバッファ
+	ID3D11Device* device,
+	unsigned int bytesize,
+	ID3D11Buffer** pConstantBuffer
 ) {
 
-	// コンスタントバッファ生成
 	D3D11_BUFFER_DESC bd;
-
 	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DYNAMIC;							// バッファ使用方法
-	bd.ByteWidth = bytesize;								// バッファの大き
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;				// コンスタントバッファ
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;				// CPUアクセス可能
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = bytesize;
+	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 	HRESULT hr = device->CreateBuffer(&bd, nullptr, pConstantBuffer);
 	if (FAILED(hr)) {
@@ -551,13 +544,8 @@ bool  Model::CreateConstantBufferWrite(
 	return true;
 }
 
-// ボーンコンビネーション行列バッファ格納
 void Model::BoneUpdate()
 {
-	// メッシュから更新されたボーンコンビネーション行列群を取得
-	const std::vector<Matrix> mtxcontainer = m_bonecombmtxcontainer;			// 20231231 DX化
-
-	// 定数バッファ更新
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
 	CBBoneCombMatrix* pData = nullptr;
 
@@ -570,26 +558,22 @@ void Model::BoneUpdate()
 
 	if (SUCCEEDED(hr)) {
 		pData = (CBBoneCombMatrix*)MappedResource.pData;
-		memcpy(pData->BoneCombMtx,
-			mtxcontainer.data(),
-			sizeof(Matrix) * mtxcontainer.size());									// 20231231 DX化
+		if (!m_bonecombmtxcontainer.empty())
+		{
+			memcpy(pData->BoneCombMtx,
+				m_bonecombmtxcontainer.data(),
+				sizeof(Matrix) * m_bonecombmtxcontainer.size());
+		}
 		GetContext()->Unmap(m_BoneCombMtxCBuffer, 0);
 	}
 }
 
-// サブセットに紐づいているボーン情報を取得する
 std::vector<Model::BONE> Model::GetBoneInfo(const aiMesh* mesh) {
 
-	std::vector<BONE> bones;		// このサブセットメッシュで使用されているボーンコンテナ
-
-	// ボーン数分ループ
+	std::vector<BONE> bones;
 	for (unsigned int bidx = 0; bidx < mesh->mNumBones; bidx++) {
-
 		BONE bone{};
-
-		// ボーン名取得
 		bone.Bonename = std::string(mesh->mBones[bidx]->mName.C_Str());
-		// メッシュノード名
 		if (mesh->mBones[bidx]->mNode != nullptr)
 		{
 			bone.Meshname = std::string(mesh->mBones[bidx]->mNode->mName.C_Str());
@@ -597,8 +581,6 @@ std::vector<Model::BONE> Model::GetBoneInfo(const aiMesh* mesh) {
 		else {
 			DebugLog::log(DebugLog::WARNING_LOG, "ノード情報がNULL");
 		}
-
-		// アーマチュアノード名
 		if (mesh->mBones[bidx]->mArmature != nullptr)
 		{
 			bone.Armaturename = std::string(mesh->mBones[bidx]->mArmature->mName.C_Str());
@@ -606,30 +588,20 @@ std::vector<Model::BONE> Model::GetBoneInfo(const aiMesh* mesh) {
 		else {
 			DebugLog::log(DebugLog::WARNING_LOG, "アーマチュア情報がNULL");
 		}
-		// ボーンオフセット行列取得
 		bone.OffsetMatrix = aiMtxToDxMtx(mesh->mBones[bidx]->mOffsetMatrix);
-
-		// ウェイト情報抽出
 		bone.weights.clear();
 		for (unsigned int widx = 0; widx < mesh->mBones[bidx]->mNumWeights; widx++) {
 
 			WEIGHT w;
-			w.meshname = bone.Meshname;										// メッシュ名
-			w.bonename = bone.Bonename;										// ボーン名
-
-			w.weight = mesh->mBones[bidx]->mWeights[widx].mWeight;			// 重み
-			w.vertexindex = mesh->mBones[bidx]->mWeights[widx].mVertexId;	// 頂点インデックス
+			w.meshname = bone.Meshname;
+			w.bonename = bone.Bonename;
+			w.weight = mesh->mBones[bidx]->mWeights[widx].mWeight;
+			w.vertexindex = mesh->mBones[bidx]->mWeights[widx].mVertexId;
 			bone.weights.emplace_back(w);
 		}
-
-		// コンテナに登録
 		bones.emplace_back(bone);
-
-		// ボーン辞書にも反映させる
-		m_Bone[mesh->mBones[bidx]->mName.C_Str()].OffsetMatrix = aiMtxToDxMtx(mesh->mBones[bidx]->mOffsetMatrix);   // 20231231 DX化
-
+		m_Bone[mesh->mBones[bidx]->mName.C_Str()].OffsetMatrix = aiMtxToDxMtx(mesh->mBones[bidx]->mOffsetMatrix);
 	}
-
 	return bones;
 }
 
@@ -644,8 +616,6 @@ float Model::GetScaleBase()
 	return m_scaleBase;
 }
 
-
-// assimp行列をDIRECTXの行列に変換する
 DirectX::SimpleMath::Matrix Model::aiMtxToDxMtx(const aiMatrix4x4& aimatrix) {
 
 	DirectX::SimpleMath::Matrix dxmtx = {
@@ -654,6 +624,5 @@ DirectX::SimpleMath::Matrix Model::aiMtxToDxMtx(const aiMatrix4x4& aimatrix) {
 	   aimatrix.a3,aimatrix.b3,aimatrix.c3,aimatrix.d3,
 	   aimatrix.a4,aimatrix.b4,aimatrix.c4,aimatrix.d4
 	};
-
 	return dxmtx;
 }

@@ -42,19 +42,18 @@ void SceneBlank::Init()
     // アイドルアニメーション（モデルの基本情報として）の読み込み
     if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
     {
-        // 読み込みに失敗した場合
         MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。\nファイルパスやファイル名を確認してください。", "Model Load Error", MB_OK);
     }
-
-    // 追加: 歩行アニメーションの読み込み
     player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 
     // 初期位置・回転
     player->SetPosition({ 0.0f, 0.0f, 0.0f });
     player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 
-    // 追加: プレイヤーステートの初期化
-    m_playerState = PlayerState::IDLE;
+    // 追加: アニメーションの初期状態を設定
+    m_currentState = { "Idle", 0 };
+    m_previousState = { "Idle", 0 }; // 最初はどちらもアイドル
+    m_blendFactor = 1.0f;            // ブレンドはしない
 
     // テクスチャ生成
     g_uiTex = new Texture();
@@ -71,42 +70,40 @@ void SceneBlank::Uninit()
 
 void SceneBlank::Update(float tick)
 {
-    // プレイヤー操作
     Player* player = GetObj<Player>("Player");
     if (player) {
         player->Update(tick);
 
-        // 変更: プレイヤーの状態遷移とフレーム更新のロジック
-        PlayerState oldState = m_playerState;
-
-        // プレイヤーの移動速度などをチェックして状態を決定する (今回は速度のX,Z成分で判定)
+        // 変更: 状態遷移とブレンド率の更新ロジック
+        // プレイヤーの速度から目標となる状態を決定
         Vector3 velocity = player->GetVelocity();
-        if (fabs(velocity.x) > 0.0f || fabs(velocity.z) > 0.0f)
+        PlayerState targetState = (fabs(velocity.x) > 0.0f || fabs(velocity.z) > 0.0f) ? PlayerState::WALKING : PlayerState::IDLE;
+
+        // 目標のアニメーション名を取得
+        const char* targetAnimName = (targetState == PlayerState::WALKING) ? "Walk" : "Idle";
+
+        // 現在再生中のアニメーションと目標が違う場合、遷移処理を開始
+        if (strcmp(m_currentState.name, targetAnimName) != 0)
         {
-            m_playerState = PlayerState::WALKING;
-        }
-        else
-        {
-            m_playerState = PlayerState::IDLE;
+            m_previousState = m_currentState;     // 今の状態を過去の状態として保存
+            m_currentState.name = targetAnimName; // 新しい状態を設定
+            m_currentState.frame = 0;             // 新しいアニメーションは最初から再生
+            m_blendFactor = 0.0f;                 // ブレンドを開始
         }
 
-        // 状態が切り替わった瞬間に、新しいアニメーションのフレームをリセット
-        if (oldState != m_playerState)
+        // ブレンド率を更新
+        if (m_blendFactor < 1.0f)
         {
-            if (m_playerState == PlayerState::IDLE) m_idleFrame = 0;
-            if (m_playerState == PlayerState::WALKING) m_walkFrame = 0;
+            m_blendFactor += tick / m_transitionDuration;
+            if (m_blendFactor > 1.0f)
+            {
+                m_blendFactor = 1.0f;
+            }
         }
 
-        // 現在の状態に応じてフレームを更新
-        switch (m_playerState)
-        {
-        case PlayerState::IDLE:
-            m_idleFrame++;
-            break;
-        case PlayerState::WALKING:
-            m_walkFrame++;
-            break;
-        }
+        // 現在のアニメーションのフレームを更新
+        m_currentState.frame++;
+        // 遷移中のアニメーション（前のアニメーション）はフレームを固定するため更新しない
     }
 }
 
@@ -116,7 +113,6 @@ void SceneBlank::Draw()
     LightBase* pLight = GetObj<LightBase>("Light");
     Player* player = GetObj<Player>("Player");
 
-    // 行列・ライト・カメラ情報
     DirectX::XMFLOAT4X4 mat[3];
     DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixIdentity());
     mat[1] = pCamera->GetView();
@@ -133,57 +129,39 @@ void SceneBlank::Draw()
         {camPos.x, camPos.y, camPos.z, 0.0f}
     };
 
-    // シェーダーの取得 (アニメーション対応シェーダーを取得)
     Shader* shader[] = {
         GetObj<Shader>("VS_SkinMeshAnimation"),
         GetObj<Shader>("PS_TexColor"),
     };
 
-    // プレイヤーのワールド行列（座標反映）
     if (player) {
         XMFLOAT3 pos = player->GetPosition();
         XMFLOAT3 rot = player->GetRotation();
 
-        // ワールド行列を生成
         Matrix scaleMat = player->GetModel()->GetScaleBaseMatrix();
         Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
         Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
         Matrix world = scaleMat * rotMat * transMat;
-
-        // シェーダーに渡すために転置
         XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
 
+        shader[0]->WriteBuffer(0, mat);
+        shader[1]->WriteBuffer(0, light);
+        shader[1]->WriteBuffer(1, camera);
 
-        // 定数バッファの更新
-        shader[0]->WriteBuffer(0, mat);     // 頂点シェーダーには行列のみ渡す
-        shader[1]->WriteBuffer(0, light);   // ピクセルシェーダーにはライト情報を渡す
-        shader[1]->WriteBuffer(1, camera);  // ピクセルシェーダーにはカメラ情報を渡す
+        // 変更: 新しいブレンド用関数を呼び出す
+        player->GetModel()->UpdateWithBlend(
+            m_currentState.name, m_currentState.frame,
+            m_previousState.name, m_previousState.frame,
+            m_blendFactor);
 
-        // 変更: プレイヤーの状態に応じてアニメーションを更新
-        switch (m_playerState)
-        {
-        case PlayerState::IDLE:
-            // "Idle"という名前のアニメーションはLoadAnimationで登録していないため、
-            // モデル本体（Idle.fbx）に含まれるアニメーションが再生される
-            player->GetModel()->UpdateAnimation("Idle", m_idleFrame);
-            break;
-        case PlayerState::WALKING:
-            // "Walk"という名前で登録したアニメーションを再生する
-            player->GetModel()->UpdateAnimation("Walk", m_walkFrame);
-            break;
-        }
-
-        // シェーダーをセット
         player->SetVertexShader(shader[0]);
         player->SetPixelShader(shader[1]);
 
-        // プレイヤー描画
         player->Draw();
         player->DrawBoundingBox();
     }
 
-    // --- ここからUI描画 ----
-    // 画面サイズ（例: 1280x720）に合わせて右上に配置
+    // --- UI描画 ---
     constexpr float screenWidth = 1280.0f;
     constexpr float screenHeight = 720.0f;
     float uiWidth = 200.0f;
@@ -191,7 +169,6 @@ void SceneBlank::Draw()
     float x = screenWidth - uiWidth - 20.0f;
     float y = 20.0f;
 
-    // ピクセル→NDC変換
     float ndcX = (x / screenWidth) * 2.0f - 1.0f;
     float ndcY = 1.0f - (y / screenHeight) * 2.0f;
     float ndcW = (uiWidth / screenWidth) * 2.0f;
