@@ -14,8 +14,7 @@ Player::Player()
     , m_velocity(0.0f, 0.0f, 0.0f)
     , m_isJumping(false)
     , m_moveSpeed(2.0f) // 初期速度を2.0fに設定
-    , m_boxExtents(1.0f, 1.0f, 1.0f)
-    , m_boxOffset(0.0f, 0.0f, 0.0f)
+    // m_boxExtents と m_boxOffset は header (Player.h) で初期化されます
 {
 }
 
@@ -114,36 +113,59 @@ DirectX::XMFLOAT3 Player::GetVelocity() const
 
 DirectX::BoundingBox Player::GetBoundingBox() const
 {
-    // オフセットを加味したAABB
+    // オフセットを加味したAABBの中心座標
     DirectX::XMFLOAT3 center = {
         m_position.x + m_boxOffset.x,
         m_position.y + m_boxOffset.y,
         m_position.z + m_boxOffset.z
     };
+    // 中心座標とExtents（中心から各面への距離）からBoundingBoxを生成
     return DirectX::BoundingBox(center, m_boxExtents);
 }
 
 // 当たり判定ボックスの描画
 void Player::DrawBoundingBox()
 {
-    //using namespace DirectX;
-    //using namespace DirectX::SimpleMath;
+    using namespace DirectX;
 
-    //BoundingBox box = GetBoundingBox();
-    //XMFLOAT3 corners[8];
-    //box.GetCorners(corners);
+    BoundingBox box = GetBoundingBox();
+    XMFLOAT3 corners[8];
+    box.GetCorners(corners);
 
-    //// 赤色で描画
-    //Geometory::SetColor(XMFLOAT4(1, 0, 0, 1));
-    //// 12本のエッジを線で描画
-    //static const int edge[12][2] = {
-    //    {0,1},{1,2},{2,3},{3,0},
-    //    {4,5},{5,6},{6,7},{7,4},
-    //    {0,4},{1,5},{2,6},{3,7}
-    //};
-    //for (int i = 0; < 12; ++i) {
-    //    Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
-    //}
+    // 赤色で描画
+    Geometory::SetColor(XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)); // (R, G, B, A)
+
+    // 12本のエッジを線で描画
+    static const int edge[12][2] = {
+        {0,1},{1,2},{2,3},{3,0}, // 底面 (Bottom face)
+        {4,5},{5,6},{6,7},{7,4}, // 上面 (Top face)
+        {0,4},{1,5},{2,6},{3,7}  // 側面 (Sides)
+    };
+
+    for (int i = 0; i < 12; ++i) {
+        Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
+    }
+}
+
+
+void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents)
+{
+    m_boxExtents = extents;
+}
+
+DirectX::XMFLOAT3 Player::GetBoundingBoxExtents() const
+{
+    return m_boxExtents;
+}
+
+void Player::SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset)
+{
+    m_boxOffset = offset;
+}
+
+DirectX::XMFLOAT3 Player::GetBoundingBoxOffset() const
+{
+    return m_boxOffset;
 }
 
 void Player::SetMoveSpeed(float speed)

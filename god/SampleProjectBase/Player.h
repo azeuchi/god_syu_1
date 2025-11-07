@@ -27,10 +27,19 @@ public:
     // 速度を取得するための関数
     DirectX::XMFLOAT3 GetVelocity() const;
 
+    // --- 当たり判定用 ---
     // 当たり判定AABB取得
     DirectX::BoundingBox GetBoundingBox() const;
     // 当たり判定ボックス描画
     void DrawBoundingBox();
+
+    // 当たり判定ボックスのサイズ（中心から各面への距離）を設定/取得
+    void SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents);
+    DirectX::XMFLOAT3 GetBoundingBoxExtents() const;
+
+    // 当たり判定ボックスのオフセット（中心からのズレ）を設定/取得
+    void SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset);
+    DirectX::XMFLOAT3 GetBoundingBoxOffset() const;
 
     // 移動速度のセッター/ゲッター
     void SetMoveSpeed(float speed);
@@ -41,8 +50,6 @@ public:
     DirectX::XMFLOAT3 GetScale() const;
 
 private:
-    DirectX::XMFLOAT3 m_boxOffset = { 0.0f, 0.0f, 0.0f };
-
     std::shared_ptr<Model> m_model;
     DirectX::XMFLOAT3 m_position; // プレイヤー座標
     DirectX::XMFLOAT3 m_rotation; // プレイヤーの回転（ラジアン）
@@ -52,6 +59,10 @@ private:
 
     float m_moveSpeed; // 水平方向の移動速度
 
-    // 当たり判定ボックスの大きさ（中心から各面までの距離）
-    DirectX::XMFLOAT3 m_boxExtents = { 0.5f, 0.5f, 0.5f };
+    // --- 当たり判定用メンバー変数 ---
+    // ボックスの中心位置オフセット
+    DirectX::XMFLOAT3 m_boxOffset = { 0.0f, 1.0f, 0.0f };
+    // ボックスの大きさ（中心から各面までの距離）
+    // (横幅1.0f, 高さ2.0f, 奥行き1.0f のボックスになる)
+    DirectX::XMFLOAT3 m_boxExtents = { 0.5f, 1.0f, 0.5f };
 };

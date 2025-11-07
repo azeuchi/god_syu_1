@@ -21,7 +21,7 @@ const char* SETTINGS_FILE = "player_settings.ini"; // 設定ファイル名
 // --- 設定保存用の関数をメンバー関数に変更 ---
 void SceneBlank::SavePlayerSettings()
 {
-	Player* player = GetObj<Player>("Player"); 
+	Player* player = GetObj<Player>("Player");
 	if (player)
 	{
 		std::ofstream ofs(SETTINGS_FILE);
@@ -29,8 +29,17 @@ void SceneBlank::SavePlayerSettings()
 		{
 			// 現在の値をファイルに書き込む (単純なテキスト形式)
 			ofs << player->GetMoveSpeed() << std::endl;
+
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
+
+			// 当たり判定の設定を保存
+			DirectX::XMFLOAT3 boxExtents = player->GetBoundingBoxExtents();
+			ofs << boxExtents.x << " " << boxExtents.y << " " << boxExtents.z << std::endl;
+
+			DirectX::XMFLOAT3 boxOffset = player->GetBoundingBoxOffset();
+			ofs << boxOffset.x << " " << boxOffset.y << " " << boxOffset.z << std::endl;
+
 			ofs.close();
 		}
 	}
@@ -66,15 +75,21 @@ void SceneBlank::Init()
 	{
 		float moveSpeed;
 		DirectX::XMFLOAT3 scale;
+		DirectX::XMFLOAT3 boxExtents;
+		DirectX::XMFLOAT3 boxOffset;
 
 		// ファイルから値を読み込む
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
+		ifs >> boxExtents.x >> boxExtents.y >> boxExtents.z;
+		ifs >> boxOffset.x >> boxOffset.y >> boxOffset.z;
 
 		if (!ifs.fail()) // 読み込みが成功したら適用
 		{
 			player->SetMoveSpeed(moveSpeed);
 			player->SetScale(scale);
+			player->SetBoundingBoxExtents(boxExtents);
+			player->SetBoundingBoxOffset(boxOffset);
 		}
 		ifs.close();
 	}
@@ -193,7 +208,7 @@ void SceneBlank::Update(float tick)
 
 void SceneBlank::Draw()
 {
-
+	// --- 1. 3Dオブジェクトの描画 ---
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	LightBase* pLight = GetObj<LightBase>("Light");
 	Player* player = GetObj<Player>("Player");
@@ -250,6 +265,40 @@ void SceneBlank::Draw()
 		player->DrawBoundingBox();
 	}
 
+	// --- 2. ImGuiの描画 ---
+	DrawImGui();
+
+
+	// --- 3. 2D UI (SimpleUI) の描画 ----
+	// 画面サイズ（例: 1280x720）に合わせて右上に配置
+	constexpr float screenWidth = 1280.0f;
+	constexpr float screenHeight = 720.0f;
+	float uiWidth = 200.0f;
+	float uiHeight = 50.0f;
+	float x = screenWidth - uiWidth - 20.0f;
+	float y = 20.0f;
+
+	// ピクセル→NDC変換
+	float ndcX = (x / screenWidth) * 2.0f - 1.0f;
+	float ndcY = 1.0f - (y / screenHeight) * 2.0f;
+	float ndcW = (uiWidth / screenWidth) * 2.0f;
+	float ndcH = (uiHeight / screenHeight) * 2.0f;
+
+	SimpleUI::Clear();
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1,1,1,1 }, g_uiTex);
+
+	DirectX::XMFLOAT4X4 identity;
+	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
+	SimpleUI::SetMatrix(identity, identity, identity);
+	SimpleUI::DrawAll();
+}
+
+
+// ImGuiの描画処理を関数に分離
+void SceneBlank::DrawImGui()
+{
+	Player* player = GetObj<Player>("Player");
+
 	// ImGuiを使用してFPSを表示する
 	ImGui::Begin("Information"); // "Information" という名前のウィンドウを作成
 	ImGui::Text("FPS: %.1f", m_fps); // m_fpsの値を小数点以下1桁で表示
@@ -273,31 +322,26 @@ void SceneBlank::Draw()
 			player->SetScale(scale);
 			SavePlayerSettings(); // 値が変更されたら即保存
 		}
+
+		ImGui::Separator(); // 区切り線
+		ImGui::Text("Bounding Box"); // 当たり判定セクション
+
+		// 当たり判定の大きさ (Extents)
+		XMFLOAT3 boxExtents = player->GetBoundingBoxExtents();
+		if (ImGui::SliderFloat3("Box Extents", &boxExtents.x, 0.1f, 5.0f))
+		{
+			player->SetBoundingBoxExtents(boxExtents);
+			SavePlayerSettings(); // 値が変更されたら即保存
+		}
+
+		// 当たり判定の位置 (Offset)
+		XMFLOAT3 boxOffset = player->GetBoundingBoxOffset();
+		if (ImGui::SliderFloat3("Box Offset", &boxOffset.x, -5.0f, 5.0f))
+		{
+			player->SetBoundingBoxOffset(boxOffset);
+			SavePlayerSettings(); // 値が変更されたら即保存
+		}
 	}
 
 	ImGui::End();
-
-
-	// --- ここからUI描画 ----
-	// 画面サイズ（例: 1280x720）に合わせて右上に配置
-	constexpr float screenWidth = 1280.0f;
-	constexpr float screenHeight = 720.0f;
-	float uiWidth = 200.0f;
-	float uiHeight = 50.0f;
-	float x = screenWidth - uiWidth - 20.0f;
-	float y = 20.0f;
-
-	// ピクセル→NDC変換
-	float ndcX = (x / screenWidth) * 2.0f - 1.0f;
-	float ndcY = 1.0f - (y / screenHeight) * 2.0f;
-	float ndcW = (uiWidth / screenWidth) * 2.0f;
-	float ndcH = (uiHeight / screenHeight) * 2.0f;
-
-	SimpleUI::Clear();
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1,1,1,1 }, g_uiTex);
-
-	DirectX::XMFLOAT4X4 identity;
-	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
-	SimpleUI::SetMatrix(identity, identity, identity);
-	SimpleUI::DrawAll();
 }
