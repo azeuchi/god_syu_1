@@ -24,13 +24,21 @@ public:
     void SetRotation(const DirectX::XMFLOAT3& rot);
     DirectX::XMFLOAT3 GetRotation() const;
 
-    // 追加: 速度を取得するための関数
+    // 速度を取得するための関数
     DirectX::XMFLOAT3 GetVelocity() const;
 
     // 当たり判定AABB取得
     DirectX::BoundingBox GetBoundingBox() const;
     // 当たり判定ボックス描画
     void DrawBoundingBox();
+
+    // 移動速度のセッター/ゲッター
+    void SetMoveSpeed(float speed);
+    float GetMoveSpeed() const;
+
+    // スケールのセッター/ゲッター
+    void SetScale(const DirectX::XMFLOAT3& scale);
+    DirectX::XMFLOAT3 GetScale() const;
 
 private:
     DirectX::XMFLOAT3 m_boxOffset = { 0.0f, 0.0f, 0.0f };
@@ -41,6 +49,8 @@ private:
     DirectX::XMFLOAT3 m_scale;    // プレイヤーのスケール
     DirectX::XMFLOAT3 m_velocity;
     bool m_isJumping;
+
+    float m_moveSpeed; // 水平方向の移動速度
 
     // 当たり判定ボックスの大きさ（中心から各面までの距離）
     DirectX::XMFLOAT3 m_boxExtents = { 0.5f, 0.5f, 0.5f };

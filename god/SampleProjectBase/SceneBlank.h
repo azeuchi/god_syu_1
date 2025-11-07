@@ -32,7 +32,9 @@ private:
 	float m_blendFactor = 1.0f;
 	const float m_transitionDuration = 0.2f;
 
-	float m_fps = 0.0f; 
+	float m_fps = 0.0f;
+
+	void SavePlayerSettings(); // ‚±‚±‚É’Ç‰Á
 };
 
 #endif // __SCENE_BLANK_H___

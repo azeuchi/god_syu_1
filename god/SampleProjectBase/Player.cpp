@@ -10,9 +10,10 @@ Player::Player()
     : m_model(std::make_shared<Model>())
     , m_position(0.0f, 0.0f, 0.0f)
     , m_rotation(0.0f, 0.0f, 0.0f)
-    , m_scale(1.0f, 1.0f, 1.0f) // 変更: m_scaleを初期化
+    , m_scale(1.0f, 1.0f, 1.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
     , m_isJumping(false)
+    , m_moveSpeed(2.0f) // 初期速度を2.0fに設定
     , m_boxExtents(1.0f, 1.0f, 1.0f)
     , m_boxOffset(0.0f, 0.0f, 0.0f)
 {
@@ -53,7 +54,8 @@ void Player::Update(float tick)
 
     // 右クリック中は移動しない
     if (!IsKeyPress(VK_RBUTTON)) {
-        float speed = 2.0f; // tickを乗算する前の基本速度
+        float speed = m_moveSpeed; // tickを乗算する前の基本速度
+
         //位置を直接変更せず、速度を設定する
         if (IsKeyPress('A')) m_velocity.x = -speed;
         if (IsKeyPress('D')) m_velocity.x = speed;
@@ -105,7 +107,6 @@ DirectX::XMFLOAT3 Player::GetRotation() const
     return m_rotation;
 }
 
-// 追加: GetVelocity関数の実装
 DirectX::XMFLOAT3 Player::GetVelocity() const
 {
     return m_velocity;
@@ -140,7 +141,27 @@ void Player::DrawBoundingBox()
     //    {4,5},{5,6},{6,7},{7,4},
     //    {0,4},{1,5},{2,6},{3,7}
     //};
-    //for (int i = 0; i < 12; ++i) {
+    //for (int i = 0; < 12; ++i) {
     //    Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
     //}
+}
+
+void Player::SetMoveSpeed(float speed)
+{
+    m_moveSpeed = speed;
+}
+
+float Player::GetMoveSpeed() const
+{
+    return m_moveSpeed;
+}
+
+void Player::SetScale(const DirectX::XMFLOAT3& scale)
+{
+    m_scale = scale;
+}
+
+DirectX::XMFLOAT3 Player::GetScale() const
+{
+    return m_scale;
 }
