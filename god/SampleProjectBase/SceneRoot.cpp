@@ -35,7 +35,7 @@ void SceneRoot::ChangeScene()
 	default:
 	case SCENE_BLANK:
 		AddSubScene<SceneBlank>();
-		m_sceneName = "SCENE_BLANK";
+		m_sceneName = "SCENE_GAME";
 		break;
 	case SCENE_VISUAL:
 		AddSubScene<SceneVisual>();

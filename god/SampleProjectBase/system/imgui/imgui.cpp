@@ -29,7 +29,9 @@
 // Developed by Omar Cornut and every direct or indirect contributors to the GitHub.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 // This library is free but needs your support to sustain development and maintenance.
-// Businesses: you can support continued development via B2B invoiced technical support, maintenance and sponsoring contracts.
+// Businesses: you can support continued development via B2B invoiced technical support, maintenance and 
+// 
+// onsoring contracts.
 // PLEASE reach out at omar AT dearimgui DOT com. See https://github.com/ocornut/imgui/wiki/Funding
 // Businesses: you can also purchase licenses for the Dear ImGui Automation/Test Engine.
 

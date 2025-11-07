@@ -9,6 +9,7 @@
 #include "Player.h"
 #include "SimpleUI.h"
 #include "Texture.h"
+#include <system/imgui/imgui.h>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -139,6 +140,7 @@ void SceneBlank::Update(float tick)
 
 void SceneBlank::Draw()
 {
+
     CameraBase* pCamera = GetObj<CameraBase>("Camera");
     LightBase* pLight = GetObj<LightBase>("Light");
     Player* player = GetObj<Player>("Player");

@@ -3,10 +3,14 @@
 #include "Main.h"
 #include <stdio.h>
 #include <crtdbg.h>
-
+#include <system/imgui/imgui.h>
 
 // timeGetTime周りの使用
 #pragma comment(lib, "winmm.lib")
+
+// ImGuiのWndProcハンドラを外部から参照
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 //--- プロトタイプ宣言
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -33,7 +37,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	wcex.hInstance = hInstance;
 	wcex.lpszClassName = "Class Name";
 	wcex.lpfnWndProc = WndProc;
+	
 	wcex.style = CS_CLASSDC | CS_DBLCLKS;
+	
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wcex.hIconSm = wcex.hIcon;
@@ -48,14 +54,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	// ウィンドウの作成
-	RECT rect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+	RECT rect = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	DWORD style = WS_CAPTION | WS_SYSMENU;
 	DWORD exStyle = WS_EX_OVERLAPPEDWINDOW;
 	AdjustWindowRectEx(&rect, style, false, exStyle);
 	hWnd = CreateWindowEx(
 		exStyle, wcex.lpszClassName,
 		APP_TITLE, style,
-		CW_USEDEFAULT,CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right - rect.left, rect.bottom - rect.top,
 		HWND_DESKTOP,
 		NULL, hInstance, NULL
@@ -120,6 +126,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 // ウィンドウプロシージャ
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	// ImGuiにメッセージを渡す
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+	{
+		return true;
+	}
+
 	switch (message)
 	{
 	case WM_DESTROY:

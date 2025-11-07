@@ -31,6 +31,8 @@ private:
 
 	float m_blendFactor = 1.0f;
 	const float m_transitionDuration = 0.2f;
+
+	float m_fps = 0.0f; 
 };
 
 #endif // __SCENE_BLANK_H___
