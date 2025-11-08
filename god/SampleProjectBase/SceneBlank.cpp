@@ -422,7 +422,7 @@ void SceneBlank::Draw()
 void SceneBlank::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
-	Player* player2 = GetObj<Player>("Player2"); // Player 2 も取得
+	Player* player2 = GetObj<Player>("Player2"); 
 
 	// ImGuiを使用してFPSを表示する
 	ImGui::Begin("Information"); // "Information" という名前のウィンドウを作成
