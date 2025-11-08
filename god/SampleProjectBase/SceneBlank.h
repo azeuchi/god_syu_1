@@ -34,9 +34,10 @@ private:
 
 	float m_fps = 0.0f;
 
-	void SavePlayerSettings();
+	// ImGui‚Ì•\¦ƒtƒ‰ƒO
+	bool m_showImGui;
 
-	// ImGui‚Ì•`‰æˆ—‚ğ‚Ü‚Æ‚ß‚éŠÖ”
+	void SavePlayerSettings();
 	void DrawImGui();
 };
 

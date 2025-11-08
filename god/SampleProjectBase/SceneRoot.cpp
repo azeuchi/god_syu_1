@@ -17,10 +17,9 @@
 //--- 定数定義
 enum SceneKind
 {
-	SCENE_BLANK,		// 空きシーン
-	SCENE_VISUAL,		// 01_シェーダー入門
-	//SCENE_ANIMATION,	// ワンスキンアニメーションサンプル
-	SCENE_MAX			// 終端
+	SCENE_GAME,		// ゲームシーン
+	SCENE_VISUAL,	
+	SCENE_MAX		
 };
 
 /// <summary>
@@ -33,7 +32,7 @@ void SceneRoot::ChangeScene()
 	switch (m_index)
 	{
 	default:
-	case SCENE_BLANK:
+	case SCENE_GAME:
 		AddSubScene<SceneBlank>();
 		m_sceneName = "SCENE_GAME";
 		break;
@@ -75,7 +74,7 @@ void SceneRoot::Init()
 		DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f),
 		0.0f, DirectX::XM_PIDIV4,
 		0.0f, 1.0f,
-		SCENE_BLANK
+		SCENE_GAME
 	};
 	FILE* fp;
 	fopen_s(&fp, SettingFileName, "rb");

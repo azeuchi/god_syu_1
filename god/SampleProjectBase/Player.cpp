@@ -47,24 +47,6 @@ Model* Player::GetModel()
 
 void Player::Update(float tick)
 {
-    //  毎フレーム、水平方向の速度をリセット
-    m_velocity.x = 0.0f;
-    m_velocity.z = 0.0f;
-
-    // 右クリック中は移動しない
-    if (!IsKeyPress(VK_RBUTTON)) {
-        float speed = m_moveSpeed; // tickを乗算する前の基本速度
-
-        //位置を直接変更せず、速度を設定する
-        if (IsKeyPress('A')) m_velocity.x = -speed;
-        if (IsKeyPress('D')) m_velocity.x = speed;
-
-        // ジャンプ（Wキーまたはスペースキーでジャンプ）
-        if (!m_isJumping && (IsKeyTrigger('W') || IsKeyTrigger(VK_SPACE))) {
-            m_velocity.y = 6.0f; // ジャンプ初速度
-            m_isJumping = true;
-        }
-    }
     // 重力
     if (m_isJumping) {
         m_velocity.y -= 18.0f * tick; // 重力加速度
@@ -111,6 +93,24 @@ DirectX::XMFLOAT3 Player::GetVelocity() const
     return m_velocity;
 }
 
+void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
+{
+    m_velocity = vel;
+}
+
+void Player::Jump()
+{
+    if (!m_isJumping) {
+        m_velocity.y = 6.0f; // ジャンプ初速度
+        m_isJumping = true;
+    }
+}
+
+bool Player::GetIsJumping() const
+{
+    return m_isJumping;
+}
+
 DirectX::BoundingBox Player::GetBoundingBox() const
 {
     // オフセットを加味したAABBの中心座標
@@ -132,8 +132,15 @@ void Player::DrawBoundingBox()
     XMFLOAT3 corners[8];
     box.GetCorners(corners);
 
-    // 赤色で描画
-    Geometory::SetColor(XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)); // (R, G, B, A)
+    // 衝突状態に応じて色を変更
+    if (m_isColliding) {
+        // 衝突時：光る色 (例: 黄色)
+        Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
+    }
+    else {
+        // 通常時：(例: 緑色)
+        Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
+    }
 
     // 12本のエッジを線で描画
     static const int edge[12][2] = {
@@ -147,6 +154,16 @@ void Player::DrawBoundingBox()
     }
 }
 
+
+void Player::SetIsColliding(bool isColliding)
+{
+    m_isColliding = isColliding;
+}
+
+bool Player::GetIsColliding() const
+{
+    return m_isColliding;
+}
 
 void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents)
 {

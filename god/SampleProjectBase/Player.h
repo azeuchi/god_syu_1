@@ -24,8 +24,14 @@ public:
     void SetRotation(const DirectX::XMFLOAT3& rot);
     DirectX::XMFLOAT3 GetRotation() const;
 
-    // 速度を取得するための関数
+    // 速度を取得/設定するための関数
     DirectX::XMFLOAT3 GetVelocity() const;
+    void SetVelocity(const DirectX::XMFLOAT3& vel);
+
+    // ジャンプ命令用の関数
+    void Jump();
+    bool GetIsJumping() const;
+
 
     // --- 当たり判定用 ---
     // 当たり判定AABB取得
@@ -40,6 +46,11 @@ public:
     // 当たり判定ボックスのオフセット（中心からのズレ）を設定/取得
     void SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset);
     DirectX::XMFLOAT3 GetBoundingBoxOffset() const;
+
+    // 衝突状態を設定
+    void SetIsColliding(bool isColliding);
+    // 衝突状態を取得
+    bool GetIsColliding() const;
 
     // 移動速度のセッター/ゲッター
     void SetMoveSpeed(float speed);
@@ -65,4 +76,7 @@ private:
     // ボックスの大きさ（中心から各面までの距離）
     // (横幅1.0f, 高さ2.0f, 奥行き1.0f のボックスになる)
     DirectX::XMFLOAT3 m_boxExtents = { 0.5f, 1.0f, 0.5f };
+
+    // 衝突状態フラグ
+    bool m_isColliding = false;
 };

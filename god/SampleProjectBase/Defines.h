@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define APP_TITLE "就職　格ゲー "
+#define APP_TITLE "就職作品　格闘ゲーム"
 
 // 画面サイズ
 #define SCREEN_WIDTH (1280)
