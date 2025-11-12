@@ -58,6 +58,9 @@
     <Filter Include="ソース ファイル\System\imgui">
       <UniqueIdentifier>{16fa4be9-b266-4eef-9344-9e10eb970dba}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\PlayerState">
+      <UniqueIdentifier>{8de4c4da-6abe-41f7-9316-2863a4d2b06e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Startup.cpp">
@@ -161,6 +164,15 @@
     </ClCompile>
     <ClCompile Include="SimpleUI.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerStateIdle.cpp">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerStateWalk.cpp">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerStateWalkBack.cpp">
+      <Filter>ソース ファイル\PlayerState</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,6 +292,18 @@
     </ClInclude>
     <ClInclude Include="SimpleUI.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerState.h">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateIdle.h">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateWalk.h">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateWalkBack.h">
+      <Filter>ソース ファイル\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

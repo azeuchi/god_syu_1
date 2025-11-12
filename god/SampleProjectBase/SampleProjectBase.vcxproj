@@ -189,6 +189,9 @@
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerStateIdle.cpp" />
+    <ClCompile Include="PlayerStateWalk.cpp" />
+    <ClCompile Include="PlayerStateWalkBack.cpp" />
     <ClCompile Include="PointLight.cpp" />
     <ClCompile Include="SceneAnimation.cpp" />
     <ClCompile Include="SceneBase.cpp" />
@@ -227,6 +230,10 @@
     <ClInclude Include="Model.h" />
     <ClInclude Include="MoveLight.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerState.h" />
+    <ClInclude Include="PlayerStateIdle.h" />
+    <ClInclude Include="PlayerStateWalk.h" />
+    <ClInclude Include="PlayerStateWalkBack.h" />
     <ClInclude Include="PointLight.h" />
     <ClInclude Include="SceneAnimation.h" />
     <ClInclude Include="SceneBase.hpp" />

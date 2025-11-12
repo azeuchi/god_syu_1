@@ -1,10 +1,17 @@
 #include "Player.h"
-#include "Input.h" // キー入力用
+#include "Input.h" 
 #include <DirectXCollision.h>
-#include "Geometory.h" //（線描画用）
+#include "Geometory.h" 
 #include <fstream>
 #include "Shader.h"
 #include "Model.h"
+
+// ステートパターン用
+#include "PlayerState.h" 
+#include "PlayerStateIdle.h" 
+
+#include <DirectXMath.h>
+
 
 Player::Player()
     : m_model(std::make_shared<Model>())
@@ -13,194 +20,283 @@ Player::Player()
     , m_scale(1.0f, 1.0f, 1.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
     , m_isJumping(false)
-    , m_moveSpeed(2.0f) // 初期速度を2.0fに設定
-    // m_boxExtents と m_boxOffset は header (Player.h) で初期化されます
+    , m_moveSpeed(2.0f)
+    , m_currentState(nullptr)
+    , m_inputType(PlayerInputType::AI) // デフォルトはAI
+    , m_blendFactor(1.0f)
 {
+    m_currentAnim = { "Idle", 0 };
+    m_previousAnim = { "Idle", 0 };
+    SetState(new PlayerStateIdle());
 }
 
-Player::~Player() {}
-
-bool Player::Load(const char* file, float scale, bool flip, bool simple)
+Player::~Player()
 {
-    return m_model->Load(file, scale, flip, simple);
+    if (m_currentState) {
+        delete m_currentState;
+        m_currentState = nullptr;
+    }
 }
 
-void Player::SetVertexShader(Shader* vs)
-{
-    m_model->SetVertexShader(vs);
-}
-
-void Player::SetPixelShader(Shader* ps)
-{
-    m_model->SetPixelShader(ps);
-}
-
-void Player::Draw()
-{
-    m_model->Draw();
-}
-
-Model* Player::GetModel()
-{
-    return m_model.get();
-}
-
+/**
+ * @brief FSM, 物理, アニメーションをすべて更新する
+ */
 void Player::Update(float tick)
 {
-    // 重力
-    if (m_isJumping) {
-        m_velocity.y -= 18.0f * tick; // 重力加速度
+    // 1. 入力をポーリングして m_inputs を更新
+    PollInputs();
+
+    // 2. FSM（状態）の更新
+    //    (m_inputs を使って継続処理や遷移チェックを行う)
+    if (m_currentState) {
+        m_currentState->Update(this, tick);
     }
 
-    // 最終的な速度を元に位置を更新
+    // 3. 物理演算の更新
+    UpdatePhysics(tick);
+
+    // 4. アニメーションの更新
+    UpdateAnimation(tick);
+
+    // 5. モデルのボーン更新
+    UpdateModelBlend();
+}
+
+/**
+ * @brief 入力タイプに応じて m_inputs を更新する
+ */
+void Player::PollInputs()
+{
+    // 毎フレーム、入力をリセット
+    m_inputs = {}; // m_inputs.moveLeft = false, etc.
+
+    switch (m_inputType)
+    {
+    case PlayerInputType::PLAYER_1:
+        // 1Pは 'A' 'D' キー
+        if (!IsKeyPress(VK_RBUTTON)) // (右クリック中は移動しないロジックは維持)
+        {
+            if (IsKeyPress('A')) {
+                m_inputs.moveLeft = true;
+            }
+            else if (IsKeyPress('D')) {
+                m_inputs.moveRight = true;
+            }
+        }
+        // (ここに1Pのジャンプや攻撃入力も追加)
+        break;
+
+    case PlayerInputType::PLAYER_2:
+        // 2Pは 矢印キー (左右)
+      
+        if (!IsKeyPress(VK_RBUTTON))
+        {
+            if (IsKeyPress(VK_LEFT)) { // 左矢印キー
+                m_inputs.moveLeft = true;
+            }
+            else if (IsKeyPress(VK_RIGHT)) { // 右矢印キー
+                m_inputs.moveRight = true;
+            }
+        }
+        // (ここに2Pのジャンプや攻撃入力も追加。例: VK_UP)
+        break;
+
+    case PlayerInputType::AI:
+        // AIは何もしない (m_inputs はリセットされたまま)
+        break;
+    }
+}
+
+
+void Player::UpdatePhysics(float tick)
+{
+    if (m_isJumping) {
+        m_velocity.y -= 18.0f * tick;
+    }
     m_position.x += m_velocity.x * tick;
     m_position.y += m_velocity.y * tick;
-
-
-    // 地面判定（y=0を地面とする）
+    m_position.z += m_velocity.z * tick;
     if (m_position.y <= 0.0f) {
         m_position.y = 0.0f;
-        // isJumpingがtrueの場合のみ速度と状態をリセット
         if (m_isJumping) {
             m_velocity.y = 0.0f;
             m_isJumping = false;
         }
     }
 }
+void Player::UpdateAnimation(float tick)
+{
+    if (m_blendFactor < 1.0f)
+    {
+        m_blendFactor += tick / m_transitionDuration;
+        if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
+    }
+    m_currentAnim.frame++;
+}
+void Player::UpdateModelBlend()
+{
+    m_model->UpdateWithBlend(
+        m_currentAnim.name, m_currentAnim.frame,
+        m_previousAnim.name, m_previousAnim.frame,
+        m_blendFactor);
+}
+void Player::SetState(PlayerState* newState)
+{
+    if (newState != nullptr)
+    {
+        if (m_currentState) {
+            delete m_currentState;
+        }
+        m_currentState = newState;
+        m_currentState->OnEnter(this);
+    }
+}
+void Player::PlayAnimation(const char* name, bool forceRestart)
+{
+    if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
+    {
+        return;
+    }
+    m_previousAnim = m_currentAnim;
+    m_currentAnim.name = name;
+    m_currentAnim.frame = 0;
+    m_blendFactor = 0.0f;
+}
+float Player::GetForwardMoveDot() const
+{
+    using namespace DirectX::SimpleMath;
+    Vector3 velocity = m_velocity;
+    Vector3 rotation = m_rotation;
+    if (Vector2(velocity.x, velocity.z).LengthSquared() <= 0.01f)
+    {
+        return 0.0f;
+    }
+    Matrix rotMat = Matrix::CreateRotationY(rotation.y);
+    Vector3 forward = Vector3::Transform(Vector3(0.0f, 0.0f, -1.0f), rotMat);
+    Vector3 moveDir = velocity;
+    moveDir.y = 0.0f;
+    moveDir.Normalize();
+    return forward.Dot(moveDir);
+}
 
+
+/**
+ * @brief プレイヤーの入力タイプを設定
+ */
+void Player::SetInputType(PlayerInputType type)
+{
+    m_inputType = type;
+}
+
+/**
+ * @brief プレイヤーの入力タイプを取得
+ */
+PlayerInputType Player::GetInputType() const
+{
+    return m_inputType;
+}
+
+/**
+ * @brief 抽象化された入力を State が取得するための関数
+ */
+const PlayerInputs& Player::GetInputs() const
+{
+    return m_inputs;
+}
+
+
+bool Player::Load(const char* file, float scale, bool flip, bool simple)
+{
+    return m_model->Load(file, scale, flip, simple);
+}
+void Player::SetVertexShader(Shader* vs)
+{
+    m_model->SetVertexShader(vs);
+}
+void Player::SetPixelShader(Shader* ps)
+{
+    m_model->SetPixelShader(ps);
+}
+void Player::Draw()
+{
+    m_model->Draw();
+}
+Model* Player::GetModel()
+{
+    return m_model.get();
+}
 void Player::SetPosition(const DirectX::XMFLOAT3& pos)
 {
     m_position = pos;
 }
-
 DirectX::XMFLOAT3 Player::GetPosition() const
 {
     return m_position;
 }
-
 void Player::SetRotation(const DirectX::XMFLOAT3& rot)
 {
     m_rotation = rot;
 }
-
 DirectX::XMFLOAT3 Player::GetRotation() const
 {
     return m_rotation;
 }
-
 DirectX::XMFLOAT3 Player::GetVelocity() const
 {
     return m_velocity;
 }
-
 void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 {
     m_velocity = vel;
 }
-
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 6.0f; // ジャンプ初速度
+        m_velocity.y = 6.0f;
         m_isJumping = true;
     }
 }
-
 bool Player::GetIsJumping() const
 {
     return m_isJumping;
 }
-
 DirectX::BoundingBox Player::GetBoundingBox() const
 {
-    // オフセットを加味したAABBの中心座標
     DirectX::XMFLOAT3 center = {
         m_position.x + m_boxOffset.x,
         m_position.y + m_boxOffset.y,
         m_position.z + m_boxOffset.z
     };
-    // 中心座標とExtents（中心から各面への距離）からBoundingBoxを生成
     return DirectX::BoundingBox(center, m_boxExtents);
 }
-
-// 当たり判定ボックスの描画
 void Player::DrawBoundingBox()
 {
     using namespace DirectX;
-
     BoundingBox box = GetBoundingBox();
     XMFLOAT3 corners[8];
     box.GetCorners(corners);
 
-    // 衝突状態に応じて色を変更
     if (m_isColliding) {
-        // 衝突時：光る色 (例: 黄色)
         Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
     }
     else {
-        // 通常時：(例: 緑色)
         Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
-    // 12本のエッジを線で描画
     static const int edge[12][2] = {
-        {0,1},{1,2},{2,3},{3,0}, // 底面 (Bottom face)
-        {4,5},{5,6},{6,7},{7,4}, // 上面 (Top face)
-        {0,4},{1,5},{2,6},{3,7}  // 側面 (Sides)
+        {0,1},{1,2},{2,3},{3,0}, {4,5},{5,6},{6,7},{7,4}, {0,4},{1,5},{2,6},{3,7}
     };
-
     for (int i = 0; i < 12; ++i) {
         Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
     }
 }
-
-
-void Player::SetIsColliding(bool isColliding)
-{
-    m_isColliding = isColliding;
-}
-
-bool Player::GetIsColliding() const
-{
-    return m_isColliding;
-}
-
-void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents)
-{
-    m_boxExtents = extents;
-}
-
-DirectX::XMFLOAT3 Player::GetBoundingBoxExtents() const
-{
-    return m_boxExtents;
-}
-
-void Player::SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset)
-{
-    m_boxOffset = offset;
-}
-
-DirectX::XMFLOAT3 Player::GetBoundingBoxOffset() const
-{
-    return m_boxOffset;
-}
-
-void Player::SetMoveSpeed(float speed)
-{
-    m_moveSpeed = speed;
-}
-
-float Player::GetMoveSpeed() const
-{
-    return m_moveSpeed;
-}
-
-void Player::SetScale(const DirectX::XMFLOAT3& scale)
-{
-    m_scale = scale;
-}
-
-DirectX::XMFLOAT3 Player::GetScale() const
-{
-    return m_scale;
-}
+void Player::SetIsColliding(bool isColliding) { m_isColliding = isColliding; }
+bool Player::GetIsColliding() const { return m_isColliding; }
+void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents) { m_boxExtents = extents; }
+DirectX::XMFLOAT3 Player::GetBoundingBoxExtents() const { return m_boxExtents; }
+void Player::SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset) { m_boxOffset = offset; }
+DirectX::XMFLOAT3 Player::GetBoundingBoxOffset() const { return m_boxOffset; }
+void Player::SetMoveSpeed(float speed) { m_moveSpeed = speed; }
+float Player::GetMoveSpeed() const { return m_moveSpeed; }
+void Player::SetScale(const DirectX::XMFLOAT3& scale) { m_scale = scale; }
+DirectX::XMFLOAT3 Player::GetScale() const { return m_scale; }
