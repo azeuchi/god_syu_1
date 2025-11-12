@@ -275,12 +275,14 @@ void SceneBlank::DrawImGui()
 	{
 		ImGui::Separator();
 
+		// --- 値の編集 ---
+		// スライダーで値が変更されたら、player と player2 の両方に適用する
+
 		float moveSpeed = player->GetMoveSpeed();
 		if (ImGui::SliderFloat("Move Speed", &moveSpeed, 0.0f, 10.0f))
 		{
 			player->SetMoveSpeed(moveSpeed);
 			if (player2) player2->SetMoveSpeed(moveSpeed);
-			SavePlayerSettings();
 		}
 
 		XMFLOAT3 scale = player->GetScale();
@@ -288,7 +290,6 @@ void SceneBlank::DrawImGui()
 		{
 			player->SetScale(scale);
 			if (player2) player2->SetScale(scale);
-			SavePlayerSettings();
 		}
 
 		ImGui::Separator();
@@ -299,7 +300,6 @@ void SceneBlank::DrawImGui()
 		{
 			player->SetBoundingBoxExtents(boxExtents);
 			if (player2) player2->SetBoundingBoxExtents(boxExtents);
-			SavePlayerSettings();
 		}
 
 		XMFLOAT3 boxOffset = player->GetBoundingBoxOffset();
@@ -307,7 +307,13 @@ void SceneBlank::DrawImGui()
 		{
 			player->SetBoundingBoxOffset(boxOffset);
 			if (player2) player2->SetBoundingBoxOffset(boxOffset);
-			SavePlayerSettings();
+		}
+
+		// --- 保存ボタン ---
+		ImGui::Separator();
+		if (ImGui::Button("SAVE"))
+		{
+			SavePlayerSettings(); // ボタンが押された時だけ保存
 		}
 	}
 

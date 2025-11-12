@@ -22,7 +22,7 @@ Player::Player()
     , m_isJumping(false)
     , m_moveSpeed(2.0f)
     , m_currentState(nullptr)
-    , m_inputType(PlayerInputType::AI) // デフォルトはAI
+    , m_inputType(PlayerInputType::AI)
     , m_blendFactor(1.0f)
 {
     m_currentAnim = { "Idle", 0 };
