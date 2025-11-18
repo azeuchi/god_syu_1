@@ -74,7 +74,7 @@ void Player::PollInputs()
     {
     case PlayerInputType::PLAYER_1:
         // 1Pは 'A' 'D' キー
-        if (!IsKeyPress(VK_RBUTTON)) // (右クリック中は移動しないロジックは維持)
+        if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress('A')) {
                 m_inputs.moveLeft = true;
@@ -83,12 +83,12 @@ void Player::PollInputs()
                 m_inputs.moveRight = true;
             }
         }
-        // (ここに1Pのジャンプや攻撃入力も追加)
+   
         break;
 
     case PlayerInputType::PLAYER_2:
         // 2Pは 矢印キー (左右)
-      
+
         if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress(VK_LEFT)) { // 左矢印キー
@@ -98,7 +98,7 @@ void Player::PollInputs()
                 m_inputs.moveRight = true;
             }
         }
-        // (ここに2Pのジャンプや攻撃入力も追加。例: VK_UP)
+        
         break;
 
     case PlayerInputType::AI:
@@ -260,15 +260,28 @@ bool Player::GetIsJumping() const
 {
     return m_isJumping;
 }
+
+/**
+ * @brief BoundingBoxをZ軸固定で生成する
+ */
 DirectX::BoundingBox Player::GetBoundingBox() const
 {
     DirectX::XMFLOAT3 center = {
-        m_position.x + m_boxOffset.x,
-        m_position.y + m_boxOffset.y,
-        m_position.z + m_boxOffset.z
+        m_position.x + m_boxOffset.x, // 2D offset (X)
+        m_position.y + m_boxOffset.y, // 2D offset (Y)
+        m_position.z                  // Zはオフセットなし (プレイヤーのZ座標に従う)
     };
-    return DirectX::BoundingBox(center, m_boxExtents);
+    DirectX::XMFLOAT3 extents = {
+        m_boxExtents.x, // 2D extents (X)
+        m_boxExtents.y, // 2D extents (Y)
+        0.1f            // Zの厚みは固定 (0だとIntersectsが機能しないため)
+    };
+    return DirectX::BoundingBox(center, extents);
 }
+
+/**
+ * @brief 当たり判定を2Dの四角形で描画する
+ */
 void Player::DrawBoundingBox()
 {
     using namespace DirectX;
@@ -283,19 +296,23 @@ void Player::DrawBoundingBox()
         Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
-    static const int edge[12][2] = {
-        {0,1},{1,2},{2,3},{3,0}, {4,5},{5,6},{6,7},{7,4}, {0,4},{1,5},{2,6},{3,7}
+    // Z軸を除いた、XY平面の4辺のみを描画
+    static const int edge[4][2] = {
+        {0,1},{1,2},{2,3},{3,0} // "手前"の面の4辺 (Bottom, Right, Top, Left)
     };
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 4; ++i) {
         Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
     }
 }
 void Player::SetIsColliding(bool isColliding) { m_isColliding = isColliding; }
 bool Player::GetIsColliding() const { return m_isColliding; }
-void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents) { m_boxExtents = extents; }
-DirectX::XMFLOAT3 Player::GetBoundingBoxExtents() const { return m_boxExtents; }
-void Player::SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset) { m_boxOffset = offset; }
-DirectX::XMFLOAT3 Player::GetBoundingBoxOffset() const { return m_boxOffset; }
+
+// --- 当たり判定---
+void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents) { m_boxExtents = extents; }
+DirectX::XMFLOAT2 Player::GetBoundingBoxExtents() const { return m_boxExtents; }
+void Player::SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset) { m_boxOffset = offset; }
+DirectX::XMFLOAT2 Player::GetBoundingBoxOffset() const { return m_boxOffset; }
+
 void Player::SetMoveSpeed(float speed) { m_moveSpeed = speed; }
 float Player::GetMoveSpeed() const { return m_moveSpeed; }
 void Player::SetScale(const DirectX::XMFLOAT3& scale) { m_scale = scale; }

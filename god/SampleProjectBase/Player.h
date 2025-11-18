@@ -70,10 +70,13 @@ public:
     bool GetIsJumping() const;
     DirectX::BoundingBox GetBoundingBox() const;
     void DrawBoundingBox();
-    void SetBoundingBoxExtents(const DirectX::XMFLOAT3& extents);
-    DirectX::XMFLOAT3 GetBoundingBoxExtents() const;
-    void SetBoundingBoxOffset(const DirectX::XMFLOAT3& offset);
-    DirectX::XMFLOAT3 GetBoundingBoxOffset() const;
+
+    // --- 当たり判定 ---
+    void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
+    DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
+    void SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset);
+    DirectX::XMFLOAT2 GetBoundingBoxOffset() const;
+
     void SetIsColliding(bool isColliding);
     bool GetIsColliding() const;
     void SetMoveSpeed(float speed);
@@ -98,8 +101,8 @@ private:
     float m_moveSpeed;
 
     // --- 当たり判定用メンバー変数 ---
-    DirectX::XMFLOAT3 m_boxOffset = { 0.0f, 1.0f, 0.0f };
-    DirectX::XMFLOAT3 m_boxExtents = { 0.5f, 1.0f, 0.5f };
+    DirectX::XMFLOAT2 m_boxOffset = { 0.0f, 1.0f };   
+    DirectX::XMFLOAT2 m_boxExtents = { 0.5f, 1.0f };  
     bool m_isColliding = false;
 
     // --- FSM (ステートパターン) 用メンバー ---

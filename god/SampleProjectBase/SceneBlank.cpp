@@ -30,10 +30,12 @@ void SceneBlank::SavePlayerSettings()
 			ofs << player->GetMoveSpeed() << std::endl;
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
-			DirectX::XMFLOAT3 boxExtents = player->GetBoundingBoxExtents();
-			ofs << boxExtents.x << " " << boxExtents.y << " " << boxExtents.z << std::endl;
-			DirectX::XMFLOAT3 boxOffset = player->GetBoundingBoxOffset();
-			ofs << boxOffset.x << " " << boxOffset.y << " " << boxOffset.z << std::endl;
+
+			DirectX::XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
+			ofs << boxExtents.x << " " << boxExtents.y << std::endl;
+			DirectX::XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
+			ofs << boxOffset.x << " " << boxOffset.y << std::endl;
+
 			ofs.close();
 		}
 	}
@@ -68,16 +70,18 @@ void SceneBlank::Init()
 	// デフォルト値を設定
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-	DirectX::XMFLOAT3 boxExtents = { 0.5f, 1.0f, 0.5f };
-	DirectX::XMFLOAT3 boxOffset = { 0.0f, 1.0f, 0.0f };
+	// 2D (XMFLOAT2) で設定 
+	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
+	DirectX::XMFLOAT2 boxOffset = { 0.0f, 1.0f };
 
 	std::ifstream ifs(SETTINGS_FILE);
 	if (ifs.is_open())
 	{
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
-		ifs >> boxExtents.x >> boxExtents.y >> boxExtents.z;
-		ifs >> boxOffset.x >> boxOffset.y >> boxOffset.z;
+		// 2D (XMFLOAT2) で読み込み
+		ifs >> boxExtents.x >> boxExtents.y;
+		ifs >> boxOffset.x >> boxOffset.y;
 		ifs.close();
 	}
 
@@ -104,6 +108,7 @@ void SceneBlank::Init()
 	// プレイヤー2 を PLAYER_2 (矢印キー) に設定
 	player2->SetInputType(PlayerInputType::PLAYER_2);
 
+	// 読み込んだ設定を player2 にも適用
 	player2->SetMoveSpeed(moveSpeed);
 	player2->SetScale(scale);
 	player2->SetBoundingBoxExtents(boxExtents);
@@ -159,8 +164,53 @@ void SceneBlank::Update(float tick)
 		DirectX::BoundingBox box1 = player->GetBoundingBox();
 		DirectX::BoundingBox box2 = player2->GetBoundingBox();
 		bool isColliding = box1.Intersects(box2);
+
 		player->SetIsColliding(isColliding);
 		player2->SetIsColliding(isColliding);
+
+		//衝突時の押し出し処理
+		if (isColliding)
+		{
+			// 1. 現在の位置を取得
+			DirectX::XMFLOAT3 pos1 = player->GetPosition();
+			DirectX::XMFLOAT3 pos2 = player2->GetPosition();
+
+			// 2. X軸とY軸のめり込み量を計算
+			float deltaX = box1.Center.x - box2.Center.x;
+			float sumExtentsX = box1.Extents.x + box2.Extents.x;
+			float overlapX = sumExtentsX - abs(deltaX);
+
+			float deltaY = box1.Center.y - box2.Center.y;
+			float sumExtentsY = box1.Extents.y + box2.Extents.y;
+			float overlapY = sumExtentsY - abs(deltaY);
+
+			// 3. めり込みが浅い方の軸で押し出す (Minimum Translation Vector)
+			DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
+
+			if (overlapX < overlapY)
+			{
+				// X軸で押し出す
+				float pushAmount = overlapX / 2.0f; // 各プレイヤーが半分ずつ移動
+				float direction = (deltaX > 0.0f) ? 1.0f : -1.0f; // player1 が右にいるか左にいるか
+				pushVector.x = direction * pushAmount;
+			}
+
+			// 4. 新しい位置を設定
+			// Player1 は pushVector の方向に移動
+			player->SetPosition({
+				pos1.x + pushVector.x,
+				pos1.y + pushVector.y,
+				pos1.z
+				});
+
+			// Player2 は pushVector の逆方向に移動
+			player2->SetPosition({
+				pos2.x - pushVector.x,
+				pos2.y - pushVector.y,
+				pos2.z
+				});
+		}
+		
 	}
 }
 
@@ -208,7 +258,7 @@ void SceneBlank::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 		player->Draw();
-		player->DrawBoundingBox();
+		player->DrawBoundingBox(); // (Z固定のBoxが描画される)
 	}
 
 	// --- プレイヤー2の描画 ---
@@ -232,7 +282,7 @@ void SceneBlank::Draw()
 		player2->SetVertexShader(shader[0]);
 		player2->SetPixelShader(shader[1]);
 		player2->Draw();
-		player2->DrawBoundingBox();
+		player2->DrawBoundingBox(); // (Z固定のBoxが描画される)
 	}
 
 
@@ -295,15 +345,17 @@ void SceneBlank::DrawImGui()
 		ImGui::Separator();
 		ImGui::Text("Bounding Box");
 
-		XMFLOAT3 boxExtents = player->GetBoundingBoxExtents();
-		if (ImGui::SliderFloat3("Box Extents", &boxExtents.x, 0.1f, 5.0f))
+		
+		XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
+		if (ImGui::SliderFloat2("Box Extents", &boxExtents.x, 0.1f, 5.0f))
 		{
 			player->SetBoundingBoxExtents(boxExtents);
 			if (player2) player2->SetBoundingBoxExtents(boxExtents);
 		}
 
-		XMFLOAT3 boxOffset = player->GetBoundingBoxOffset();
-		if (ImGui::SliderFloat3("Box Offset", &boxOffset.x, -5.0f, 5.0f))
+	
+		XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
+		if (ImGui::SliderFloat2("Box Offset", &boxOffset.x, -5.0f, 5.0f))
 		{
 			player->SetBoundingBoxOffset(boxOffset);
 			if (player2) player2->SetBoundingBoxOffset(boxOffset);
