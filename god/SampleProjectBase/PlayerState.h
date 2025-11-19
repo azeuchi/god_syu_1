@@ -25,4 +25,10 @@ public:
 	 * @param tick 経過時間
 	 */
 	virtual void Update(Player* player, float tick) = 0;
+
+	/**
+	 * @brief この状態が（攻撃などで）割り込み可能か？
+	 * @return true (割り込み可能), false (割り込み不可)
+	 */
+	virtual bool IsInterruptible() const { return true; }
 };

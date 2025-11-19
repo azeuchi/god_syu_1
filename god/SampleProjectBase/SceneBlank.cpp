@@ -3,14 +3,13 @@
 #include "Geometory.h"
 #include "DebugLog.h"
 #include "Model.h"
-#include "CameraBase.h"
+#include "CameraBase.h" 
 #include "LightBase.h"
 #include "Shader.h"
 #include "Player.h" 
 #include "SimpleUI.h"
 #include "Texture.h"
 #include "Input.h" 
-#include <system/imgui/imgui.h>
 #include <fstream> 
 
 using namespace DirectX;
@@ -19,27 +18,6 @@ using namespace DirectX::SimpleMath;
 Texture* g_uiTex = nullptr;
 const char* SETTINGS_FILE = "player_settings.ini";
 
-void SceneBlank::SavePlayerSettings()
-{
-	Player* player = GetObj<Player>("Player");
-	if (player)
-	{
-		std::ofstream ofs(SETTINGS_FILE);
-		if (ofs.is_open())
-		{
-			ofs << player->GetMoveSpeed() << std::endl;
-			DirectX::XMFLOAT3 scale = player->GetScale();
-			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
-
-			DirectX::XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
-			ofs << boxExtents.x << " " << boxExtents.y << std::endl;
-			DirectX::XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
-			ofs << boxOffset.x << " " << boxOffset.y << std::endl;
-
-			ofs.close();
-		}
-	}
-}
 
 void SceneBlank::Init()
 {
@@ -67,28 +45,38 @@ void SceneBlank::Init()
 	// プレイヤー1 を PLAYER_1 (A/Dキー) に設定
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// デフォルト値を設定
+	// --- 設定ファイルの読み込み ---
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-	// 2D (XMFLOAT2) で設定 
 	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
 	DirectX::XMFLOAT2 boxOffset = { 0.0f, 1.0f };
+	AttackParams params = player->GetLightPunchParams();
 
 	std::ifstream ifs(SETTINGS_FILE);
 	if (ifs.is_open())
 	{
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
-		// 2D (XMFLOAT2) で読み込み
 		ifs >> boxExtents.x >> boxExtents.y;
 		ifs >> boxOffset.x >> boxOffset.y;
+
+		if (!ifs.eof()) ifs >> params.totalDuration;
+		if (!ifs.eof()) ifs >> params.hitboxStart;
+		if (!ifs.eof()) ifs >> params.hitboxEnd;
+		if (!ifs.eof()) ifs >> params.hitboxOffset.x >> params.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> params.hitboxExtents.x >> params.hitboxExtents.y;
+
 		ifs.close();
 	}
 
+	// 読み込んだ値をプレイヤーに設定
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 	player->SetBoundingBoxExtents(boxExtents);
 	player->SetBoundingBoxOffset(boxOffset);
+	player->GetLightPunchParams() = params;
+
+
 
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
@@ -96,6 +84,7 @@ void SceneBlank::Init()
 	}
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
@@ -113,17 +102,27 @@ void SceneBlank::Init()
 	player2->SetScale(scale);
 	player2->SetBoundingBoxExtents(boxExtents);
 	player2->SetBoundingBoxOffset(boxOffset);
+	player2->GetLightPunchParams() = params;
+
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunchPunch.fbx", "LightPunchPunch", true);
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
-	m_showImGui = true;
+	// カメラを取得し、SceneBlank用の初期位置・注視点を設定
+	CameraBase* pCamera = GetObj<CameraBase>("Camera");
+	if (pCamera)
+	{
+		pCamera->SetPos({ 0.0f, 1.2f, -5.0f });
+		pCamera->SetLook({ 0.0f, 1.0f, 4.0f });
+	}
 
+	// m_showImGui = true; // ★削除
 	g_uiTex = new Texture();
 }
 
@@ -137,30 +136,27 @@ void SceneBlank::Uninit()
 
 void SceneBlank::Update(float tick)
 {
-	if (tick > 0.0f) { m_fps = 1.0f / tick; }
-	else { m_fps = 0.0f; }
-
-	if (IsKeyTrigger(VK_TAB)) {
-		m_showImGui = !m_showImGui;
-	}
+	// ★ m_fps の計算を削除
+	// ★ VK_TAB のチェックを削除
 
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
 	// --- プレイヤー1の入力処理と更新 ---
 	if (player) {
-		player->Update(tick); // PLAYER_1 の入力で FSM が動く
+		player->Update(tick);
 	}
 
 	// --- プレイヤー2の入力処理と更新 ---
 	if (player2) {
-		player2->Update(tick); // PLAYER_2 の入力で FSM が動く
+		player2->Update(tick);
 	}
 
 
 	// --- 当たり判定チェック ---
 	if (player && player2)
 	{
+		// 1. くらい判定 (Hurtbox) 同士の衝突 (押し出し判定)
 		DirectX::BoundingBox box1 = player->GetBoundingBox();
 		DirectX::BoundingBox box2 = player2->GetBoundingBox();
 		bool isColliding = box1.Intersects(box2);
@@ -171,46 +167,49 @@ void SceneBlank::Update(float tick)
 		//衝突時の押し出し処理
 		if (isColliding)
 		{
-			// 1. 現在の位置を取得
 			DirectX::XMFLOAT3 pos1 = player->GetPosition();
 			DirectX::XMFLOAT3 pos2 = player2->GetPosition();
-
-			// 2. X軸とY軸のめり込み量を計算
 			float deltaX = box1.Center.x - box2.Center.x;
 			float sumExtentsX = box1.Extents.x + box2.Extents.x;
 			float overlapX = sumExtentsX - abs(deltaX);
-
 			float deltaY = box1.Center.y - box2.Center.y;
 			float sumExtentsY = box1.Extents.y + box2.Extents.y;
 			float overlapY = sumExtentsY - abs(deltaY);
-
-			// 3. めり込みが浅い方の軸で押し出す (Minimum Translation Vector)
 			DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
 
 			if (overlapX < overlapY)
 			{
-				// X軸で押し出す
-				float pushAmount = overlapX / 2.0f; // 各プレイヤーが半分ずつ移動
-				float direction = (deltaX > 0.0f) ? 1.0f : -1.0f; // player1 が右にいるか左にいるか
+				float pushAmount = overlapX / 2.0f;
+				float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
 				pushVector.x = direction * pushAmount;
 			}
-
-			// 4. 新しい位置を設定
-			// Player1 は pushVector の方向に移動
+			else
+			{
+				float pushAmount = overlapY / 2.0f;
+				float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
+				pushVector.y = direction * pushAmount;
+			}
 			player->SetPosition({
 				pos1.x + pushVector.x,
 				pos1.y + pushVector.y,
 				pos1.z
 				});
-
-			// Player2 は pushVector の逆方向に移動
 			player2->SetPosition({
 				pos2.x - pushVector.x,
 				pos2.y - pushVector.y,
 				pos2.z
 				});
 		}
+
+		// --- 2. 攻撃判定 (Hitbox) のチェック ---
+		if (player->IsAttacking() && player->GetActiveHitbox().Intersects(box2))
+		{
+			
+		}
+		if (player2->IsAttacking() && player2->GetActiveHitbox().Intersects(box1))
+		{
 		
+		}
 	}
 }
 
@@ -258,7 +257,8 @@ void SceneBlank::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 		player->Draw();
-		player->DrawBoundingBox(); // (Z固定のBoxが描画される)
+		player->DrawBoundingBox();
+		player->DrawHitbox();
 	}
 
 	// --- プレイヤー2の描画 ---
@@ -282,18 +282,13 @@ void SceneBlank::Draw()
 		player2->SetVertexShader(shader[0]);
 		player2->SetPixelShader(shader[1]);
 		player2->Draw();
-		player2->DrawBoundingBox(); // (Z固定のBoxが描画される)
+		player2->DrawBoundingBox();
+		player2->DrawHitbox();
 	}
 
 
-	// --- 2. ImGuiの描画 ---
-	if (m_showImGui)
-	{
-		DrawImGui();
-	}
-
-
-	// --- 3. 2D UI (SimpleUI) の描画 ----
+	
+	// -- 2D UI (SimpleUI) の描画 ----
 	constexpr float screenWidth = 1280.0f;
 	constexpr float screenHeight = 720.0f;
 	float uiWidth = 200.0f;
@@ -310,64 +305,4 @@ void SceneBlank::Draw()
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
 	SimpleUI::DrawAll();
-}
-
-
-void SceneBlank::DrawImGui()
-{
-	Player* player = GetObj<Player>("Player");
-	Player* player2 = GetObj<Player>("Player2");
-
-	ImGui::Begin("Information");
-	ImGui::Text("FPS: %.1f", m_fps);
-
-	if (player)
-	{
-		ImGui::Separator();
-
-		// --- 値の編集 ---
-		// スライダーで値が変更されたら、player と player2 の両方に適用する
-
-		float moveSpeed = player->GetMoveSpeed();
-		if (ImGui::SliderFloat("Move Speed", &moveSpeed, 0.0f, 10.0f))
-		{
-			player->SetMoveSpeed(moveSpeed);
-			if (player2) player2->SetMoveSpeed(moveSpeed);
-		}
-
-		XMFLOAT3 scale = player->GetScale();
-		if (ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 5.0f))
-		{
-			player->SetScale(scale);
-			if (player2) player2->SetScale(scale);
-		}
-
-		ImGui::Separator();
-		ImGui::Text("Bounding Box");
-
-		
-		XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
-		if (ImGui::SliderFloat2("Box Extents", &boxExtents.x, 0.1f, 5.0f))
-		{
-			player->SetBoundingBoxExtents(boxExtents);
-			if (player2) player2->SetBoundingBoxExtents(boxExtents);
-		}
-
-	
-		XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
-		if (ImGui::SliderFloat2("Box Offset", &boxOffset.x, -5.0f, 5.0f))
-		{
-			player->SetBoundingBoxOffset(boxOffset);
-			if (player2) player2->SetBoundingBoxOffset(boxOffset);
-		}
-
-		// --- 保存ボタン ---
-		ImGui::Separator();
-		if (ImGui::Button("SAVE"))
-		{
-			SavePlayerSettings(); // ボタンが押された時だけ保存
-		}
-	}
-
-	ImGui::End();
 }

@@ -9,6 +9,7 @@
 // ステートパターン用
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
+#include "LightPunch.h" // ★インクルード追加
 
 #include <DirectXMath.h>
 
@@ -24,6 +25,7 @@ Player::Player()
     , m_currentState(nullptr)
     , m_inputType(PlayerInputType::AI)
     , m_blendFactor(1.0f)
+    , m_isAttacking(false)
 {
     m_currentAnim = { "Idle", 0 };
     m_previousAnim = { "Idle", 0 };
@@ -46,19 +48,34 @@ void Player::Update(float tick)
     // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
 
-    // 2. FSM（状態）の更新
-    //    (m_inputs を使って継続処理や遷移チェックを行う)
+    // 2.  FSM（状態）の一元的な遷移チェック 
+    //    (攻撃など、どの状態からでも発生しうる共通の遷移)
+    if (m_currentState && m_currentState->IsInterruptible())
+    {
+        // 攻撃ボタンが押されたか (優先順位順にチェック)
+        if (m_inputs.LightPunch)
+        {
+            SetState(new LightPunch());
+        }
+        // else if (m_inputs.attack2) // ← 弱キックはここに追加
+        // {
+        //     SetState(new LightKick());
+        // }
+    }
+
+    // 3. FSM（状態）の個別の更新
+    //    (SetStateが呼ばれた場合、↑で m_currentState が入れ替わっている)
     if (m_currentState) {
         m_currentState->Update(this, tick);
     }
 
-    // 3. 物理演算の更新
+    // 4. 物理演算の更新
     UpdatePhysics(tick);
 
-    // 4. アニメーションの更新
+    // 5. アニメーションの更新
     UpdateAnimation(tick);
 
-    // 5. モデルのボーン更新
+    // 6. モデルのボーン更新
     UpdateModelBlend();
 }
 
@@ -83,7 +100,10 @@ void Player::PollInputs()
                 m_inputs.moveRight = true;
             }
         }
-   
+        // 'J' キーで攻撃
+        if (IsKeyTrigger('J')) {
+            m_inputs.LightPunch = true;
+        }
         break;
 
     case PlayerInputType::PLAYER_2:
@@ -98,7 +118,10 @@ void Player::PollInputs()
                 m_inputs.moveRight = true;
             }
         }
-        
+        // テンキーの '1' で攻撃
+        if (IsKeyTrigger(VK_NUMPAD1)) {
+            m_inputs.LightPunch = true;
+        }
         break;
 
     case PlayerInputType::AI:
@@ -317,3 +340,71 @@ void Player::SetMoveSpeed(float speed) { m_moveSpeed = speed; }
 float Player::GetMoveSpeed() const { return m_moveSpeed; }
 void Player::SetScale(const DirectX::XMFLOAT3& scale) { m_scale = scale; }
 DirectX::XMFLOAT3 Player::GetScale() const { return m_scale; }
+
+
+// --- 攻撃判定 (Hitbox) 用の関数 ---
+
+/**
+ * @brief 攻撃判定 (Hitbox) を有効/無効にする
+ */
+void Player::SetActiveHitbox(bool isActive)
+{
+    m_isAttacking = isActive;
+}
+
+/**
+ * @brief 攻撃判定が有効か（Sceneがチェックするために使う）
+ */
+bool Player::IsAttacking() const
+{
+    return m_isAttacking;
+}
+
+/**
+ * @brief 攻撃判定 (Hitbox) の位置とサイズを更新する
+ */
+void Player::UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
+{
+    // 向きを考慮 (m_rotation.y が約 -PI/2 なら 1P、約 PI/2 なら 2P)
+    float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
+
+    DirectX::XMFLOAT3 center = {
+        m_position.x + (offset.x * direction), // 向きによってオフセットを反転
+        m_position.y + offset.y,
+        m_position.z
+    };
+    DirectX::XMFLOAT3 boxExtents = {
+        extents.x,
+        extents.y,
+        0.1f // Zの厚みは固定
+    };
+    m_hitbox = DirectX::BoundingBox(center, boxExtents);
+}
+
+/**
+ * @brief 有効な攻撃判定 (Hitbox) を取得する
+ */
+DirectX::BoundingBox Player::GetActiveHitbox() const
+{
+    return m_hitbox;
+}
+
+/**
+ * @brief 攻撃判定 (Hitbox) をデバッグ描画する
+ */
+void Player::DrawHitbox()
+{
+    if (!m_isAttacking) return; // 攻撃中のみ描画
+
+    using namespace DirectX;
+    XMFLOAT3 corners[8];
+    m_hitbox.GetCorners(corners);
+
+    Geometory::SetColor(XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)); // 赤色で描画
+
+    // "手前"の面の4辺 (Bottom, Right, Top, Left)
+    static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+    for (int i = 0; i < 4; ++i) {
+        Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
+    }
+}

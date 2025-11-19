@@ -183,6 +183,7 @@
     <ClCompile Include="DirectX.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LightBase.cpp" />
+    <ClCompile Include="LightPunch.cpp" />
     <ClCompile Include="MeshBuffer.cpp" />
     <ClCompile Include="Geometory.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -196,6 +197,7 @@
     <ClCompile Include="SceneAnimation.cpp" />
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneBlank.cpp" />
+    <ClCompile Include="SceneDebug.cpp" />
     <ClCompile Include="SceneVisual.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SimpleUI.cpp" />
@@ -224,6 +226,7 @@
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="LightBase.h" />
+    <ClInclude Include="LightPunch.h" />
     <ClInclude Include="MeshBuffer.h" />
     <ClInclude Include="Geometory.h" />
     <ClInclude Include="Main.h" />
@@ -238,6 +241,7 @@
     <ClInclude Include="SceneAnimation.h" />
     <ClInclude Include="SceneBase.hpp" />
     <ClInclude Include="SceneBlank.h" />
+    <ClInclude Include="SceneDebug.h" />
     <ClInclude Include="SceneRoot.h" />
     <ClInclude Include="SceneVisual.h" />
     <ClInclude Include="Shader.h" />

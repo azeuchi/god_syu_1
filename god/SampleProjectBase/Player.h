@@ -22,13 +22,26 @@ struct PlayerInputs
 {
     bool moveLeft = false;
     bool moveRight = false;
-    // (今後、jump や attack もここに追加できる)
+    bool LightPunch = false; // 弱パンチ用のフラグ
 };
 
 struct AnimationState
 {
     const char* name = nullptr;
     int frame = 0;
+};
+
+//  技の性能を管理する構造体
+struct AttackParams
+{
+    // タイミング (秒)
+    float totalDuration = 0.5f;
+    float hitboxStart = 0.1f;
+    float hitboxEnd = 0.2f;
+
+    // Hitbox (攻撃判定) の形状
+    DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
+    DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
 };
 
 
@@ -68,14 +81,22 @@ public:
     void SetVelocity(const DirectX::XMFLOAT3& vel);
     void Jump();
     bool GetIsJumping() const;
-    DirectX::BoundingBox GetBoundingBox() const;
-    void DrawBoundingBox();
+
 
     // --- 当たり判定 ---
     void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
     DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
     void SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset);
     DirectX::XMFLOAT2 GetBoundingBoxOffset() const;
+    DirectX::BoundingBox GetBoundingBox() const; // 「くらい判定 (Hurtbox)」
+    void DrawBoundingBox();
+
+    // --- 攻撃判定 (Hitbox) 用 ---
+    DirectX::BoundingBox GetActiveHitbox() const;
+    bool IsAttacking() const;
+    void SetActiveHitbox(bool isActive);
+    void UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
+    void DrawHitbox(); // デバッグ描画用
 
     void SetIsColliding(bool isColliding);
     bool GetIsColliding() const;
@@ -84,10 +105,26 @@ public:
     void SetScale(const DirectX::XMFLOAT3& scale);
     DirectX::XMFLOAT3 GetScale() const;
 
-private:
-    void UpdatePhysics(float tick);
+    // --- アニメーション ---
     void UpdateAnimation(float tick);
     void UpdateModelBlend();
+
+    // --- ★ ImGui 調整用にパラメータを取得する関数 ---
+    AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
+
+    // --- デバッグ用に追加 ---
+    void Debug_SetAnimation(const char* name, bool forceRestart = true) {
+        PlayAnimation(name, forceRestart);
+    }
+    int Debug_GetFrame() const {
+        return m_currentAnim.frame;
+    }
+    void Debug_SetFrame(int frame) {
+        m_currentAnim.frame = frame;
+    }
+
+private:
+    void UpdatePhysics(float tick);
 
     // 入力タイプに応じて m_inputs を更新する
     void PollInputs();
@@ -101,9 +138,13 @@ private:
     float m_moveSpeed;
 
     // --- 当たり判定用メンバー変数 ---
-    DirectX::XMFLOAT2 m_boxOffset = { 0.0f, 1.0f };   
-    DirectX::XMFLOAT2 m_boxExtents = { 0.5f, 1.0f };  
+    DirectX::XMFLOAT2 m_boxOffset = { 0.0f, 1.0f };
+    DirectX::XMFLOAT2 m_boxExtents = { 0.5f, 1.0f };
     bool m_isColliding = false;
+
+    // --- 攻撃判定 (Hitbox) 用メンバー ---
+    DirectX::BoundingBox m_hitbox;     // 攻撃判定用のBox
+    bool m_isAttacking = false; // 攻撃判定がアクティブか
 
     // --- FSM (ステートパターン) 用メンバー ---
     PlayerState* m_currentState;
@@ -119,4 +160,8 @@ private:
     AnimationState m_previousAnim;
     float m_blendFactor = 1.0f;
     const float m_transitionDuration = 0.2f;
+
+    // ---  技パラメータ用メンバー ---
+    AttackParams m_lightPunchParams;
+    // (今後、LightKickParams などもここに追加できる)
 };

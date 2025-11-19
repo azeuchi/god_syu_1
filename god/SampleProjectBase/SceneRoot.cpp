@@ -8,6 +8,7 @@
 
 #include "SceneVisual.h"
 #include "SceneBlank.h"
+#include "SceneDebug.h" 
 
 #include "DebugLog.h"
 
@@ -18,7 +19,8 @@
 enum SceneKind
 {
 	SCENE_GAME,		// ゲームシーン
-	SCENE_VISUAL,	
+	SCENE_VISUAL,
+	SCENE_DEBUG,    
 	SCENE_MAX		
 };
 
@@ -39,6 +41,10 @@ void SceneRoot::ChangeScene()
 	case SCENE_VISUAL:
 		AddSubScene<SceneVisual>();
 		m_sceneName = "SCENE_VISUAL";
+		break;
+	case SCENE_DEBUG: 
+		AddSubScene<SceneDebug>();
+		m_sceneName = "SCENE_DEBUG";
 		break;
 		/*case SCENE_ANIMATION:
 			AddSubScene<SceneAnimation>();
@@ -101,7 +107,7 @@ void SceneRoot::Init()
 	CreateObj<Model>("Model");
 	GetObj<Model>("Model")->Load("Assets/Model/spot/spot.fbx", 1.0f, true);
 
-	
+
 	// シーンの作成
 	m_index = setting.index;
 	ChangeScene();
