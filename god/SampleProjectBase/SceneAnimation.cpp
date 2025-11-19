@@ -76,7 +76,7 @@ void SceneAnimation::Update(float tick)
 void SceneAnimation::Draw()
 {
 	// 各種取得
-	Model* pAnimModel		= GetObj<Model>("Akai");
+	Model* pAnimModel		= GetObj<Model>("knight");
 	CameraBase* pCamera		= GetObj<CameraBase>("Camera");
 	LightBase* pLight		= GetObj<LightBase>("Light");
 	Texture* pRampTex		= GetObj<Texture>("RampTex");

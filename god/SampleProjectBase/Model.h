@@ -116,6 +116,10 @@ private:
 
 	// 追加: 特定のアニメーション・フレームのボーン姿勢を計算するヘルパー関数
 	void CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose);
+
+	// 追加: アニメーションデータからローカル行列（S*R*T）を取得する関数
+	void SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices);
+
 	// 追加: ↑の関数内で使う再帰関数
 	void CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose);
 

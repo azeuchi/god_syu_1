@@ -372,50 +372,57 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 
 void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor)
 {
-	if (blendFactor >= 1.0f)
+	// 結果を格納するコンテナ
+	std::vector<Matrix> blendedLocalPose;
+	blendedLocalPose.resize(m_Bone.size());
+
+	// 1. 新旧それぞれのローカル行列（親に対する姿勢）を取得
+	std::vector<Matrix> newLocalPose, oldLocalPose;
+	SampleAnimationKeys(newAnimName, newFrame, newLocalPose);
+	SampleAnimationKeys(oldAnimName, oldFrame, oldLocalPose);
+
+	// 2. ローカル空間で補間計算を行う
+	size_t boneCount = m_Bone.size();
+	for (size_t i = 0; i < boneCount; ++i)
 	{
-		CalculateAnimationPose(newAnimName, newFrame, m_bonecombmtxcontainer);
-	}
-	else
-	{
-		std::vector<Matrix> newPose, oldPose;
-		CalculateAnimationPose(newAnimName, newFrame, newPose);
-		CalculateAnimationPose(oldAnimName, oldFrame, oldPose);
-
-		if (newPose.empty() || oldPose.empty() || newPose.size() != oldPose.size())
+		// ブレンド率が 1.0 以上なら新しい方そのままでOK
+		if (blendFactor >= 1.0f)
 		{
-			m_bonecombmtxcontainer = newPose;
+			blendedLocalPose[i] = newLocalPose[i];
+			continue;
 		}
-		else
+
+		Vector3 oldScale, oldTrans, newScale, newTrans;
+		Quaternion oldRot, newRot;
+
+		// 行列を成分分解 (Scale, Rotation, Translation)
+		oldLocalPose[i].Decompose(oldScale, oldRot, oldTrans);
+		newLocalPose[i].Decompose(newScale, newRot, newTrans);
+
+		// 線形補間 (Lerp) と 球面線形補間 (Slerp)
+		Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
+		Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
+
+		// クォータニオンの最短経路補正 (内積が負なら反転)
+		if (oldRot.Dot(newRot) < 0.0f)
 		{
-			size_t boneCount = newPose.size();
-			m_bonecombmtxcontainer.resize(boneCount);
-
-			for (size_t i = 0; i < boneCount; ++i)
-			{
-				Vector3 oldScale, oldTrans, newScale, newTrans;
-				Quaternion oldRot, newRot;
-
-				oldPose[i].Decompose(oldScale, oldRot, oldTrans);
-				newPose[i].Decompose(newScale, newRot, newTrans);
-
-				Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
-				Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
-
-				// 変更: クォータニオンのドット積を確認し、値が負なら片方を反転させて最短経路で補間するようにする
-				if (oldRot.Dot(newRot) < 0.0f)
-				{
-					newRot = -newRot;
-				}
-				Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
-
-				m_bonecombmtxcontainer[i] = Matrix::CreateScale(finalScale) *
-					Matrix::CreateFromQuaternion(finalRot) *
-					Matrix::CreateTranslation(finalTrans);
-			}
+			newRot = -newRot;
 		}
+		Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
+
+		// 再合成して「ブレンド済みローカル行列」を作る
+		blendedLocalPose[i] = Matrix::CreateScale(finalScale) *
+			Matrix::CreateFromQuaternion(finalRot) *
+			Matrix::CreateTranslation(finalTrans);
 	}
 
+	// 3. ブレンド済みのローカル行列を使って、再帰的にグローバル行列とオフセット行列を計算
+	m_bonecombmtxcontainer.resize(m_Bone.size());
+	Matrix rootMatrix = Matrix::Identity;
+
+	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, blendedLocalPose, m_bonecombmtxcontainer);
+
+	// 4. シェーダー用に転置して更新
 	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		bcmtx.Transpose();
@@ -424,6 +431,18 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 }
 
 void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
+{
+	// ローカル行列を取得
+	std::vector<Matrix> localMatrices;
+	SampleAnimationKeys(animName, frame, localMatrices);
+
+	// 階層計算を行う
+	outPose.resize(m_Bone.size());
+	Matrix rootMatrix = Matrix::Identity;
+	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, localMatrices, outPose);
+}
+
+void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices)
 {
 	aiAnimation* animation = nullptr;
 	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
@@ -435,27 +454,34 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 	{
 		animation = m_pScene->mAnimations[0];
 	}
-	if (!animation) return;
 
-	std::vector<Matrix> animMatrices(m_Bone.size());
-	for (auto& boneData : m_Bone)
+	// 初期化：すべてのボーンを単位行列にする
+	outLocalMatrices.resize(m_Bone.size());
+	for (auto& matrix : outLocalMatrices)
 	{
-		animMatrices[boneData.second.idx] = Matrix::Identity;
+		matrix = Matrix::Identity;
 	}
 
+	if (!animation) return;
+
+	// アニメーションチャンネル（ボーンごとの動き）を解析
 	for (unsigned int c = 0; c < animation->mNumChannels; c++)
 	{
 		aiNodeAnim* nodeAnim = animation->mChannels[c];
+		// ボーンリストにないノードはスキップ
 		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0) continue;
 
 		BONE* bone = &m_Bone[nodeAnim->mNodeName.C_Str()];
 
+		// 回転
 		int rotFrame = frame % nodeAnim->mNumRotationKeys;
 		aiQuaternion rot = nodeAnim->mRotationKeys[rotFrame].mValue;
 
+		// 位置
 		int posFrame = frame % nodeAnim->mNumPositionKeys;
 		aiVector3D pos = nodeAnim->mPositionKeys[posFrame].mValue;
 
+		// スケール
 		int scaleFrame = (nodeAnim->mNumScalingKeys > 0) ? (frame % nodeAnim->mNumScalingKeys) : 0;
 		aiVector3D scale = (nodeAnim->mNumScalingKeys > 0) ? nodeAnim->mScalingKeys[scaleFrame].mValue : aiVector3D(1.0f, 1.0f, 1.0f);
 
@@ -463,12 +489,9 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 		Matrix rotMat = Matrix::CreateFromQuaternion({ rot.x, rot.y, rot.z, rot.w });
 		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 
-		animMatrices[bone->idx] = scaleMat * rotMat * transMat;
+		// ローカル行列を格納
+		outLocalMatrices[bone->idx] = scaleMat * rotMat * transMat;
 	}
-
-	outPose.resize(m_Bone.size());
-	Matrix rootMatrix = Matrix::Identity;
-	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, animMatrices, outPose);
 }
 
 void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose)
@@ -479,6 +502,7 @@ void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& paren
 	if (m_Bone.count(nodeName) > 0)
 	{
 		int boneIdx = m_Bone[nodeName].idx;
+		// animMatrices にはローカル変形行列が入っている
 		nodeTransform = animMatrices[boneIdx];
 	}
 
