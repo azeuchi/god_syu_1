@@ -94,7 +94,7 @@ public:
 
 	void UpdateAnimation(const char* AnimationName, int Frame);
 
-	// 追加: アニメーションをブレンドするための関数
+	// アニメーションをブレンドするための関数
 	void UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor);
 
 	void UpdateBoneMatrix(const aiNode* node, const Matrix& matrix);
@@ -114,13 +114,14 @@ private:
 	std::vector<BONE> GetBoneInfo(const aiMesh* mesh);
 	DirectX::SimpleMath::Matrix aiMtxToDxMtx(const aiMatrix4x4& aimatrix);
 
-	// 追加: 特定のアニメーション・フレームのボーン姿勢を計算するヘルパー関数
+	// 特定のアニメーション・フレームのボーン姿勢（Global行列）を計算するヘルパー関数
 	void CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose);
 
-	// 追加: アニメーションデータからローカル行列（S*R*T）を取得する関数
+	// アニメーションデータから「ローカル行列（親ボーンに対する S*R*T）」のみを取得する関数
+	// ローカル空間で補間を行います
 	void SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices);
 
-	// 追加: ↑の関数内で使う再帰関数
+	//  ローカル行列の配列を受け取り、親子関係を計算してグローバル行列にする再帰関数
 	void CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose);
 
 

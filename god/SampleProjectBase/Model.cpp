@@ -377,6 +377,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	blendedLocalPose.resize(m_Bone.size());
 
 	// 1. 新旧それぞれのローカル行列（親に対する姿勢）を取得
+	
 	std::vector<Matrix> newLocalPose, oldLocalPose;
 	SampleAnimationKeys(newAnimName, newFrame, newLocalPose);
 	SampleAnimationKeys(oldAnimName, oldFrame, oldLocalPose);
@@ -385,7 +386,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	size_t boneCount = m_Bone.size();
 	for (size_t i = 0; i < boneCount; ++i)
 	{
-		// ブレンド率が 1.0 以上なら新しい方そのままでOK
+	
 		if (blendFactor >= 1.0f)
 		{
 			blendedLocalPose[i] = newLocalPose[i];
@@ -400,10 +401,12 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 		newLocalPose[i].Decompose(newScale, newRot, newTrans);
 
 		// 線形補間 (Lerp) と 球面線形補間 (Slerp)
+		// スケールと位置は線形補間
 		Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
 		Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
 
-		// クォータニオンの最短経路補正 (内積が負なら反転)
+		// 回転はクォータニオン球面線形補間 (Slerp)
+		// ドット積が負の場合は、遠回りしないように回転を反転させる処理を入れる
 		if (oldRot.Dot(newRot) < 0.0f)
 		{
 			newRot = -newRot;
@@ -422,7 +425,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 
 	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, blendedLocalPose, m_bonecombmtxcontainer);
 
-	// 4. シェーダー用に転置して更新
+	// 4. シェーダー用に転置して更新 
 	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		bcmtx.Transpose();
@@ -432,30 +435,34 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 
 void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
 {
-	// ローカル行列を取得
+	// 補間なしの単一アニメーション再生用
+	// 1. ローカル行列を取得
 	std::vector<Matrix> localMatrices;
 	SampleAnimationKeys(animName, frame, localMatrices);
 
-	// 階層計算を行う
+	// 2. 階層計算を行ってグローバル行列を算出
 	outPose.resize(m_Bone.size());
 	Matrix rootMatrix = Matrix::Identity;
 	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, localMatrices, outPose);
 }
 
+// アニメーションデータから、各ボーンのローカル行列（親に対する変形）のみを抽出する関数
 void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices)
 {
 	aiAnimation* animation = nullptr;
+	// 指定されたアニメーションが存在するかチェック
 	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
 	{
 		if (m_Animation.at(animName)->HasAnimations())
 			animation = m_Animation.at(animName)->mAnimations[0];
 	}
+	// なければシーンのデフォルトアニメーションを使用
 	else if (m_pScene && m_pScene->HasAnimations())
 	{
 		animation = m_pScene->mAnimations[0];
 	}
 
-	// 初期化：すべてのボーンを単位行列にする
+	// 初期化：すべてのボーンを単位行列にする（アニメーションキーがないボーン対策）
 	outLocalMatrices.resize(m_Bone.size());
 	for (auto& matrix : outLocalMatrices)
 	{
@@ -468,52 +475,61 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 	for (unsigned int c = 0; c < animation->mNumChannels; c++)
 	{
 		aiNodeAnim* nodeAnim = animation->mChannels[c];
-		// ボーンリストにないノードはスキップ
+		// ボーンリストにないノードは処理不要なのでスキップ
 		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0) continue;
 
 		BONE* bone = &m_Bone[nodeAnim->mNodeName.C_Str()];
 
-		// 回転
+		// 現在のフレームにおける 回転(Rotation) を取得
 		int rotFrame = frame % nodeAnim->mNumRotationKeys;
 		aiQuaternion rot = nodeAnim->mRotationKeys[rotFrame].mValue;
 
-		// 位置
+		// 現在のフレームにおける 位置(Translation) を取得
 		int posFrame = frame % nodeAnim->mNumPositionKeys;
 		aiVector3D pos = nodeAnim->mPositionKeys[posFrame].mValue;
 
-		// スケール
+		// 現在のフレームにおける スケール(Scaling) を取得
 		int scaleFrame = (nodeAnim->mNumScalingKeys > 0) ? (frame % nodeAnim->mNumScalingKeys) : 0;
 		aiVector3D scale = (nodeAnim->mNumScalingKeys > 0) ? nodeAnim->mScalingKeys[scaleFrame].mValue : aiVector3D(1.0f, 1.0f, 1.0f);
 
+		// 行列を作成
 		Matrix scaleMat = Matrix::CreateScale(scale.x, scale.y, scale.z);
 		Matrix rotMat = Matrix::CreateFromQuaternion({ rot.x, rot.y, rot.z, rot.w });
 		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 
-		// ローカル行列を格納
+		// S * R * T の順で掛けてローカル行列を作成し格納
 		outLocalMatrices[bone->idx] = scaleMat * rotMat * transMat;
 	}
 }
 
+// 親行列とローカル行列を掛け合わせてグローバル行列を作る再帰関数
 void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose)
 {
 	std::string nodeName = node->mName.C_Str();
+	// Assimpの初期ノード変換行列を取得
 	Matrix nodeTransform = aiMtxToDxMtx(node->mTransformation);
 
+	// このノードがボーンとして登録されていれば、アニメーションのローカル行列で上書きする
 	if (m_Bone.count(nodeName) > 0)
 	{
 		int boneIdx = m_Bone[nodeName].idx;
-		// animMatrices にはローカル変形行列が入っている
+		// animMatrices には SampleAnimationKeys で計算したローカル変形行列が入っている
 		nodeTransform = animMatrices[boneIdx];
 	}
 
+	// 親の行列と掛けて、このノードのグローバル行列（モデル空間での位置）にする
 	Matrix globalTransform = nodeTransform * parentMatrix;
 
+	// ボーンとして登録されているなら、オフセット行列を掛けて最終的なスキニング行列を作成
 	if (m_Bone.count(nodeName) > 0)
 	{
 		int boneIdx = m_Bone[nodeName].idx;
+		// OffsetMatrix: モデル空間の頂点をボーン空間へ戻す行列
+		// globalTransform: ボーン空間の頂点を動いた後のモデル空間へ送る行列
 		outPose[boneIdx] = m_Bone[nodeName].OffsetMatrix * globalTransform;
 	}
 
+	// 子ノードへ再帰
 	for (unsigned int i = 0; i < node->mNumChildren; ++i)
 	{
 		CalculateBoneMatrixRecursive(node->mChildren[i], globalTransform, animMatrices, outPose);

@@ -11,7 +11,7 @@
 #include "Input.h" 
 #include <system/imgui/imgui.h>
 #include <fstream> 
-#include <cmath> // ★ round (四捨五入) のために追加
+#include <cmath> // round用
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -20,7 +20,7 @@ using namespace DirectX::SimpleMath;
 Texture* g_uiTex_debug = nullptr;
 const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
-// ★ 60FPSを基準とした1フレームの時間
+// 60FPSを基準とした1フレームの時間
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
 void SceneDebug::SavePlayerSettings()
@@ -77,7 +77,7 @@ void SceneDebug::Init()
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
 
-	// ★FSMを無効化するため、AIに設定
+	// FSMを無効化するため、AIに設定
 	player->SetInputType(PlayerInputType::AI);
 
 	// --- 設定ファイルの読み込み (SceneBlank と同様) ---
@@ -121,6 +121,8 @@ void SceneDebug::Init()
 	}
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
+
+	// ループ設定は true のまま読み込む
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 
 	// アニメーションを初期化
@@ -177,18 +179,21 @@ void SceneDebug::Update(float tick)
 		// "LightPunch" (index 3) は、デバッグシーンでは非ループとして扱う
 		if (m_selectedAnimIndex == 3)
 		{
-			// ---  (FPSの計算) ---
 			// ImGuiの表示と合わせるため、60FPS固定で計算する
 			float totalDuration = player->GetLightPunchParams().totalDuration;
-			// 秒を60FPS基準のフレームに変換 (四捨五入)
 			int animLengthInFrames = static_cast<int>(std::round(totalDuration / FRAME_TIME_60FPS));
 			if (animLengthInFrames <= 0) animLengthInFrames = 1;
 
-			// 終了フレームに達したら（または超えたら）停止
+			// 終了フレームに達したら（または超えたら）
 			if (m_currentFrame >= (animLengthInFrames - 1))
 			{
-				m_isPaused = true; // 再生停止
-				m_currentFrame = animLengthInFrames - 1; // 最終フレームで固定
+				// ★ --- 修正箇所 ---
+				// UIの選択 (m_selectedAnimIndex) は 3 (LightPunch) のまま変えずに、
+				// 見た目のアニメーションだけ "Idle" に切り替えて、0フレーム目で停止させる
+
+				player->Debug_SetAnimation("Idle", true); // モデルをIdleに切り替え
+				m_currentFrame = 0;                       // フレームを0にする
+				m_isPaused = true;                        // 停止する
 			}
 		}
 	}
@@ -219,7 +224,7 @@ void SceneDebug::Draw()
 	};
 
 
-	// --- プレイヤーの描画 (Player2 は削除) ---
+	// --- プレイヤーの描画 ---
 	Player* player = GetObj<Player>("Player");
 	if (player) {
 		XMFLOAT3 pos = player->GetPosition();
@@ -242,15 +247,24 @@ void SceneDebug::Draw()
 		player->Draw();
 		player->DrawBoundingBox(); // くらい判定（緑箱）
 
-		// "LightPunch" (インデックス3) が選択されている時だけ
-		// 攻撃判定（赤箱）のデフォルト値を描画する
+		// "LightPunch" (インデックス3) が選択されており、
+		// かつ現在のフレームが攻撃判定の発生期間内であれば描画する
 		if (m_selectedAnimIndex == 3)
 		{
 			AttackParams& params = player->GetLightPunchParams();
-			player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
-			player->SetActiveHitbox(true); // 常に表示
-			player->DrawHitbox();
-			player->SetActiveHitbox(false); // 描画後にリセット
+
+			// 秒数をフレーム数に変換
+			int startFrame = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
+			int endFrame = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
+
+			// 現在のフレームが範囲内かチェック
+			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
+			{
+				player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
+				player->SetActiveHitbox(true);
+				player->DrawHitbox();
+				player->SetActiveHitbox(false);
+			}
 		}
 	}
 
@@ -262,7 +276,7 @@ void SceneDebug::Draw()
 
 }
 
-// デバッグ機能の核心
+// ★デバッグ機能の核心
 void SceneDebug::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
@@ -361,18 +375,16 @@ void SceneDebug::DrawImGui()
 			ImGui::Text("Light Punch Params (Red Box) - 60FPS base");
 			AttackParams& params = player->GetLightPunchParams();
 
-			// (フレーム単位のUI) ---
-
 			// (A) float(秒) -> int(フレーム) に変換 (四捨五入)
 			int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
 			int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 			int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 
-			// ImGui::InputInt でフレーム数を編集
+			// (B) ImGui::InputInt でフレーム数を編集
 			if (ImGui::InputInt("Total Frames", &totalFrames))
 			{
 				if (totalFrames < 1) totalFrames = 1; // 最小1フレーム
-				// int(フレーム) -> float(秒) に逆変換して保存
+				// (C) int(フレーム) -> float(秒) に逆変換して保存
 				params.totalDuration = totalFrames * FRAME_TIME_60FPS;
 			}
 			if (ImGui::InputInt("Hitbox Start Frame", &startFrames))
@@ -386,7 +398,7 @@ void SceneDebug::DrawImGui()
 				params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 			}
 
-			//  攻撃判定の位置とサイズはそのまま 
+			// (D) 攻撃判定の位置とサイズはそのまま (float)
 			ImGui::SliderFloat2("Hitbox Offset", &params.hitboxOffset.x, -2.0f, 2.0f);
 			ImGui::SliderFloat2("Hitbox Extents", &params.hitboxExtents.x, 0.1f, 2.0f);
 		}
