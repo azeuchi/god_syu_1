@@ -11,7 +11,7 @@
 #include "Input.h" 
 #include <system/imgui/imgui.h>
 #include <fstream> 
-#include <cmath> // round用
+#include <cmath>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -31,7 +31,7 @@ void SceneDebug::SavePlayerSettings()
 		std::ofstream ofs(SETTINGS_FILE_DEBUG);
 		if (ofs.is_open())
 		{
-			// 既存の保存 (くらい判定など)
+			// くらい判定など
 			ofs << player->GetMoveSpeed() << std::endl;
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
@@ -55,7 +55,7 @@ void SceneDebug::SavePlayerSettings()
 
 void SceneDebug::Init()
 {
-	// --- シェーダー読み込み (SceneBlank と同様) ---
+	// --- シェーダー読み込み ---
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
 		CreateObj<PixelShader>("PS_TexColor"),
@@ -77,10 +77,9 @@ void SceneDebug::Init()
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
 
-	// FSMを無効化するため、AIに設定
 	player->SetInputType(PlayerInputType::AI);
 
-	// --- 設定ファイルの読み込み (SceneBlank と同様) ---
+	// --- 設定ファイルの読み込み ---
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
@@ -90,7 +89,7 @@ void SceneDebug::Init()
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
 	{
-		// 既存の読み込み
+
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 		ifs >> boxExtents.x >> boxExtents.y;
@@ -276,7 +275,7 @@ void SceneDebug::Draw()
 
 }
 
-// ★デバッグ機能の核心
+// デバッグ機能
 void SceneDebug::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
@@ -290,7 +289,7 @@ void SceneDebug::DrawImGui()
 
 	if (player)
 	{
-		// --- 当たり判定とスケール (SceneBlank からコピー) ---
+		// --- 当たり判定とスケール  ---
 		ImGui::Separator();
 		ImGui::Text("Collision & Scale");
 

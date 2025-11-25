@@ -191,6 +191,7 @@
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayerStateIdle.cpp" />
+    <ClCompile Include="PlayerStateJump.cpp" />
     <ClCompile Include="PlayerStateWalk.cpp" />
     <ClCompile Include="PlayerStateWalkBack.cpp" />
     <ClCompile Include="PointLight.cpp" />
@@ -235,6 +236,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerState.h" />
     <ClInclude Include="PlayerStateIdle.h" />
+    <ClInclude Include="PlayerStateJump.h" />
     <ClInclude Include="PlayerStateWalk.h" />
     <ClInclude Include="PlayerStateWalkBack.h" />
     <ClInclude Include="PointLight.h" />

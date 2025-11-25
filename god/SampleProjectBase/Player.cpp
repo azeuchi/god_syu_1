@@ -9,7 +9,8 @@
 // ステートパターン用
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
-#include "LightPunch.h" // ★インクルード追加
+#include "LightPunch.h" 
+#include "PlayerStateJump.h" // ★追加
 
 #include <DirectXMath.h>
 
@@ -48,23 +49,25 @@ void Player::Update(float tick)
     // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
 
-    // 2.  FSM（状態）の一元的な遷移チェック 
-    //    (攻撃など、どの状態からでも発生しうる共通の遷移)
+    // 2. ★ FSM（状態）の一元的な遷移チェック ★
     if (m_currentState && m_currentState->IsInterruptible())
     {
-        // 攻撃ボタンが押されたか (優先順位順にチェック)
-        if (m_inputs.LightPunch)
+        // 攻撃ボタンが押されたか
+        if (m_inputs.attack1)
         {
             SetState(new LightPunch());
         }
-        // else if (m_inputs.attack2) // ← 弱キックはここに追加
-        // {
-        //     SetState(new LightKick());
-        // }
+
+        // ★ ジャンプ処理 (攻撃中でなければ飛べる)
+        // ジャンプキーが押され、かつ現在ジャンプ中でなければ
+        else if (m_inputs.jump && !m_isJumping)
+        {
+            Jump(); // 物理的に上に飛ばす
+            SetState(new PlayerStateJump()); // ジャンプ状態へ遷移
+        }
     }
 
     // 3. FSM（状態）の個別の更新
-    //    (SetStateが呼ばれた場合、↑で m_currentState が入れ替わっている)
     if (m_currentState) {
         m_currentState->Update(this, tick);
     }
@@ -85,7 +88,7 @@ void Player::Update(float tick)
 void Player::PollInputs()
 {
     // 毎フレーム、入力をリセット
-    m_inputs = {}; // m_inputs.moveLeft = false, etc.
+    m_inputs = {};
 
     switch (m_inputType)
     {
@@ -99,33 +102,39 @@ void Player::PollInputs()
             else if (IsKeyPress('D')) {
                 m_inputs.moveRight = true;
             }
+            // 'W' キーでジャンプ
+            if (IsKeyTrigger('W')) {
+                m_inputs.jump = true;
+            }
         }
         // 'J' キーで攻撃
         if (IsKeyTrigger('J')) {
-            m_inputs.LightPunch = true;
+            m_inputs.attack1 = true;
         }
         break;
 
     case PlayerInputType::PLAYER_2:
         // 2Pは 矢印キー (左右)
-
         if (!IsKeyPress(VK_RBUTTON))
         {
-            if (IsKeyPress(VK_LEFT)) { // 左矢印キー
+            if (IsKeyPress(VK_LEFT)) {
                 m_inputs.moveLeft = true;
             }
-            else if (IsKeyPress(VK_RIGHT)) { // 右矢印キー
+            else if (IsKeyPress(VK_RIGHT)) {
                 m_inputs.moveRight = true;
+            }
+            // 上矢印キーでジャンプ
+            if (IsKeyTrigger(VK_UP)) {
+                m_inputs.jump = true;
             }
         }
         // テンキーの '1' で攻撃
         if (IsKeyTrigger(VK_NUMPAD1)) {
-            m_inputs.LightPunch = true;
+            m_inputs.attack1 = true;
         }
         break;
 
     case PlayerInputType::AI:
-        // AIは何もしない (m_inputs はリセットされたまま)
         break;
     }
 }
@@ -134,11 +143,13 @@ void Player::PollInputs()
 void Player::UpdatePhysics(float tick)
 {
     if (m_isJumping) {
-        m_velocity.y -= 18.0f * tick;
+        m_velocity.y -= 18.0f * tick; // 重力
     }
     m_position.x += m_velocity.x * tick;
     m_position.y += m_velocity.y * tick;
     m_position.z += m_velocity.z * tick;
+
+    // 地面との接触
     if (m_position.y <= 0.0f) {
         m_position.y = 0.0f;
         if (m_isJumping) {

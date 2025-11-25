@@ -180,6 +180,9 @@
     <ClCompile Include="LightPunch.cpp">
       <Filter>ソース ファイル\PlayerState</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerStateJump.cpp">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -315,6 +318,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="LightPunch.h">
+      <Filter>ソース ファイル\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateJump.h">
       <Filter>ソース ファイル\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>

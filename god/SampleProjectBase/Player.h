@@ -22,7 +22,8 @@ struct PlayerInputs
 {
     bool moveLeft = false;
     bool moveRight = false;
-    bool LightPunch = false; // 弱パンチ用のフラグ
+    bool jump = false;    // ★追加: ジャンプ
+    bool attack1 = false; // 弱パンチ
 };
 
 struct AnimationState
@@ -31,7 +32,7 @@ struct AnimationState
     int frame = 0;
 };
 
-//  技の性能を管理する構造体
+// 技の性能を管理する構造体
 struct AttackParams
 {
     // タイミング (秒)
@@ -109,7 +110,7 @@ public:
     void UpdateAnimation(float tick);
     void UpdateModelBlend();
 
-    // --- ★ ImGui 調整用にパラメータを取得する関数 ---
+    // --- ImGui 調整用にパラメータを取得する関数 ---
     AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 
     // --- デバッグ用に追加 ---
@@ -161,7 +162,6 @@ private:
     float m_blendFactor = 1.0f;
     const float m_transitionDuration = 0.2f;
 
-    // ---  技パラメータ用メンバー ---
+    // --- 技パラメータ用メンバー ---
     AttackParams m_lightPunchParams;
-    // (今後、LightKickParams などもここに追加できる)
 };

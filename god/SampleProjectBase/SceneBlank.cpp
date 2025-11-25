@@ -18,7 +18,6 @@ using namespace DirectX::SimpleMath;
 Texture* g_uiTex = nullptr;
 const char* SETTINGS_FILE = "player_settings.ini";
 
-
 void SceneBlank::Init()
 {
 	Shader* shader[] = {
@@ -45,7 +44,7 @@ void SceneBlank::Init()
 	// プレイヤー1 を PLAYER_1 (A/Dキー) に設定
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// --- 設定ファイルの読み込み ---
+	// --- ★設定ファイルの読み込み ---
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
@@ -77,7 +76,6 @@ void SceneBlank::Init()
 	player->GetLightPunchParams() = params;
 
 
-
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
@@ -85,6 +83,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true); 
 
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
@@ -110,7 +109,9 @@ void SceneBlank::Init()
 	}
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunchPunch.fbx", "LightPunchPunch", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", false);
+
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
@@ -122,7 +123,6 @@ void SceneBlank::Init()
 		pCamera->SetLook({ 0.0f, 1.0f, 4.0f });
 	}
 
-	// m_showImGui = true; // ★削除
 	g_uiTex = new Texture();
 }
 
@@ -136,9 +136,6 @@ void SceneBlank::Uninit()
 
 void SceneBlank::Update(float tick)
 {
-	// ★ m_fps の計算を削除
-	// ★ VK_TAB のチェックを削除
-
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
@@ -287,8 +284,9 @@ void SceneBlank::Draw()
 	}
 
 
-	
-	// -- 2D UI (SimpleUI) の描画 ----
+	// --- 2. ImGuiの描画 (削除) ---
+
+	// --- 3. 2D UI (SimpleUI) の描画 ----
 	constexpr float screenWidth = 1280.0f;
 	constexpr float screenHeight = 720.0f;
 	float uiWidth = 200.0f;
