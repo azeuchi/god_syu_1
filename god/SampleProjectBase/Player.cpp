@@ -10,7 +10,7 @@
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
-#include "PlayerStateJump.h" // ★追加
+#include "PlayerStateJump.h" 
 
 #include <DirectXMath.h>
 
@@ -27,6 +27,7 @@ Player::Player()
     , m_inputType(PlayerInputType::AI)
     , m_blendFactor(1.0f)
     , m_isAttacking(false)
+    , m_isAnimPaused(false) // 初期化
 {
     m_currentAnim = { "Idle", 0 };
     m_previousAnim = { "Idle", 0 };
@@ -165,7 +166,12 @@ void Player::UpdateAnimation(float tick)
         m_blendFactor += tick / m_transitionDuration;
         if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
     }
-    m_currentAnim.frame++;
+
+    // ★追加: 一時停止中でなければフレームを進める
+    if (!m_isAnimPaused)
+    {
+        m_currentAnim.frame++;
+    }
 }
 void Player::UpdateModelBlend()
 {
@@ -187,6 +193,9 @@ void Player::SetState(PlayerState* newState)
 }
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
+    // ★追加: 新しいアニメーションを再生する時は必ず一時停止を解除する
+    m_isAnimPaused = false;
+
     if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
     {
         return;
@@ -196,6 +205,13 @@ void Player::PlayAnimation(const char* name, bool forceRestart)
     m_currentAnim.frame = 0;
     m_blendFactor = 0.0f;
 }
+
+// ★追加: アニメーション一時停止
+void Player::SetAnimPause(bool pause)
+{
+    m_isAnimPaused = pause;
+}
+
 float Player::GetForwardMoveDot() const
 {
     using namespace DirectX::SimpleMath;
@@ -286,7 +302,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 6.0f;
+        m_velocity.y = 6.0f; // ジャンプ力
         m_isJumping = true;
     }
 }

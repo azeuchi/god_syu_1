@@ -22,7 +22,7 @@ struct PlayerInputs
 {
     bool moveLeft = false;
     bool moveRight = false;
-    bool jump = false;    // ★追加: ジャンプ
+    bool jump = false;    // ジャンプ
     bool attack1 = false; // 弱パンチ
 };
 
@@ -71,6 +71,9 @@ public:
     const PlayerInputs& GetInputs() const;
 
     void PlayAnimation(const char* name, bool forceRestart = false);
+    //  アニメーションの一時停止を設定する関数
+    void SetAnimPause(bool pause);
+
     float GetForwardMoveDot() const;
 
     // --- 操作用 ---
@@ -161,6 +164,7 @@ private:
     AnimationState m_previousAnim;
     float m_blendFactor = 1.0f;
     const float m_transitionDuration = 0.2f;
+    bool m_isAnimPaused = false; //  アニメーション一時停止フラグ
 
     // --- 技パラメータ用メンバー ---
     AttackParams m_lightPunchParams;
