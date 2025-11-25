@@ -11,16 +11,13 @@
 #include "Input.h" 
 #include <system/imgui/imgui.h>
 #include <fstream> 
-#include <cmath>
+#include <cmath> 
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// SceneBlank と同じグローバル変数・定数
 Texture* g_uiTex_debug = nullptr;
 const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
-
-// 60FPSを基準とした1フレームの時間
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
 void SceneDebug::SavePlayerSettings()
@@ -31,7 +28,7 @@ void SceneDebug::SavePlayerSettings()
 		std::ofstream ofs(SETTINGS_FILE_DEBUG);
 		if (ofs.is_open())
 		{
-			// くらい判定など
+			// 既存設定
 			ofs << player->GetMoveSpeed() << std::endl;
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
@@ -40,13 +37,17 @@ void SceneDebug::SavePlayerSettings()
 			DirectX::XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
 			ofs << boxOffset.x << " " << boxOffset.y << std::endl;
 
-			// AttackParams (攻撃判定) の保存
+			// AttackParams (攻撃判定 + ダメージ等)
 			AttackParams& params = player->GetLightPunchParams();
 			ofs << params.totalDuration << std::endl;
 			ofs << params.hitboxStart << std::endl;
 			ofs << params.hitboxEnd << std::endl;
 			ofs << params.hitboxOffset.x << " " << params.hitboxOffset.y << std::endl;
 			ofs << params.hitboxExtents.x << " " << params.hitboxExtents.y << std::endl;
+			// 新パラメータ
+			ofs << params.damage << std::endl;
+			ofs << params.hitFrame << std::endl;
+			ofs << params.blockFrame << std::endl;
 
 			ofs.close();
 		}
@@ -55,7 +56,6 @@ void SceneDebug::SavePlayerSettings()
 
 void SceneDebug::Init()
 {
-	// --- シェーダー読み込み ---
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
 		CreateObj<PixelShader>("PS_TexColor"),
@@ -73,13 +73,12 @@ void SceneDebug::Init()
 		}
 	}
 
-	// --- プレイヤーを1体だけ生成 ---
+	// プレイヤー生成
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-
 	player->SetInputType(PlayerInputType::AI);
 
-	// --- 設定ファイルの読み込み ---
+	// 設定読み込み
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
@@ -89,54 +88,43 @@ void SceneDebug::Init()
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
 	{
-
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 		ifs >> boxExtents.x >> boxExtents.y;
 		ifs >> boxOffset.x >> boxOffset.y;
 
-		// AttackParams の読み込み
 		if (!ifs.eof()) ifs >> params.totalDuration;
 		if (!ifs.eof()) ifs >> params.hitboxStart;
 		if (!ifs.eof()) ifs >> params.hitboxEnd;
 		if (!ifs.eof()) ifs >> params.hitboxOffset.x >> params.hitboxOffset.y;
 		if (!ifs.eof()) ifs >> params.hitboxExtents.x >> params.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> params.damage;
+		if (!ifs.eof()) ifs >> params.hitFrame;
+		if (!ifs.eof()) ifs >> params.blockFrame;
 
 		ifs.close();
 	}
 
-	// 読み込んだ値をプレイヤーに設定
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 	player->SetBoundingBoxExtents(boxExtents);
 	player->SetBoundingBoxOffset(boxOffset);
 	player->GetLightPunchParams() = params;
 
-
-	// --- モデル・アニメーション読み込み ---
-	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
-	{
-		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
-	}
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
-
-	// ループ設定は true のまま読み込む
+	// モデル読み込み (Idle と Punch のみでOK)
+	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 
-	// アニメーションを初期化
-	player->Debug_SetAnimation(m_animNames[m_selectedAnimIndex]);
+	// 初期状態は Idle
+	player->Debug_SetAnimation("Idle", true);
 
-	// プレイヤーを中央に配置
 	player->SetPosition({ 0.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 
 	m_showImGui = true;
 	g_uiTex_debug = new Texture();
 
-	// デバッグ用の初期化
-	m_isPaused = true;
-	m_selectedAnimIndex = 0;
+	m_isAttacking = false;
 	m_currentFrame = 0;
 }
 
@@ -160,40 +148,25 @@ void SceneDebug::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
-	// ImGui の状態に応じてアニメーションを手動制御する
+	// --- アニメーション更新 ---
+	player->UpdateAnimation(tick);
+	player->UpdateModelBlend();
+	m_currentFrame = player->Debug_GetFrame();
 
-	if (m_isPaused)
+	// 攻撃中の制御
+	if (m_isAttacking)
 	{
-		// 一時停止中
-		player->Debug_SetFrame(m_currentFrame);
-		player->UpdateModelBlend(); // ボーンを更新
-	}
-	else
-	{
-		// 再生中
-		player->UpdateAnimation(tick); // アニメーションのフレームを進める
-		player->UpdateModelBlend();    // ボーンを更新
-		m_currentFrame = player->Debug_GetFrame(); // ImGui表示用に現在フレームを同期
+		// 終了判定 (60FPS基準)
+		float totalDuration = player->GetLightPunchParams().totalDuration;
+		int animLengthInFrames = static_cast<int>(std::round(totalDuration / FRAME_TIME_60FPS));
+		if (animLengthInFrames <= 0) animLengthInFrames = 1;
 
-		// "LightPunch" (index 3) は、デバッグシーンでは非ループとして扱う
-		if (m_selectedAnimIndex == 3)
+		// 終了フレームに達したら Idle に戻る
+		if (m_currentFrame >= (animLengthInFrames - 1))
 		{
-			// ImGuiの表示と合わせるため、60FPS固定で計算する
-			float totalDuration = player->GetLightPunchParams().totalDuration;
-			int animLengthInFrames = static_cast<int>(std::round(totalDuration / FRAME_TIME_60FPS));
-			if (animLengthInFrames <= 0) animLengthInFrames = 1;
-
-			// 終了フレームに達したら（または超えたら）
-			if (m_currentFrame >= (animLengthInFrames - 1))
-			{
-				// ★ --- 修正箇所 ---
-				// UIの選択 (m_selectedAnimIndex) は 3 (LightPunch) のまま変えずに、
-				// 見た目のアニメーションだけ "Idle" に切り替えて、0フレーム目で停止させる
-
-				player->Debug_SetAnimation("Idle", true); // モデルをIdleに切り替え
-				m_currentFrame = 0;                       // フレームを0にする
-				m_isPaused = true;                        // 停止する
-			}
+			player->Debug_SetAnimation("Idle", true); // Idleに戻す
+			m_isAttacking = false;
+			m_currentFrame = 0;
 		}
 	}
 }
@@ -222,8 +195,6 @@ void SceneDebug::Draw()
 		GetObj<Shader>("PS_TexColor"),
 	};
 
-
-	// --- プレイヤーの描画 ---
 	Player* player = GetObj<Player>("Player");
 	if (player) {
 		XMFLOAT3 pos = player->GetPosition();
@@ -232,7 +203,7 @@ void SceneDebug::Draw()
 		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
 		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
 		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, 0.0f); // Zを0に固定
+		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, 0.0f);
 		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
 
 		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
@@ -244,19 +215,15 @@ void SceneDebug::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 		player->Draw();
-		player->DrawBoundingBox(); // くらい判定（緑箱）
+		player->DrawBoundingBox(); // くらい判定（緑箱）は常時表示
 
-		// "LightPunch" (インデックス3) が選択されており、
-		// かつ現在のフレームが攻撃判定の発生期間内であれば描画する
-		if (m_selectedAnimIndex == 3)
+		// 攻撃中かつ発生期間内なら攻撃判定（赤箱）を表示
+		if (m_isAttacking)
 		{
 			AttackParams& params = player->GetLightPunchParams();
-
-			// 秒数をフレーム数に変換
 			int startFrame = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 			int endFrame = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 
-			// 現在のフレームが範囲内かチェック
 			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
 			{
 				player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
@@ -267,32 +234,91 @@ void SceneDebug::Draw()
 		}
 	}
 
-	// --- ImGuiの描画 ---
 	if (m_showImGui)
 	{
 		DrawImGui();
 	}
-
 }
 
-// デバッグ機能
 void SceneDebug::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
 
-	ImGui::Begin("Debug Settings");
+	ImGui::Begin("Attack Settings");
 	ImGui::Text("FPS: %.1f", m_fps);
 	ImGui::Separator();
-	ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Camera: Use Mouse/Keys to move");
-	ImGui::Text("Player is at (0, 0, 0)");
-
 
 	if (player)
 	{
-		// --- 当たり判定とスケール  ---
-		ImGui::Separator();
-		ImGui::Text("Collision & Scale");
+		// --- 1. アクションテスト ---
+		ImGui::Text("Action Test");
 
+		// 攻撃中でなければボタンを押せる
+		if (!m_isAttacking)
+		{
+			if (ImGui::Button("Test Light Punch (Attack)"))
+			{
+				player->Debug_SetAnimation("LightPunch", true);
+				m_isAttacking = true;
+				m_currentFrame = 0;
+			}
+		}
+		else
+		{
+			ImGui::Text("Playing Attack... Frame: %d", m_currentFrame);
+		}
+
+		ImGui::Separator();
+
+		// --- 2. パラメータ調整 ---
+		ImGui::Text("Light Punch Parameters (60FPS)");
+		AttackParams& params = player->GetLightPunchParams();
+
+		// フレーム関連 (int <-> float 変換)
+		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
+		int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
+		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
+
+		if (ImGui::InputInt("Total Duration (Frames)", &totalFrames))
+		{
+			if (totalFrames < 1) totalFrames = 1;
+			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
+		}
+		if (ImGui::InputInt("Hitbox Start (Frames)", &startFrames))
+		{
+			if (startFrames < 0) startFrames = 0;
+			params.hitboxStart = startFrames * FRAME_TIME_60FPS;
+		}
+		if (ImGui::InputInt("Hitbox End (Frames)", &endFrames))
+		{
+			if (endFrames < 0) endFrames = 0;
+			params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
+		}
+
+		// 攻撃判定のサイズ・位置
+		ImGui::SliderFloat2("Hitbox Offset", &params.hitboxOffset.x, -2.0f, 2.0f);
+		ImGui::SliderFloat2("Hitbox Extents", &params.hitboxExtents.x, 0.1f, 2.0f);
+
+		// ★追加: ダメージ・有利フレーム
+		ImGui::InputInt("Damage", &params.damage);
+		ImGui::InputInt("On-Hit Advantage (Frames)", &params.hitFrame);
+		ImGui::InputInt("On-Block Advantage (Frames)", &params.blockFrame);
+
+		ImGui::Separator();
+
+		// --- 3. プレイヤー設定 (くらい判定・スケール) ---
+		// ご要望通り維持します
+		ImGui::Text("Player Collision (Hurtbox)");
+		XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
+		if (ImGui::SliderFloat2("Hurtbox Extents", &boxExtents.x, 0.1f, 5.0f))
+		{
+			player->SetBoundingBoxExtents(boxExtents);
+		}
+		XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
+		if (ImGui::SliderFloat2("Hurtbox Offset", &boxOffset.x, -5.0f, 5.0f))
+		{
+			player->SetBoundingBoxOffset(boxOffset);
+		}
 		float moveSpeed = player->GetMoveSpeed();
 		if (ImGui::SliderFloat("Move Speed", &moveSpeed, 0.0f, 10.0f))
 		{
@@ -304,110 +330,12 @@ void SceneDebug::DrawImGui()
 			player->SetScale(scale);
 		}
 
-		ImGui::Separator();
-		ImGui::Text("Hurtbox (Green Box)"); // くらい判定
-		XMFLOAT2 boxExtents = player->GetBoundingBoxExtents();
-		if (ImGui::SliderFloat2("Hurtbox Extents", &boxExtents.x, 0.1f, 5.0f))
-		{
-			player->SetBoundingBoxExtents(boxExtents);
-		}
-		XMFLOAT2 boxOffset = player->GetBoundingBoxOffset();
-		if (ImGui::SliderFloat2("Hurtbox Offset", &boxOffset.x, -5.0f, 5.0f))
-		{
-			player->SetBoundingBoxOffset(boxOffset);
-		}
-
-		// --- アニメーション制御 ---
-		ImGui::Separator();
-		ImGui::Text("Animation Control");
-
-		// アニメーション選択
-		if (ImGui::Combo("Animation", &m_selectedAnimIndex, m_animNames, IM_ARRAYSIZE(m_animNames)))
-		{
-			// アニメーションを切り替えて再生開始
-			player->Debug_SetAnimation(m_animNames[m_selectedAnimIndex]);
-			m_currentFrame = 0; // フレームをリセット
-			m_isPaused = true;  // 切り替え時は一時停止
-		}
-
-		// "LightPunch" (index 3) かどうかでUIを変更
-		if (m_selectedAnimIndex == 3)
-		{
-			// "LightPunch" の場合は「再生」ボタン
-			if (ImGui::Button("Play LightPunch"))
-			{
-				player->Debug_SetAnimation("LightPunch", true);
-				m_currentFrame = 0;
-				m_isPaused = false; // 再生開始
-			}
-			ImGui::SameLine();
-			ImGui::Checkbox("Pause", &m_isPaused); // 一時停止もできるように
-		}
-		else
-		{
-			// "LightPunch" 以外は 再生/一時停止 のチェックボックスのみ
-			ImGui::Checkbox("Pause (Loop)", &m_isPaused);
-		}
-
-
-		// フレーム制御 (一時停止中のみ)
-		if (m_isPaused)
-		{
-			// コマ送り
-			if (ImGui::Button("Frame Step"))
-			{
-				m_currentFrame++; // m_currentFrame を進める
-			}
-			ImGui::SameLine();
-			// フレーム指定
-			ImGui::InputInt("Frame", &m_currentFrame);
-		}
-		else
-		{
-			ImGui::Text("Frame: %d", m_currentFrame);
-		}
-
-		// "LightPunch" (index 3) が選択されている時だけ攻撃判定スライダーを表示
-		if (m_selectedAnimIndex == 3)
-		{
-			ImGui::Separator();
-			ImGui::Text("Light Punch Params (Red Box) - 60FPS base");
-			AttackParams& params = player->GetLightPunchParams();
-
-			// (A) float(秒) -> int(フレーム) に変換 (四捨五入)
-			int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
-			int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
-			int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
-
-			// (B) ImGui::InputInt でフレーム数を編集
-			if (ImGui::InputInt("Total Frames", &totalFrames))
-			{
-				if (totalFrames < 1) totalFrames = 1; // 最小1フレーム
-				// (C) int(フレーム) -> float(秒) に逆変換して保存
-				params.totalDuration = totalFrames * FRAME_TIME_60FPS;
-			}
-			if (ImGui::InputInt("Hitbox Start Frame", &startFrames))
-			{
-				if (startFrames < 0) startFrames = 0;
-				params.hitboxStart = startFrames * FRAME_TIME_60FPS;
-			}
-			if (ImGui::InputInt("Hitbox End Frame", &endFrames))
-			{
-				if (endFrames < 0) endFrames = 0;
-				params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
-			}
-
-			// (D) 攻撃判定の位置とサイズはそのまま (float)
-			ImGui::SliderFloat2("Hitbox Offset", &params.hitboxOffset.x, -2.0f, 2.0f);
-			ImGui::SliderFloat2("Hitbox Extents", &params.hitboxExtents.x, 0.1f, 2.0f);
-		}
-
 
 		// --- 保存ボタン ---
 		ImGui::Separator();
-		if (ImGui::Button("SAVE Settings"))
+		if (ImGui::Button("SAVE All Settings"))
 		{
-			SavePlayerSettings(); // AttackParams も保存されます
+			SavePlayerSettings();
 		}
 	}
 

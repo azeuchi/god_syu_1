@@ -16,12 +16,8 @@ private:
 	bool m_showImGui;
 
 	// --- デバッグ用メンバー ---
-	bool m_isPaused = false;            // アニメーション一時停止フラグ
-	int m_selectedAnimIndex = 0;        // 選択中のアニメーションインデックス
-	int m_currentFrame = 0;             // 現在のフレーム（ImGui表示・入力用）
-	const char* m_animNames[4] = {      // 配列サイズを 3 -> 4 に変更
-		"Idle", "Walk", "WalkBack", "LightPunch" // "Punch" を追加
-	};
+	bool m_isAttacking = false;         // 攻撃アニメーション再生中フラグ
+	int m_currentFrame = 0;             // 現在のフレーム
 
 	void SavePlayerSettings();
 	void DrawImGui();

@@ -64,6 +64,9 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> params.hitboxEnd;
 		if (!ifs.eof()) ifs >> params.hitboxOffset.x >> params.hitboxOffset.y;
 		if (!ifs.eof()) ifs >> params.hitboxExtents.x >> params.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> params.damage;
+		if (!ifs.eof()) ifs >> params.hitFrame;
+		if (!ifs.eof()) ifs >> params.blockFrame;
 
 		ifs.close();
 	}
@@ -83,7 +86,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true); 
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
@@ -110,7 +113,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", false);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
@@ -201,7 +204,9 @@ void SceneBlank::Update(float tick)
 		// --- 2. 攻撃判定 (Hitbox) のチェック ---
 		if (player->IsAttacking() && player->GetActiveHitbox().Intersects(box2))
 		{
-			
+			// 攻撃のパラメータを取得してダメージ処理などに使うことができる
+			AttackParams& params = player->GetLightPunchParams();
+		
 		}
 		if (player2->IsAttacking() && player2->GetActiveHitbox().Intersects(box1))
 		{
@@ -283,8 +288,6 @@ void SceneBlank::Draw()
 		player2->DrawHitbox();
 	}
 
-
-	// --- 2. ImGuiの描画 (削除) ---
 
 	// --- 3. 2D UI (SimpleUI) の描画 ----
 	constexpr float screenWidth = 1280.0f;
