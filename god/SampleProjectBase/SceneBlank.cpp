@@ -10,6 +10,8 @@
 #include "SimpleUI.h"
 #include "Texture.h"
 #include "Input.h" 
+#include "UISprite.h"
+#include "Image2D.h"
 #include <fstream> 
 
 using namespace DirectX;
@@ -37,6 +39,14 @@ void SceneBlank::Init()
 		}
 	}
 
+	//２D画像読み込み
+	m_hpBar = new Image2D();
+	// 画像ファイル、X座標, Y座標, 幅, 高さ
+	m_hpBar->Load("Assets/Texture/hp.png", 330.0f, 80.0f, 500.0f, 80.0f);
+
+	m_enemyhpBar = new Image2D();
+	m_enemyhpBar->Load("Assets/Texture/hp.png", 950.0f, 80.0f, 500.0f, 80.0f);
+
 	// プレイヤー1生成
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
@@ -44,7 +54,7 @@ void SceneBlank::Init()
 	// プレイヤー1 を PLAYER_1 (A/Dキー) に設定
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// --- ★設定ファイルの読み込み ---
+	// --- 設定ファイルの読み込み ---
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT2 boxExtents = { 0.5f, 1.0f };
@@ -131,6 +141,9 @@ void SceneBlank::Init()
 
 void SceneBlank::Uninit()
 {
+	if (m_hpBar) delete m_hpBar;
+	if (m_enemyhpBar) delete m_enemyhpBar;
+
 	if (g_uiTex) {
 		delete g_uiTex;
 		g_uiTex = nullptr;
@@ -288,22 +301,18 @@ void SceneBlank::Draw()
 		player2->DrawHitbox();
 	}
 
+	// --- 2D UIの描画 ---
 
-	// --- 3. 2D UI (SimpleUI) の描画 ----
-	constexpr float screenWidth = 1280.0f;
-	constexpr float screenHeight = 720.0f;
-	float uiWidth = 200.0f;
-	float uiHeight = 50.0f;
-	float x = screenWidth - uiWidth - 20.0f;
-	float y = 20.0f;
-	float ndcX = (x / screenWidth) * 2.0f - 1.0f;
-	float ndcY = 1.0f - (y / screenHeight) * 2.0f;
-	float ndcW = (uiWidth / screenWidth) * 2.0f;
-	float ndcH = (uiHeight / screenHeight) * 2.0f;
+	// 準備
 	SimpleUI::Clear();
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1,1,1,1 }, g_uiTex);
 	DirectX::XMFLOAT4X4 identity;
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
+
+	// それぞれの画像を描画登録 
+	if (m_hpBar) m_hpBar->Draw();
+	if (m_enemyhpBar) m_enemyhpBar->Draw();
+
+	// まとめて描画実行
 	SimpleUI::DrawAll();
 }

@@ -181,6 +181,7 @@
     <ClCompile Include="CameraWater.cpp" />
     <ClCompile Include="CameraWipe.cpp" />
     <ClCompile Include="DirectX.cpp" />
+    <ClCompile Include="Image2D.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LightBase.cpp" />
     <ClCompile Include="LightPunch.cpp" />
@@ -214,6 +215,7 @@
     <ClCompile Include="system\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="SceneRoot.cpp" />
+    <ClCompile Include="UISprite.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ball.h" />
@@ -225,6 +227,7 @@
     <ClInclude Include="DebugLog.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="DirectX.h" />
+    <ClInclude Include="Image2D.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="LightBase.h" />
     <ClInclude Include="LightPunch.h" />
@@ -262,6 +265,7 @@
     <ClInclude Include="system\noncopyable.h" />
     <ClInclude Include="system\transform.h" />
     <ClInclude Include="Texture.h" />
+    <ClInclude Include="UISprite.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PS_TexColor.hlsl">

@@ -102,7 +102,7 @@ public:
 
     AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 
-    // ★修正: デバッグ再生時はブレンドを無効化（即座に切り替え）する
+    // デバッグ再生時はブレンドを無効化する
     void Debug_SetAnimation(const char* name, bool forceRestart = true) {
         PlayAnimation(name, forceRestart);
         m_blendFactor = 1.0f; // ブレンド率をMAXにして、即座にポーズを反映させる

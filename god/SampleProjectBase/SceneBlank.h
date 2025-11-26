@@ -1,8 +1,8 @@
 #pragma once
 #include "SceneBase.hpp"
-
+#include "Image2D.h"
 /**
- * @brief メインのゲームシーン (GUIなし)
+ * @brief メインのゲームシーン
  */
 class SceneBlank : public SceneBase
 {
@@ -13,5 +13,6 @@ public:
 	void Draw();
 
 private:
-	
+	Image2D* m_hpBar;
+	Image2D* m_enemyhpBar;
 };

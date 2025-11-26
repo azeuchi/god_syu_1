@@ -9,7 +9,7 @@
 void LightPunch::OnEnter(Player* player)
 {
 	// 1. パンチアニメーションを再生
-	player->PlayAnimation("LightPunch", true); // "Punch"は仮のアニメーション名
+	player->PlayAnimation("LightPunch", true); //アニメーション名
 
 	// 2. 状態タイマーをリセット
 	m_stateTimer = 0.0f;

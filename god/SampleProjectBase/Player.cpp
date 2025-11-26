@@ -206,7 +206,7 @@ void Player::PlayAnimation(const char* name, bool forceRestart)
     m_blendFactor = 0.0f;
 }
 
-// ★追加: アニメーション一時停止
+// アニメーション一時停止
 void Player::SetAnimPause(bool pause)
 {
     m_isAnimPaused = pause;
