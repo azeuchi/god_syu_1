@@ -30,22 +30,18 @@ struct AnimationState
     int frame = 0;
 };
 
-// ★技の性能を管理する構造体 (拡張)
 struct AttackParams
 {
-    // --- タイミング (秒) ---
     float totalDuration = 0.5f;
     float hitboxStart = 0.1f;
     float hitboxEnd = 0.2f;
 
-    // --- 攻撃判定 (Hitbox) の形状 ---
     DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
     DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
 
-    // --- ゲームプレイ用パラメータ ---
-    int damage = 10;       // ダメージ
-    int hitFrame = 5;      // ヒット時の有利フレーム
-    int blockFrame = -2;   // ガード時の有利フレーム
+    int damage = 10;
+    int hitFrame = 5;
+    int blockFrame = -2;
 };
 
 
@@ -60,21 +56,18 @@ public:
     void Draw();
     Model* GetModel();
 
-    // --- 状態管理 ---
     void Update(float tick);
     void SetState(PlayerState* newState);
 
-    // --- 入力・ヘルパー ---
     void SetInputType(PlayerInputType type);
     PlayerInputType GetInputType() const;
     const PlayerInputs& GetInputs() const;
 
     void PlayAnimation(const char* name, bool forceRestart = false);
-    void SetAnimPause(bool pause); // アニメーション一時停止
+    void SetAnimPause(bool pause);
 
     float GetForwardMoveDot() const;
 
-    // --- 操作用 ---
     void SetPosition(const DirectX::XMFLOAT3& pos);
     DirectX::XMFLOAT3 GetPosition() const;
     void SetRotation(const DirectX::XMFLOAT3& rot);
@@ -84,7 +77,6 @@ public:
     void Jump();
     bool GetIsJumping() const;
 
-    // --- 当たり判定 ---
     void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
     DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
     void SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset);
@@ -92,7 +84,6 @@ public:
     DirectX::BoundingBox GetBoundingBox() const;
     void DrawBoundingBox();
 
-    // --- 攻撃判定 ---
     DirectX::BoundingBox GetActiveHitbox() const;
     bool IsAttacking() const;
     void SetActiveHitbox(bool isActive);
@@ -106,17 +97,17 @@ public:
     void SetScale(const DirectX::XMFLOAT3& scale);
     DirectX::XMFLOAT3 GetScale() const;
 
-    // --- アニメーション ---
     void UpdateAnimation(float tick);
     void UpdateModelBlend();
 
-    // --- パラメータ取得 ---
     AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 
-    // --- デバッグ用 ---
+    // ★修正: デバッグ再生時はブレンドを無効化（即座に切り替え）する
     void Debug_SetAnimation(const char* name, bool forceRestart = true) {
         PlayAnimation(name, forceRestart);
+        m_blendFactor = 1.0f; // ブレンド率をMAXにして、即座にポーズを反映させる
     }
+
     int Debug_GetFrame() const {
         return m_currentAnim.frame;
     }
@@ -149,6 +140,8 @@ private:
 
     AnimationState m_currentAnim;
     AnimationState m_previousAnim;
+
+    // アニメーションのブレンド率 (0.0～1.0)
     float m_blendFactor = 1.0f;
     const float m_transitionDuration = 0.2f;
     bool m_isAnimPaused = false;

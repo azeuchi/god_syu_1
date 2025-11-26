@@ -17,7 +17,9 @@ private:
 
 	// --- デバッグ用メンバー ---
 	bool m_isAttacking = false;         // 攻撃アニメーション再生中フラグ
+	bool m_isPaused = false;            // 一時停止フラグ
 	int m_currentFrame = 0;             // 現在のフレーム
+	float m_animTimer = 0.0f;           //  アニメーション再生速度制御用タイマー
 
 	void SavePlayerSettings();
 	void DrawImGui();

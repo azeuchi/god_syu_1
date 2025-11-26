@@ -167,7 +167,7 @@ void Player::UpdateAnimation(float tick)
         if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
     }
 
-    // ★追加: 一時停止中でなければフレームを進める
+    //  一時停止中でなければフレームを進める
     if (!m_isAnimPaused)
     {
         m_currentAnim.frame++;
@@ -193,7 +193,7 @@ void Player::SetState(PlayerState* newState)
 }
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
-    // ★追加: 新しいアニメーションを再生する時は必ず一時停止を解除する
+    //  新しいアニメーションを再生する時は必ず一時停止を解除する
     m_isAnimPaused = false;
 
     if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
