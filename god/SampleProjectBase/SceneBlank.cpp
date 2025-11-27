@@ -39,19 +39,24 @@ void SceneBlank::Init()
 		}
 	}
 
-	//２D画像読み込み
-	m_hpBar = new Image2D();
-	// 画像ファイル、X座標, Y座標, 幅, 高さ
-	m_hpBar->Load("Assets/Texture/hp.png", 330.0f, 80.0f, 500.0f, 80.0f);
+	// --- 2D画像読み込み ---
+	// 元の座標とサイズに戻しました
+	m_barMaxWidth = 500.0f;
 
+	// 1P (左側)
+	m_hpBar = new Image2D();
+	m_hpBarPos = { 330.0f, 80.0f };
+	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
+
+	// 2P (右側)
 	m_enemyhpBar = new Image2D();
-	m_enemyhpBar->Load("Assets/Texture/hp.png", 950.0f, 80.0f, 500.0f, 80.0f);
+	m_enemyHpBarPos = { 950.0f, 80.0f };
+	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
+
 
 	// プレイヤー1生成
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-
-	// プレイヤー1 を PLAYER_1 (A/Dキー) に設定
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
 	// --- 設定ファイルの読み込み ---
@@ -81,7 +86,6 @@ void SceneBlank::Init()
 		ifs.close();
 	}
 
-	// 読み込んだ値をプレイヤーに設定
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 	player->SetBoundingBoxExtents(boxExtents);
@@ -105,11 +109,8 @@ void SceneBlank::Init()
 	// プレイヤー2 (相手) の生成
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
-
-	// プレイヤー2 を PLAYER_2 (矢印キー) に設定
 	player2->SetInputType(PlayerInputType::PLAYER_2);
 
-	// 読み込んだ設定を player2 にも適用
 	player2->SetMoveSpeed(moveSpeed);
 	player2->SetScale(scale);
 	player2->SetBoundingBoxExtents(boxExtents);
@@ -128,7 +129,6 @@ void SceneBlank::Init()
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
-	// カメラを取得し、SceneBlank用の初期位置・注視点を設定
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -155,12 +155,9 @@ void SceneBlank::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// --- プレイヤー1の入力処理と更新 ---
 	if (player) {
 		player->Update(tick);
 	}
-
-	// --- プレイヤー2の入力処理と更新 ---
 	if (player2) {
 		player2->Update(tick);
 	}
@@ -169,7 +166,7 @@ void SceneBlank::Update(float tick)
 	// --- 当たり判定チェック ---
 	if (player && player2)
 	{
-		// 1. くらい判定 (Hurtbox) 同士の衝突 (押し出し判定)
+		// 1. 押し出し判定
 		DirectX::BoundingBox box1 = player->GetBoundingBox();
 		DirectX::BoundingBox box2 = player2->GetBoundingBox();
 		bool isColliding = box1.Intersects(box2);
@@ -177,7 +174,6 @@ void SceneBlank::Update(float tick)
 		player->SetIsColliding(isColliding);
 		player2->SetIsColliding(isColliding);
 
-		//衝突時の押し出し処理
 		if (isColliding)
 		{
 			DirectX::XMFLOAT3 pos1 = player->GetPosition();
@@ -214,16 +210,46 @@ void SceneBlank::Update(float tick)
 				});
 		}
 
-		// --- 2. 攻撃判定 (Hitbox) のチェック ---
-		if (player->IsAttacking() && player->GetActiveHitbox().Intersects(box2))
+		// --- 2. 攻撃判定 (Hitbox) のチェック & HP更新 ---
+
+		// 1P -> 2P (ヒット)
+		if (player->IsAttacking() && !player->HasHit() && player->GetActiveHitbox().Intersects(box2))
 		{
-			// 攻撃のパラメータを取得してダメージ処理などに使うことができる
 			AttackParams& params = player->GetLightPunchParams();
-		
+			player2->ReceiveDamage(params.damage);
+			player->OnHit();
+
+			// --- 2P HPバーの更新 (右側) ---
+			float ratio = player2->GetHpRatio();
+			float currentWidth = m_barMaxWidth * ratio;
+
+			// 減った幅を計算
+			float reduceWidth = m_barMaxWidth - currentWidth;
+
+			m_enemyhpBar->SetSize(currentWidth, 80.0f);
+
+			// 減った幅の半分だけ「左(-)」にずらす
+			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
 		}
-		if (player2->IsAttacking() && player2->GetActiveHitbox().Intersects(box1))
+
+		// 2P -> 1P (ヒット)
+		if (player2->IsAttacking() && !player2->HasHit() && player2->GetActiveHitbox().Intersects(box1))
 		{
-		
+			AttackParams& params = player2->GetLightPunchParams();
+			player->ReceiveDamage(params.damage);
+			player2->OnHit();
+
+			// --- 1P HPバーの更新 (左側) ---
+			float ratio = player->GetHpRatio();
+			float currentWidth = m_barMaxWidth * ratio;
+
+			// 減った幅を計算
+			float reduceWidth = m_barMaxWidth - currentWidth;
+
+			m_hpBar->SetSize(currentWidth, 80.0f);
+
+			// 減った幅の半分だけ「右(+)」にずらす
+			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
 		}
 	}
 }

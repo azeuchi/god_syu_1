@@ -27,7 +27,9 @@ Player::Player()
     , m_inputType(PlayerInputType::AI)
     , m_blendFactor(1.0f)
     , m_isAttacking(false)
-    , m_isAnimPaused(false) // 初期化
+    , m_isAnimPaused(false)
+    , m_hp(10000) // 初期HP 10000
+    , m_hasHit(false)
 {
     m_currentAnim = { "Idle", 0 };
     m_previousAnim = { "Idle", 0 };
@@ -50,7 +52,7 @@ void Player::Update(float tick)
     // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
 
-    // 2. ★ FSM（状態）の一元的な遷移チェック ★
+    // 2. FSM（状態）の一元的な遷移チェック
     if (m_currentState && m_currentState->IsInterruptible())
     {
         // 攻撃ボタンが押されたか
@@ -59,8 +61,7 @@ void Player::Update(float tick)
             SetState(new LightPunch());
         }
 
-        // ★ ジャンプ処理 (攻撃中でなければ飛べる)
-        // ジャンプキーが押され、かつ現在ジャンプ中でなければ
+        // ジャンプ処理 (攻撃中でなければ飛べる)
         else if (m_inputs.jump && !m_isJumping)
         {
             Jump(); // 物理的に上に飛ばす
@@ -167,7 +168,7 @@ void Player::UpdateAnimation(float tick)
         if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
     }
 
-    //  一時停止中でなければフレームを進める
+    // 一時停止中でなければフレームを進める
     if (!m_isAnimPaused)
     {
         m_currentAnim.frame++;
@@ -193,8 +194,12 @@ void Player::SetState(PlayerState* newState)
 }
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
-    //  新しいアニメーションを再生する時は必ず一時停止を解除する
+    // 新しいアニメーションを再生する時は必ず一時停止を解除する
     m_isAnimPaused = false;
+
+    //  新しいアニメーションが始まるたびにヒット済みフラグをリセットする
+    // これにより、次の攻撃がまた当たるようになる
+    m_hasHit = false;
 
     if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
     {
@@ -302,7 +307,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 8.0f; // ジャンプ力
+        m_velocity.y = 6.0f; // ジャンプ力
         m_isJumping = true;
     }
 }
@@ -434,4 +439,19 @@ void Player::DrawHitbox()
     for (int i = 0; i < 4; ++i) {
         Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
     }
+}
+
+// ダメージを受ける
+void Player::ReceiveDamage(int damage)
+{
+    m_hp -= damage;
+    if (m_hp < 0) m_hp = 0;
+
+    
+}
+
+// HP割合を取得 (0.0f ～ 1.0f)
+float Player::GetHpRatio() const
+{
+    return (float)m_hp / (float)m_maxHp;
 }
