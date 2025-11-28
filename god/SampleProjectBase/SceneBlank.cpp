@@ -13,12 +13,18 @@
 #include "UISprite.h"
 #include "Image2D.h"
 #include <fstream> 
+#include <algorithm>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 Texture* g_uiTex = nullptr;
 const char* SETTINGS_FILE = "player_settings.ini";
+
+//  ステージの端の座標 
+const float STAGE_LIMIT_X = 5.0f;
+// カメラが移動できる限界 
+const float CAMERA_LIMIT_X =3.0f;
 
 void SceneBlank::Init()
 {
@@ -40,15 +46,12 @@ void SceneBlank::Init()
 	}
 
 	// --- 2D画像読み込み ---
-	// 元の座標とサイズに戻しました
 	m_barMaxWidth = 500.0f;
 
-	// 1P (左側)
 	m_hpBar = new Image2D();
 	m_hpBarPos = { 330.0f, 80.0f };
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
 
-	// 2P (右側)
 	m_enemyhpBar = new Image2D();
 	m_enemyHpBarPos = { 950.0f, 80.0f };
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
@@ -155,6 +158,7 @@ void SceneBlank::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
+	// --- プレイヤーの更新 ---
 	if (player) {
 		player->Update(tick);
 	}
@@ -162,11 +166,24 @@ void SceneBlank::Update(float tick)
 		player2->Update(tick);
 	}
 
+	if (player)
+	{
+		XMFLOAT3 pos = player->GetPosition();
+		// X座標を -14.0 ～ 14.0 の範囲に収める
+		pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+		player->SetPosition(pos);
+	}
+	if (player2)
+	{
+		XMFLOAT3 pos = player2->GetPosition();
+		pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+		player2->SetPosition(pos);
+	}
+
 
 	// --- 当たり判定チェック ---
 	if (player && player2)
 	{
-		// 1. 押し出し判定
 		DirectX::BoundingBox box1 = player->GetBoundingBox();
 		DirectX::BoundingBox box2 = player2->GetBoundingBox();
 		bool isColliding = box1.Intersects(box2);
@@ -198,19 +215,20 @@ void SceneBlank::Update(float tick)
 				float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
 				pushVector.y = direction * pushAmount;
 			}
-			player->SetPosition({
-				pos1.x + pushVector.x,
-				pos1.y + pushVector.y,
-				pos1.z
-				});
-			player2->SetPosition({
-				pos2.x - pushVector.x,
-				pos2.y - pushVector.y,
-				pos2.z
-				});
+
+			// 押し出し後にも壁判定が必要
+			// (押し出されて壁の外に出ないように再度クランプ)
+			XMFLOAT3 nextPos1 = { pos1.x + pushVector.x, pos1.y + pushVector.y, pos1.z };
+			XMFLOAT3 nextPos2 = { pos2.x - pushVector.x, pos2.y - pushVector.y, pos2.z };
+
+			nextPos1.x = std::clamp(nextPos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+			nextPos2.x = std::clamp(nextPos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+
+			player->SetPosition(nextPos1);
+			player2->SetPosition(nextPos2);
 		}
 
-		// --- 2. 攻撃判定 (Hitbox) のチェック & HP更新 ---
+		// --- 攻撃判定 (Hitbox) ---
 
 		// 1P -> 2P (ヒット)
 		if (player->IsAttacking() && !player->HasHit() && player->GetActiveHitbox().Intersects(box2))
@@ -219,16 +237,10 @@ void SceneBlank::Update(float tick)
 			player2->ReceiveDamage(params.damage);
 			player->OnHit();
 
-			// --- 2P HPバーの更新 (右側) ---
 			float ratio = player2->GetHpRatio();
 			float currentWidth = m_barMaxWidth * ratio;
-
-			// 減った幅を計算
 			float reduceWidth = m_barMaxWidth - currentWidth;
-
 			m_enemyhpBar->SetSize(currentWidth, 80.0f);
-
-			// 減った幅の半分だけ「左(-)」にずらす
 			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
 		}
 
@@ -239,18 +251,87 @@ void SceneBlank::Update(float tick)
 			player->ReceiveDamage(params.damage);
 			player2->OnHit();
 
-			// --- 1P HPバーの更新 (左側) ---
 			float ratio = player->GetHpRatio();
 			float currentWidth = m_barMaxWidth * ratio;
-
-			// 減った幅を計算
 			float reduceWidth = m_barMaxWidth - currentWidth;
-
 			m_hpBar->SetSize(currentWidth, 80.0f);
-
-			// 減った幅の半分だけ「右(+)」にずらす
 			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
 		}
+	}
+
+
+	//  カメラ制御 
+	CameraBase* pCamera = GetObj<CameraBase>("Camera");
+	if (pCamera && player && player2)
+	{
+		XMFLOAT3 p1Pos = player->GetPosition();
+		XMFLOAT3 p2Pos = player2->GetPosition();
+
+		// 1. 中心の計算 (X軸)
+		float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
+		// カメラの中心もステージ外に行かないように制限
+		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
+
+		// 2. 高さの最大値 (Y軸)
+		float maxY = (p1Pos.y > p2Pos.y) ? p1Pos.y : p2Pos.y;
+
+		// 3. 注視点の高さ
+		float targetLookY = 1.4f + (maxY * 0.2f); // 係数を0.3->0.2に下げて縦揺れ軽減
+
+		// 4. カメラの高さ
+		float targetPosY = 1.5f + (maxY * 0.1f);  // 係数を0.2->0.1に下げて安定感重視
+
+
+		// 5. ズーム計算 (Z軸)
+		float distX = fabsf(p1Pos.x - p2Pos.x);
+
+		// ★調整ポイント: ズームの感度を下げる (あまり敏感に引かないように)
+		float zoomFactorX = 0.45f; // 横 (0.65 -> 0.45)
+		float zoomFactorY = 0.8f;  // 縦 (1.8 -> 0.8: ジャンプしてもあまり引かない)
+
+		float zoomAmount = 0.0f;
+		float reqZoomX = (distX - 1.5f) * zoomFactorX;
+		float reqZoomY = maxY * zoomFactorY;
+
+		if (reqZoomX > reqZoomY) zoomAmount = reqZoomX;
+		else zoomAmount = reqZoomY;
+
+		if (zoomAmount < 0.0f) zoomAmount = 0.0f;
+
+		// ベース位置
+		float baseZ = -3.5f;
+		float targetZ = baseZ - zoomAmount;
+
+		// 最大引き距離を制限 
+		// -14.0f だと豆粒になるので、-9.0f くらいで止める
+		if (targetZ < -9.0f) targetZ = -9.0f;
+
+
+		// --- 座標の決定 ---
+		XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
+		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
+
+
+		// --- 滑らかに移動 ---
+		float smoothSpeed = 4.0f * tick; // ゆっくり追従 (重厚感)
+
+		XMFLOAT3 currentPos = pCamera->GetPos();
+		XMFLOAT3 currentLook = pCamera->GetLook();
+
+		XMVECTOR vCurPos = XMLoadFloat3(&currentPos);
+		XMVECTOR vTarPos = XMLoadFloat3(&targetPos);
+		XMVECTOR vNewPos = XMVectorLerp(vCurPos, vTarPos, smoothSpeed);
+
+		XMVECTOR vCurLook = XMLoadFloat3(&currentLook);
+		XMVECTOR vTarLook = XMLoadFloat3(&targetLook);
+		XMVECTOR vNewLook = XMVectorLerp(vCurLook, vTarLook, smoothSpeed);
+
+		XMFLOAT3 newPos, newLook;
+		XMStoreFloat3(&newPos, vNewPos);
+		XMStoreFloat3(&newLook, vNewLook);
+
+		pCamera->SetPos(newPos);
+		pCamera->SetLook(newLook);
 	}
 }
 
@@ -329,16 +410,13 @@ void SceneBlank::Draw()
 
 	// --- 2D UIの描画 ---
 
-	// 準備
 	SimpleUI::Clear();
 	DirectX::XMFLOAT4X4 identity;
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
 
-	// それぞれの画像を描画登録 
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
-	// まとめて描画実行
 	SimpleUI::DrawAll();
 }

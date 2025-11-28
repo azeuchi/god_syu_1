@@ -130,8 +130,7 @@ void Player::PollInputs()
                 m_inputs.jump = true;
             }
         }
-        // テンキーの '1' で攻撃
-        if (IsKeyTrigger(VK_NUMPAD1)) {
+        if (IsKeyTrigger('P')) {
             m_inputs.attack1 = true;
         }
         break;
@@ -307,7 +306,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 6.0f; // ジャンプ力
+        m_velocity.y = 10.0f; // ジャンプ力
         m_isJumping = true;
     }
 }
@@ -446,8 +445,6 @@ void Player::ReceiveDamage(int damage)
 {
     m_hp -= damage;
     if (m_hp < 0) m_hp = 0;
-
-    
 }
 
 // HP割合を取得 (0.0f ～ 1.0f)
