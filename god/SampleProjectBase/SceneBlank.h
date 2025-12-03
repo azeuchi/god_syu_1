@@ -5,24 +5,27 @@
 
 /**
  * @brief メインのゲームシーン
+ * 格闘ゲームの本番動作用シーン
  */
 class SceneBlank : public SceneBase
 {
 public:
-	void Init();
-	void Uninit();
-	void Update(float tick);
-	void Draw();
+	void Init();   // 初期化
+	void Uninit(); // 終了
+	void Update(float tick); // 更新
+	void Draw();   // 描画
 
 	// 画像を追加する関数
-	void AddUI(const char* filePath, float x, float y, float w, float h);
+	//void AddUI(const char* filePath, float x, float y, float w, float h);
 
 private:
+	// HPバー表示用クラス
 	Image2D* m_hpBar;
 	Image2D* m_enemyhpBar;
 
-	//HPバーの初期位置・サイズを記憶しておく変数
+	// HPバーの初期位置・サイズを記憶しておく変数
+	// 2P側の「右端固定」表示を実現するために使用する
 	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
 	DirectX::XMFLOAT2 m_enemyHpBarPos; // 2Pの初期座標
-	float m_barMaxWidth = 500.0f;      // バーの最大幅
+	float m_barMaxWidth = 500.0f;      // バーの最大幅 (満タン時)
 };

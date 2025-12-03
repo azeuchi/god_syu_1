@@ -6,9 +6,11 @@
 #include "Shader.h"
 #include "Model.h"
 
+// ステートパターン用
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
+#include "MediumPunch.h" 
 #include "PlayerStateJump.h" 
 
 #include <DirectXMath.h>
@@ -29,6 +31,8 @@ Player::Player()
     , m_isAnimPaused(false)
     , m_hp(10000)
     , m_hasHit(false)
+    , m_pActiveAttackParams(nullptr)
+    , m_animSpeed(1.0f) // ★追加: 初期速度1.0
 {
     m_currentAnim = { "Idle", 0 };
     m_previousAnim = { "Idle", 0 };
@@ -37,10 +41,8 @@ Player::Player()
     // 初期設定: 頭・体・足のくらい判定
     m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.6f };
     m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
-
     m_baseHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 1.0f };
     m_baseHurtboxExtents[(int)HurtboxType::BODY] = { 0.3f, 0.4f };
-
     m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.4f };
     m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.3f, 0.4f };
 }
@@ -53,16 +55,29 @@ Player::~Player()
     }
 }
 
+/**
+ * @brief FSM, 物理, アニメーションをすべて更新する
+ */
 void Player::Update(float tick)
 {
+    // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
 
+    // 2. FSM（状態）の一元的な遷移チェック
     if (m_currentState && m_currentState->IsInterruptible())
     {
+        // 攻撃ボタンが押されたか
         if (m_inputs.attack1)
         {
+            m_pActiveAttackParams = &m_lightPunchParams;
             SetState(new LightPunch());
         }
+        else if (m_inputs.attack2)
+        {
+            m_pActiveAttackParams = &m_mediumPunchParams;
+            SetState(new MediumPunch());
+        }
+        // ジャンプ処理
         else if (m_inputs.jump && !m_isJumping)
         {
             Jump();
@@ -74,18 +89,28 @@ void Player::Update(float tick)
         m_currentState->Update(this, tick);
     }
 
+    // 3. 物理演算の更新
     UpdatePhysics(tick);
+
+    // 4. アニメーションの更新
     UpdateAnimation(tick);
+
+    // 5. モデルのボーン更新
     UpdateModelBlend();
 }
 
+/**
+ * @brief 入力タイプに応じて m_inputs を更新する
+ */
 void Player::PollInputs()
 {
+    // 毎フレーム、入力をリセット
     m_inputs = {};
 
     switch (m_inputType)
     {
     case PlayerInputType::PLAYER_1:
+        // 1Pは 'A' 'D' キー
         if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress('A')) {
@@ -94,16 +119,23 @@ void Player::PollInputs()
             else if (IsKeyPress('D')) {
                 m_inputs.moveRight = true;
             }
+            // 'W' キーでジャンプ
             if (IsKeyTrigger('W')) {
                 m_inputs.jump = true;
             }
         }
+        // 'J' キーで攻撃
         if (IsKeyTrigger('J')) {
             m_inputs.attack1 = true;
+        }
+        // 'K' キーで中パンチ
+        if (IsKeyTrigger('K')) {
+            m_inputs.attack2 = true;
         }
         break;
 
     case PlayerInputType::PLAYER_2:
+        // 2Pは 矢印キー (左右)
         if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress(VK_LEFT)) {
@@ -112,10 +144,18 @@ void Player::PollInputs()
             else if (IsKeyPress(VK_RIGHT)) {
                 m_inputs.moveRight = true;
             }
-          
+            // 上矢印キーでジャンプ
+            if (IsKeyTrigger(VK_UP)) {
+                m_inputs.jump = true;
+            }
         }
+        // テンキーの '1' で攻撃
         if (IsKeyTrigger(VK_NUMPAD1)) {
             m_inputs.attack1 = true;
+        }
+        // テンキーの '2' で中パンチ
+        if (IsKeyTrigger(VK_NUMPAD2)) {
+            m_inputs.attack2 = true;
         }
         break;
 
@@ -133,7 +173,6 @@ void Player::UpdatePhysics(float tick)
     m_position.x += m_velocity.x * tick;
     m_position.y += m_velocity.y * tick;
     m_position.z += m_velocity.z * tick;
-
     if (m_position.y <= 0.0f) {
         m_position.y = 0.0f;
         if (m_isJumping) {
@@ -142,6 +181,8 @@ void Player::UpdatePhysics(float tick)
         }
     }
 }
+
+// ★修正: アニメーション速度を加味して更新
 void Player::UpdateAnimation(float tick)
 {
     if (m_blendFactor < 1.0f)
@@ -152,16 +193,20 @@ void Player::UpdateAnimation(float tick)
 
     if (!m_isAnimPaused)
     {
-        m_currentAnim.frame++;
+        // 速度倍率(m_animSpeed)を加算
+        m_currentAnim.frame += m_animSpeed;
     }
 }
+
+// ★修正: モデル更新時にfloatフレームをintにキャストして渡す
 void Player::UpdateModelBlend()
 {
     m_model->UpdateWithBlend(
-        m_currentAnim.name, m_currentAnim.frame,
-        m_previousAnim.name, m_previousAnim.frame,
+        m_currentAnim.name, (int)m_currentAnim.frame, // cast
+        m_previousAnim.name, (int)m_previousAnim.frame, // cast
         m_blendFactor);
 }
+
 void Player::SetState(PlayerState* newState)
 {
     if (newState != nullptr)
@@ -173,10 +218,13 @@ void Player::SetState(PlayerState* newState)
         m_currentState->OnEnter(this);
     }
 }
+
+// ★修正: アニメーション再生時は速度をリセット
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
     m_isAnimPaused = false;
     m_hasHit = false;
+    m_animSpeed = 1.0f; // デフォルト速度に戻す
 
     if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
     {
@@ -184,8 +232,14 @@ void Player::PlayAnimation(const char* name, bool forceRestart)
     }
     m_previousAnim = m_currentAnim;
     m_currentAnim.name = name;
-    m_currentAnim.frame = 0;
+    m_currentAnim.frame = 0; // floatですが0代入OK
     m_blendFactor = 0.0f;
+}
+
+// ★追加: 速度設定
+void Player::SetAnimationSpeed(float speed)
+{
+    m_animSpeed = speed;
 }
 
 void Player::SetAnimPause(bool pause)
@@ -209,6 +263,7 @@ float Player::GetForwardMoveDot() const
     moveDir.Normalize();
     return forward.Dot(moveDir);
 }
+
 
 void Player::SetInputType(PlayerInputType type)
 {
@@ -273,7 +328,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 10.0f;
+        m_velocity.y = 6.0f;
         m_isJumping = true;
     }
 }
@@ -290,7 +345,6 @@ void Player::SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, c
     m_baseHurtboxExtents[idx] = extents;
 }
 
-//  攻撃中のOffsetとSize補正を適用
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
     if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
@@ -304,28 +358,28 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
     float extentX = m_baseHurtboxExtents[idx].x;
     float extentY = m_baseHurtboxExtents[idx].y;
 
-    // 攻撃中ならパラメータの補正値を足す
-    if (m_isAttacking)
+    // 攻撃中かつパラメータがあれば、補正値を足す
+    if (m_isAttacking && m_pActiveAttackParams != nullptr)
     {
-        const AttackParams& params = m_lightPunchParams;
+        const AttackParams& params = *m_pActiveAttackParams;
 
         if (type == HurtboxType::HEAD) {
             offsetX += params.headOffsetVal.x;
             offsetY += params.headOffsetVal.y;
-            extentX += params.headSizeVal.x; 
+            extentX += params.headSizeVal.x;
             extentY += params.headSizeVal.y;
         }
         else if (type == HurtboxType::BODY) {
             offsetX += params.bodyOffsetVal.x;
             offsetY += params.bodyOffsetVal.y;
-            extentX += params.bodySizeVal.x; 
+            extentX += params.bodySizeVal.x;
             extentY += params.bodySizeVal.y;
         }
         else if (type == HurtboxType::LEGS) {
             offsetX += params.legsOffsetVal.x;
             offsetY += params.legsOffsetVal.y;
-            extentX += params.legsSizeVal.x; 
-            extentY += params.legsSizeVal.y; 
+            extentX += params.legsSizeVal.x;
+            extentY += params.legsSizeVal.y;
         }
     }
 
@@ -422,6 +476,15 @@ void Player::SetActiveHitbox(bool isActive)
 bool Player::IsAttacking() const
 {
     return m_isAttacking;
+}
+
+void Player::SetCurrentAttackParams(AttackParams* params)
+{
+    m_pActiveAttackParams = params;
+}
+AttackParams* Player::GetCurrentAttackParams() const
+{
+    return m_pActiveAttackParams;
 }
 
 void Player::UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)

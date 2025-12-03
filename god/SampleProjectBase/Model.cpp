@@ -660,3 +660,19 @@ DirectX::SimpleMath::Matrix Model::aiMtxToDxMtx(const aiMatrix4x4& aimatrix) {
 	};
 	return dxmtx;
 }
+
+//  アニメーションの総フレーム数を取得
+int Model::GetAnimationTotalFrame(const char* animName)
+{
+	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
+	{
+		const aiScene* scene = m_Animation.at(animName);
+		if (scene->HasAnimations())
+		{
+			// Duration は「ティック数」ですが、通常はフレーム数として扱えます
+			return (int)scene->mAnimations[0]->mDuration;
+		}
+	}
+	// 見つからない場合は適当に長い値を返しておく（0除算防止）
+	return 60;
+}

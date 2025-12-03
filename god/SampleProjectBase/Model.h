@@ -86,7 +86,8 @@ public:
 	void SetPixelShader(Shader* ps);
 	const Mesh* GetMesh(unsigned int index) const;
 	unsigned int GetMeshNum() const;
-
+	//アニメーションの総フレーム数を取得
+	int GetAnimationTotalFrame(const char* animName);
 public:
 	bool Load(const char* file, float scaleBase = 1.0f, bool flip = false, bool simple = false);
 	void LoadAnimation(const char* FileName, const char* Name, bool flip);

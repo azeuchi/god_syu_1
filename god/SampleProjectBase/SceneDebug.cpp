@@ -16,10 +16,25 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+// UI用テクスチャ管理
 Texture* g_uiTex_debug = nullptr;
+
+// 設定ファイルのパス
 const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
+
+// 1フレームあたりの時間 (60FPS = 1/60秒 = 約0.0166秒)
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
+// 現在編集中の技を選択する変数
+// 0: 弱パンチ (LightPunch)
+// 1: 中パンチ (MediumPunch)
+// staticにすることで、シーン関数を抜けても値を保持する
+static int s_currentAttackType = 0;
+
+/**
+ * @brief プレイヤー設定の保存
+ * 現在のパラメータを ini ファイルに書き出す
+ */
 void SceneDebug::SavePlayerSettings()
 {
 	Player* player = GetObj<Player>("Player");
@@ -28,46 +43,85 @@ void SceneDebug::SavePlayerSettings()
 		std::ofstream ofs(SETTINGS_FILE_DEBUG);
 		if (ofs.is_open())
 		{
-			// 既存設定
-			ofs << player->GetMoveSpeed() << std::endl;
-			DirectX::XMFLOAT3 scale = player->GetScale();
+			// ==================================================
+			// 1. 基本設定の保存
+			// ==================================================
+			ofs << player->GetMoveSpeed() << std::endl; // 移動速度
+
+			DirectX::XMFLOAT3 scale = player->GetScale(); // スケール
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
 
-			// 3部位の基本設定
+			// ==================================================
+			// 2. 3部位の基本くらい判定 (Base Hurtbox) の保存
+			// ==================================================
+			// 頭、体、足 それぞれの「サイズ(Extents)」と「位置(Offset)」を保存
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
 				ofs << ext.x << " " << ext.y << " " << off.x << " " << off.y << std::endl;
 			}
 
-			// AttackParams
-			AttackParams& params = player->GetLightPunchParams();
-			ofs << params.totalDuration << std::endl;
-			ofs << params.hitboxStart << std::endl;
-			ofs << params.hitboxEnd << std::endl;
-			ofs << params.hitboxOffset.x << " " << params.hitboxOffset.y << std::endl;
-			ofs << params.hitboxExtents.x << " " << params.hitboxExtents.y << std::endl;
-			ofs << params.damage << std::endl;
-			ofs << params.hitFrame << std::endl;
-			ofs << params.blockFrame << std::endl;
+			// ==================================================
+			// 3. 弱パンチ (LightPunch) パラメータの保存
+			// ==================================================
+			AttackParams& lParams = player->GetLightPunchParams();
 
-			// 攻撃中のくらい判定補正 (Offset + Size)
-			ofs << params.headOffsetVal.x << " " << params.headOffsetVal.y << std::endl;
-			ofs << params.headSizeVal.x << " " << params.headSizeVal.y << std::endl; // ★追加
+			// タイミング・判定
+			ofs << lParams.totalDuration << std::endl; // 全体フレーム(秒)
+			ofs << lParams.hitboxStart << std::endl;   // 発生(秒)
+			ofs << lParams.hitboxEnd << std::endl;     // 持続終了(秒)
+			ofs << lParams.hitboxOffset.x << " " << lParams.hitboxOffset.y << std::endl; // 判定位置
+			ofs << lParams.hitboxExtents.x << " " << lParams.hitboxExtents.y << std::endl; // 判定サイズ
 
-			ofs << params.bodyOffsetVal.x << " " << params.bodyOffsetVal.y << std::endl;
-			ofs << params.bodySizeVal.x << " " << params.bodySizeVal.y << std::endl; // ★追加
+			// ゲームバランス
+			ofs << lParams.damage << std::endl;      // ダメージ
+			ofs << lParams.hitFrame << std::endl;    // ヒット有利F
+			ofs << lParams.blockFrame << std::endl;  // ガード有利F
 
-			ofs << params.legsOffsetVal.x << " " << params.legsOffsetVal.y << std::endl;
-			ofs << params.legsSizeVal.x << " " << params.legsSizeVal.y << std::endl; // ★追加
+			// 攻撃中のくらい判定補正 (体が前に出る等の調整値)
+			ofs << lParams.headOffsetVal.x << " " << lParams.headOffsetVal.y << std::endl;
+			ofs << lParams.headSizeVal.x << " " << lParams.headSizeVal.y << std::endl;
+			ofs << lParams.bodyOffsetVal.x << " " << lParams.bodyOffsetVal.y << std::endl;
+			ofs << lParams.bodySizeVal.x << " " << lParams.bodySizeVal.y << std::endl;
+			ofs << lParams.legsOffsetVal.x << " " << lParams.legsOffsetVal.y << std::endl;
+			ofs << lParams.legsSizeVal.x << " " << lParams.legsSizeVal.y << std::endl;
+
+			// ==================================================
+			// 4. 中パンチ (MediumPunch) パラメータの保存
+			// ==================================================
+			AttackParams& mParams = player->GetMediumPunchParams();
+
+			// タイミング・判定
+			ofs << mParams.totalDuration << std::endl;
+			ofs << mParams.hitboxStart << std::endl;
+			ofs << mParams.hitboxEnd << std::endl;
+			ofs << mParams.hitboxOffset.x << " " << mParams.hitboxOffset.y << std::endl;
+			ofs << mParams.hitboxExtents.x << " " << mParams.hitboxExtents.y << std::endl;
+
+			// ゲームバランス
+			ofs << mParams.damage << std::endl;
+			ofs << mParams.hitFrame << std::endl;
+			ofs << mParams.blockFrame << std::endl;
+
+			// 攻撃中のくらい判定補正
+			ofs << mParams.headOffsetVal.x << " " << mParams.headOffsetVal.y << std::endl;
+			ofs << mParams.headSizeVal.x << " " << mParams.headSizeVal.y << std::endl;
+			ofs << mParams.bodyOffsetVal.x << " " << mParams.bodyOffsetVal.y << std::endl;
+			ofs << mParams.bodySizeVal.x << " " << mParams.bodySizeVal.y << std::endl;
+			ofs << mParams.legsOffsetVal.x << " " << mParams.legsOffsetVal.y << std::endl;
+			ofs << mParams.legsSizeVal.x << " " << mParams.legsSizeVal.y << std::endl;
 
 			ofs.close();
 		}
 	}
 }
 
+/**
+ * @brief 初期化処理
+ */
 void SceneDebug::Init()
 {
+	// --- シェーダー読み込み ---
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
 		CreateObj<PixelShader>("PS_TexColor"),
@@ -85,55 +139,84 @@ void SceneDebug::Init()
 		}
 	}
 
+	// --- プレイヤー生成 ---
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
+	// デバッグ中はAIモード(入力を受け付けない)にして、ImGuiから制御する
 	player->SetInputType(PlayerInputType::AI);
 
+	// --- 設定ファイルからパラメータ読み込み ---
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-	AttackParams params = player->GetLightPunchParams();
+
+	// 読み込み用の一時参照
+	AttackParams lParams = player->GetLightPunchParams();
+	AttackParams mParams = player->GetMediumPunchParams();
 
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
 	{
+		// 1. 基本設定
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
+		// 2. くらい判定基本設定 (3部位)
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
 			player->SetHurtboxBase((HurtboxType)i, off, ext);
 		}
 
-		if (!ifs.eof()) ifs >> params.totalDuration;
-		if (!ifs.eof()) ifs >> params.hitboxStart;
-		if (!ifs.eof()) ifs >> params.hitboxEnd;
-		if (!ifs.eof()) ifs >> params.hitboxOffset.x >> params.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> params.hitboxExtents.x >> params.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> params.damage;
-		if (!ifs.eof()) ifs >> params.hitFrame;
-		if (!ifs.eof()) ifs >> params.blockFrame;
+		// 3. 弱パンチ読み込み
+		if (!ifs.eof()) ifs >> lParams.totalDuration;
+		if (!ifs.eof()) ifs >> lParams.hitboxStart;
+		if (!ifs.eof()) ifs >> lParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> lParams.hitboxOffset.x >> lParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> lParams.hitboxExtents.x >> lParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> lParams.damage;
+		if (!ifs.eof()) ifs >> lParams.hitFrame;
+		if (!ifs.eof()) ifs >> lParams.blockFrame;
+		// 補正値
+		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> lParams.bodyOffsetVal.x >> lParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> lParams.bodySizeVal.x >> lParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
 
-		// 補正値読み込み
-		if (!ifs.eof()) ifs >> params.headOffsetVal.x >> params.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> params.headSizeVal.x >> params.headSizeVal.y; // ★追加
-
-		if (!ifs.eof()) ifs >> params.bodyOffsetVal.x >> params.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> params.bodySizeVal.x >> params.bodySizeVal.y; // ★追加
-
-		if (!ifs.eof()) ifs >> params.legsOffsetVal.x >> params.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> params.legsSizeVal.x >> params.legsSizeVal.y; // ★追加
+		// 4. 中パンチ読み込み
+		if (!ifs.eof()) ifs >> mParams.totalDuration;
+		if (!ifs.eof()) ifs >> mParams.hitboxStart;
+		if (!ifs.eof()) ifs >> mParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> mParams.hitboxOffset.x >> mParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> mParams.hitboxExtents.x >> mParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> mParams.damage;
+		if (!ifs.eof()) ifs >> mParams.hitFrame;
+		if (!ifs.eof()) ifs >> mParams.blockFrame;
+		// 補正値
+		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> mParams.bodyOffsetVal.x >> mParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> mParams.bodySizeVal.x >> mParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
 
 		ifs.close();
 	}
 
+	// 読み込んだ値をプレイヤーに適用
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
-	player->GetLightPunchParams() = params;
+	player->GetLightPunchParams() = lParams;
+	player->GetMediumPunchParams() = mParams;
 
+	// --- モデル・アニメーションロード ---
+	// 必要なアニメーションだけを読み込む
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 
+	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
 
 	player->SetPosition({ 0.0f, 0.0f, 0.0f });
@@ -156,6 +239,10 @@ void SceneDebug::Uninit()
 	}
 }
 
+/**
+ * @brief 更新処理
+ * GUI操作に応じたアニメーションのコマ送り制御などを行う
+ */
 void SceneDebug::Update(float tick)
 {
 	if (tick > 0.0f) { m_fps = 1.0f / tick; }
@@ -168,18 +255,38 @@ void SceneDebug::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
+	// --- 重要な同期処理 ---
+	// デバッグシーンの「攻撃中フラグ」をプレイヤーに同期させる
+	// これにより、Player::GetHurtbox 内で「攻撃用オフセット(緑枠の変形)」が有効になり、
+	// GUIで設定した補正値がリアルタイムに反映されるようになる
 	player->SetActiveHitbox(m_isAttacking);
 
+	// --- パラメータの同期 ---
+	// 現在編集中の技(Light or Medium)のパラメータを、プレイヤーのアクティブパラメータとしてセットする
+	// これにより、GetHurtboxなどが参照すべきパラメータが切り替わる
+	if (s_currentAttackType == 0) {
+		player->SetCurrentAttackParams(&player->GetLightPunchParams());
+	}
+	else {
+		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
+	}
+
+	// --- アニメーション制御 ---
 	if (m_isPaused)
 	{
+		// 一時停止中: GUIで操作された m_currentFrame (整数) を強制適用する
+		// これによりスライダーでのシークが可能になる
 		player->Debug_SetFrame(m_currentFrame);
-		m_animTimer = 0.0f;
+		m_animTimer = 0.0f; // タイマーは止めておく
 	}
 	else
 	{
+		// 再生中: 60FPS間隔でフレームを進める
+		// tick (経過秒数) を積算し、1/60秒経つごとに1フレーム進める
 		m_animTimer += tick;
 		if (m_animTimer >= FRAME_TIME_60FPS)
 		{
+			// 処理落ちしても動きがスローにならないよう、経過時間分だけフレームを進める
 			while (m_animTimer >= FRAME_TIME_60FPS)
 			{
 				player->UpdateAnimation(FRAME_TIME_60FPS);
@@ -188,25 +295,36 @@ void SceneDebug::Update(float tick)
 		}
 	}
 
+	// ボーン行列の更新 (アニメ停止中でも姿勢を反映するために毎フレーム呼ぶ)
 	player->UpdateModelBlend();
 
+	// 再生中はプレイヤーから現在のフレーム数を取得して同期
 	if (!m_isPaused)
 	{
 		m_currentFrame = player->Debug_GetFrame();
 	}
 
+	// --- 攻撃終了判定 ---
 	if (m_isAttacking)
 	{
-		float totalDuration = player->GetLightPunchParams().totalDuration;
+		// 選択中の技のパラメータを取得
+		AttackParams* params = player->GetCurrentAttackParams();
+
+		float totalDuration = params->totalDuration;
+		// 秒数を60FPS基準のフレーム数に換算
 		int animLengthInFrames = static_cast<int>(std::round(totalDuration / FRAME_TIME_60FPS));
 		if (animLengthInFrames <= 0) animLengthInFrames = 1;
 
+		// 最終フレームに達したら Idle に戻す
 		if (m_currentFrame >= (animLengthInFrames - 1))
 		{
 			player->Debug_SetAnimation("Idle", true);
-			m_isAttacking = false;
-			m_isPaused = false;
+			m_isAttacking = false; // 攻撃終了
+			m_isPaused = false;    // 再生状態に戻す
 			m_currentFrame = 0;
+
+			// パラメータリンクを解除 (安全のため)
+			player->SetCurrentAttackParams(nullptr);
 		}
 	}
 }
@@ -254,21 +372,31 @@ void SceneDebug::Draw()
 
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
+
+		// 描画
 		player->Draw();
+
+		// くらい判定 (緑箱) の描画 (3部位)
+		// m_isAttacking = true の間は、攻撃用補正値が反映された状態で描画される
 		player->DrawBoundingBox();
 
+		// --- 攻撃判定 (Hitbox: 赤箱) の描画 ---
 		if (m_isAttacking)
 		{
-			AttackParams& params = player->GetLightPunchParams();
-			int startFrame = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
-			int endFrame = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
+			// 現在アクティブなパラメータを使用
+			AttackParams* params = player->GetCurrentAttackParams();
 
+			// 秒 -> フレーム変換
+			int startFrame = static_cast<int>(std::round(params->hitboxStart / FRAME_TIME_60FPS));
+			int endFrame = static_cast<int>(std::round(params->hitboxEnd / FRAME_TIME_60FPS));
+
+			// 現在フレームが発生期間内なら描画
 			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
 			{
-				player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
+				player->UpdateHitbox(params->hitboxOffset, params->hitboxExtents);
 				player->SetActiveHitbox(true);
 				player->DrawHitbox();
-				player->SetActiveHitbox(false);
+				player->SetActiveHitbox(false); // 描画後はいったん無効化
 			}
 		}
 	}
@@ -279,6 +407,9 @@ void SceneDebug::Draw()
 	}
 }
 
+/**
+ * @brief デバッグGUIの描画
+ */
 void SceneDebug::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
@@ -289,26 +420,46 @@ void SceneDebug::DrawImGui()
 
 	if (player)
 	{
+		// ==================================================
+		// 技の選択
+		// ==================================================
+		ImGui::Text("Select Attack to Edit:");
+		ImGui::RadioButton("Light Punch", &s_currentAttackType, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton("Medium Punch", &s_currentAttackType, 1);
+
+		ImGui::Separator();
+
+		// ==================================================
+		// アクションテスト (再生制御)
+		// ==================================================
 		ImGui::Text("Action Test");
 
 		if (!m_isAttacking)
 		{
+			// ボタン1: 通常再生 (動作確認用)
 			if (ImGui::Button("Test Play"))
 			{
-				player->Debug_SetAnimation("LightPunch", true);
+				// 選択中の技名を決定
+				const char* animName = (s_currentAttackType == 0) ? "LightPunch" : "MediumPunch";
+				player->Debug_SetAnimation(animName, true);
+
 				m_isAttacking = true;
-				m_isPaused = false;
+				m_isPaused = false; // 再生
 				m_currentFrame = 0;
-				m_animTimer = 0.0f;
+				m_animTimer = 0.0f; // タイマーリセット (重要: 飛ばないように)
 			}
 
 			ImGui::SameLine();
 
+			// ボタン2: 一時停止で開始 (コマ送り確認用)
 			if (ImGui::Button("Test Play (Step)"))
 			{
-				player->Debug_SetAnimation("LightPunch", true);
+				const char* animName = (s_currentAttackType == 0) ? "LightPunch" : "MediumPunch";
+				player->Debug_SetAnimation(animName, true);
+
 				m_isAttacking = true;
-				m_isPaused = true;
+				m_isPaused = true;  // ポーズ状態で開始
 				m_currentFrame = 0;
 				m_animTimer = 0.0f;
 			}
@@ -320,8 +471,10 @@ void SceneDebug::DrawImGui()
 
 		ImGui::SameLine();
 
+		// 手動ポーズ切り替え
 		ImGui::Checkbox("Pause", &m_isPaused);
 
+		// コマ送りUI (ポーズ中のみ有効)
 		if (m_isPaused)
 		{
 			ImGui::SameLine();
@@ -339,63 +492,77 @@ void SceneDebug::DrawImGui()
 
 		ImGui::Separator();
 
-		// --- パラメータ調整 ---
-		ImGui::Text("Light Punch Parameters");
-		AttackParams& params = player->GetLightPunchParams();
+		// ==================================================
+		// パラメータ調整 (選択中の技)
+		// ==================================================
+		// 参照を取得 (書き換えると即座に反映される)
+		AttackParams& params = (s_currentAttackType == 0) ? player->GetLightPunchParams() : player->GetMediumPunchParams();
 
+		ImGui::Text(s_currentAttackType == 0 ? "Light Punch Parameters" : "Medium Punch Parameters");
+
+		// 秒(float) を 60FPS基準のフレーム(int) に変換して表示・編集
 		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
 		int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 
+		// 全体フレーム
 		if (ImGui::InputInt("Total Duration", &totalFrames))
 		{
 			if (totalFrames < 1) totalFrames = 1;
-			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
+			params.totalDuration = totalFrames * FRAME_TIME_60FPS; // 秒に戻して反映
 		}
+		// 攻撃発生フレーム
 		if (ImGui::InputInt("Hitbox Start", &startFrames))
 		{
 			if (startFrames < 0) startFrames = 0;
 			params.hitboxStart = startFrames * FRAME_TIME_60FPS;
 		}
+		// 攻撃終了フレーム
 		if (ImGui::InputInt("Hitbox End", &endFrames))
 		{
 			if (endFrames < 0) endFrames = 0;
 			params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 		}
 
+		// 攻撃判定 (Hitbox: 赤) の調整
 		ImGui::Text("Red Box (Hitbox)");
 		ImGui::SliderFloat2("Hitbox Offset", &params.hitboxOffset.x, -2.0f, 2.0f);
 		ImGui::SliderFloat2("Hitbox Extents", &params.hitboxExtents.x, 0.1f, 2.0f);
 
+		// ゲームバランスパラメータ
 		ImGui::InputInt("Damage", &params.damage);
 		ImGui::InputInt("On-Hit Advantage", &params.hitFrame);
 		ImGui::InputInt("On-Block Advantage", &params.blockFrame);
 
 		ImGui::Separator();
 
-		// ★追加: 攻撃中のくらい判定補正 (Offset & Size)
+		// ==================================================
+		// 攻撃中のくらい判定補正 (Green Box Modifiers)
+		// ==================================================
 		ImGui::Text("Green Box Modifiers (Attack Only)");
 
 		ImGui::Text("Head");
 		ImGui::SliderFloat2("Head Offset", &params.headOffsetVal.x, -1.0f, 1.0f);
-		ImGui::SliderFloat2("Head Size+", &params.headSizeVal.x, -1.0f, 1.0f); // ★追加
+		ImGui::SliderFloat2("Head Size+", &params.headSizeVal.x, -1.0f, 1.0f);
 
 		ImGui::Text("Body");
 		ImGui::SliderFloat2("Body Offset", &params.bodyOffsetVal.x, -1.0f, 1.0f);
-		ImGui::SliderFloat2("Body Size+", &params.bodySizeVal.x, -1.0f, 1.0f); // ★追加
+		ImGui::SliderFloat2("Body Size+", &params.bodySizeVal.x, -1.0f, 1.0f);
 
 		ImGui::Text("Legs");
 		ImGui::SliderFloat2("Legs Offset", &params.legsOffsetVal.x, -1.0f, 1.0f);
-		ImGui::SliderFloat2("Legs Size+", &params.legsSizeVal.x, -1.0f, 1.0f); // ★追加
+		ImGui::SliderFloat2("Legs Size+", &params.legsSizeVal.x, -1.0f, 1.0f);
 
 		ImGui::Separator();
 
-		// ★基本設定 (Base Settings)
+		// ==================================================
+		// 基本設定 (Base Settings) - 全技共通
+		// ==================================================
 		ImGui::Text("Player Base Hurtbox Settings");
 		const char* hurtboxNames[] = { "Head", "Body", "Legs" };
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 		{
-			ImGui::PushID(i);
+			ImGui::PushID(i); // ID重複防止
 			ImGui::Text("%s", hurtboxNames[i]);
 
 			DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
@@ -410,22 +577,13 @@ void SceneDebug::DrawImGui()
 			ImGui::PopID();
 		}
 
-		float moveSpeed = player->GetMoveSpeed();
-		if (ImGui::SliderFloat("Move Speed", &moveSpeed, 0.0f, 10.0f))
-		{
-			player->SetMoveSpeed(moveSpeed);
-		}
-		XMFLOAT3 scale = player->GetScale();
-		if (ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 5.0f))
-		{
-			player->SetScale(scale);
-		}
-
-
-		// --- 保存ボタン ---
+		// ==================================================
+		// 保存ボタン
+		// ==================================================
 		ImGui::Separator();
 		if (ImGui::Button("SAVE All Settings"))
 		{
+			// 全てのデータ (基本設定 + 弱/中パンチパラメータ) をファイルに保存
 			SavePlayerSettings();
 		}
 	}
