@@ -13,7 +13,7 @@
 #include "UISprite.h"
 #include "Image2D.h"
 #include <fstream> 
-#include <algorithm> // std::clamp (範囲制限) を使うためにインクルード
+#include <algorithm> // std::clamp (値を範囲内に収める関数) を使用
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -21,13 +21,13 @@ using namespace DirectX::SimpleMath;
 Texture* g_uiTex = nullptr;
 const char* SETTINGS_FILE = "player_settings.ini";
 
-// ステージの端とカメラの移動制限範囲
-const float STAGE_LIMIT_X = 14.0f; // プレイヤーが移動できる限界 (中心から±14m)
-const float CAMERA_LIMIT_X = 10.0f; // カメラの中心が移動できる限界 (プレイヤーより少し手前で止める)
-
+// --- ステージとカメラの移動制限設定 ---
+const float STAGE_LIMIT_X = 14.0f;  // プレイヤーが移動できる限界
+const float CAMERA_LIMIT_X = 10.0f; // カメラの中心が移動できる限界 
 void SceneBlank::Init()
 {
 	// --- シェーダー読み込み ---
+	// アニメーション用(スキンメッシュ)と、画像描画用(PS_TexColor)を準備
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
 		CreateObj<PixelShader>("PS_TexColor"),
@@ -46,29 +46,27 @@ void SceneBlank::Init()
 	}
 
 	// --- 2D画像 (HPバー) の読み込み ---
-	// バーの最大幅を定義 (HP満タン時の幅)
+	// HPバーの最大幅 (満タン時のピクセル幅)
 	m_barMaxWidth = 500.0f;
 
-	// 1P (左側) のHPバー
+	// 1P (左側) のHPバー設定
 	m_hpBar = new Image2D();
-	m_hpBarPos = { 330.0f, 80.0f }; // 1Pバーの初期位置
-	// 画像ファイル、X座標, Y座標, 幅, 高さ で初期化
+	m_hpBarPos = { 330.0f, 80.0f }; // 初期位置
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
 
-	// 2P (右側) のHPバー
+	// 2P (右側) のHPバー設定
 	m_enemyhpBar = new Image2D();
-	m_enemyHpBarPos = { 950.0f, 80.0f }; // 2Pバーの初期位置
+	m_enemyHpBarPos = { 950.0f, 80.0f }; // 初期位置
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
 
 
 	// --- プレイヤー1生成 ---
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	// 1Pはキーボードの 'A' 'D' キーなどで操作
-	player->SetInputType(PlayerInputType::PLAYER_1);
+	player->SetInputType(PlayerInputType::PLAYER_1); // 1P操作 (A/Dキー等)
 
 	// --- 設定ファイルの読み込み ---
-	// デバッグシーンで調整した攻撃パラメータや当たり判定サイズを読み込む
+	// デバッグシーンで調整した「移動速度」「サイズ」「攻撃パラメータ」などを読み込む
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 	AttackParams params = player->GetLightPunchParams();
@@ -79,14 +77,14 @@ void SceneBlank::Init()
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
-		// 3部位分のくらい判定データ (Extents, Offset) を読み込む 
+		// 3部位(頭・体・足)分のくらい判定サイズ(Extents)と位置(Offset)を読み込む 
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
 			player->SetHurtboxBase((HurtboxType)i, off, ext);
 		}
 
-		// 攻撃パラメータの読み込み
+		// 攻撃パラメータ (持続時間、判定発生タイミングなど)
 		if (!ifs.eof()) ifs >> params.totalDuration;
 		if (!ifs.eof()) ifs >> params.hitboxStart;
 		if (!ifs.eof()) ifs >> params.hitboxEnd;
@@ -96,7 +94,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> params.hitFrame;
 		if (!ifs.eof()) ifs >> params.blockFrame;
 
-		// 攻撃中のくらい判定補正値 (位置Offset と サイズSize)
+		// 攻撃中のくらい判定補正値 (攻撃中に体が前に出るなどの調整値)
 		if (!ifs.eof()) ifs >> params.headOffsetVal.x >> params.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> params.headSizeVal.x >> params.headSizeVal.y;
 
@@ -109,24 +107,23 @@ void SceneBlank::Init()
 		ifs.close();
 	}
 
-	// 読み込んだ値をプレイヤー1に設定
+	// 読み込んだ値をプレイヤー1に適用
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 	player->GetLightPunchParams() = params;
 
 
-	// 1Pモデル読み込み
+	// 1Pモデルとアニメーションのロード
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-	// アニメーションのロード
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
-	// 初期位置と向きの設定 (左向き: -PI/2)
+	// 初期位置 (左側)
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 
@@ -134,22 +131,21 @@ void SceneBlank::Init()
 	// --- プレイヤー2 (相手) の生成 ---
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
-	// 2Pは矢印キーなどで操作
-	player2->SetInputType(PlayerInputType::PLAYER_2);
+	player2->SetInputType(PlayerInputType::PLAYER_2); // 2P操作 (矢印キー等)
 
-	// 2Pにも同じ設定 (スピードや当たり判定) を適用
+	// 2Pにも同じ設定を適用 (同キャラ対戦想定)
 	player2->SetMoveSpeed(moveSpeed);
 	player2->SetScale(scale);
 	player2->GetLightPunchParams() = params;
 
-	// 2Pにも読み込んだ3部位の判定をセット
+	// 2Pにも読み込んだ3部位の判定を適用
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 		player2->SetHurtboxBase((HurtboxType)i,
 			player->GetHurtboxBaseOffset((HurtboxType)i),
 			player->GetHurtboxBaseExtents((HurtboxType)i));
 	}
 
-	// 2Pモデル読み込み
+	// 2Pモデルとアニメーションのロード
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
@@ -159,11 +155,11 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
-	// 初期位置と向きの設定 (右向き: PI/2)
+	// 初期位置 (右側)
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
-	// カメラの初期設定
+	// カメラ初期配置
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -176,7 +172,7 @@ void SceneBlank::Init()
 
 void SceneBlank::Uninit()
 {
-	// 画像メモリの解放
+	// メモリリーク防止のため画像を削除
 	if (m_hpBar) delete m_hpBar;
 	if (m_enemyhpBar) delete m_enemyhpBar;
 
@@ -191,7 +187,7 @@ void SceneBlank::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// --- プレイヤーの更新 (入力、アニメーション、FSM) ---
+	// --- プレイヤーの状態更新 (入力受付、アニメーション進行) ---
 	if (player) {
 		player->Update(tick);
 	}
@@ -199,12 +195,11 @@ void SceneBlank::Update(float tick)
 		player2->Update(tick);
 	}
 
-	// --- ステージ端の制限 (壁) ---
-	// プレイヤーが STAGE_LIMIT_X より外に出ないように位置を補正する
+	// --- ステージ端の制限 (見えない壁) ---
+	// プレイヤーが STAGE_LIMIT_X  より外に出ないように座標を補正する
 	if (player)
 	{
 		XMFLOAT3 pos = player->GetPosition();
-		// X座標を -14.0 ～ 14.0 の範囲に収める (std::clamp)
 		pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 		player->SetPosition(pos);
 	}
@@ -216,32 +211,56 @@ void SceneBlank::Update(float tick)
 	}
 
 
-	// --- 当たり判定チェック ---
+	// --- 当たり判定と相互作用 ---
 	if (player && player2)
 	{
 		// 1. 押し出し判定 (CheckCollisionで3部位すべてチェック)
-		// 体が重ならないように、当たっていたら位置をずらす
+		// どちらかの部位が重なっていたら isColliding = true
 		bool isColliding = player->CheckCollision(player2);
 
 		player->SetIsColliding(isColliding);
 		player2->SetIsColliding(isColliding);
 
-		if (isColliding)
+		// 攻撃中でなければ押し合い処理を行う
+		if (isColliding && !player->IsAttacking() && !player2->IsAttacking())
 		{
-			// 簡易押し出し: X軸中心でお互いに反発させる
+			// 押し出し計算のために、基準となる「体(BODY)」のボックスを取得
+			DirectX::BoundingBox box1 = player->GetHurtbox(HurtboxType::BODY);
+			DirectX::BoundingBox box2 = player2->GetHurtbox(HurtboxType::BODY);
+
 			DirectX::XMFLOAT3 pos1 = player->GetPosition();
 			DirectX::XMFLOAT3 pos2 = player2->GetPosition();
-			float dist = pos1.x - pos2.x;
-			float pushDist = 0.5f * tick; // 少しずつ押し出す量
 
-			if (dist > 0) {
-				pos1.x += pushDist; pos2.x -= pushDist;
+			// 重なり量(overlap)を計算
+			float deltaX = box1.Center.x - box2.Center.x;
+			float sumExtentsX = box1.Extents.x + box2.Extents.x;
+			float overlapX = sumExtentsX - abs(deltaX);
+			float deltaY = box1.Center.y - box2.Center.y;
+			float sumExtentsY = box1.Extents.y + box2.Extents.y;
+			float overlapY = sumExtentsY - abs(deltaY);
+			DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
+
+			// X軸かY軸、重なりが浅い方で押し出す (基本はX軸で押し合う)
+			if (overlapX < overlapY)
+			{
+				float pushAmount = overlapX / 2.0f; // お互いに半分ずつ動く
+				float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
+				pushVector.x = direction * pushAmount;
 			}
-			else {
-				pos1.x -= pushDist; pos2.x += pushDist;
+			else
+			{
+				float pushAmount = overlapY / 2.0f;
+				float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
+				pushVector.y = direction * pushAmount;
 			}
 
-			// 押し出した結果、壁の外に出てしまわないように再度クランプ
+			// 新しい位置を計算
+			pos1.x += pushVector.x;
+			pos2.x -= pushVector.x;
+			pos1.y += pushVector.y;
+			pos2.y -= pushVector.y;
+
+			// 押し出された結果、壁の外に出ないように再度クランプ
 			pos1.x = std::clamp(pos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 			pos2.x = std::clamp(pos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 
@@ -249,10 +268,10 @@ void SceneBlank::Update(float tick)
 			player2->SetPosition(pos2);
 		}
 
-		// --- 2. 攻撃判定 (Hitbox) のチェック & HP更新 ---
+		// --- 2. 攻撃判定 (Hitbox) のヒットチェック ---
 
-		// ★ 1P -> 2P (ヒット)
-		// 1Pが攻撃中で、まだヒットしておらず、1PのHitboxが2PのHurtbox(3部位のどれか)に当たったか
+		//  1Pの攻撃 -> 2Pにヒットしたか？
+		// 条件: 1P攻撃中 かつ まだヒットしてない かつ 1PのHitboxが2PのHurtbox(どれか)に接触
 		bool hit2 = false;
 		if (player->IsAttacking() && !player->HasHit())
 		{
@@ -267,27 +286,26 @@ void SceneBlank::Update(float tick)
 
 		if (hit2)
 		{
-			// ダメージ処理
+			// ダメージ適用
 			AttackParams& params = player->GetLightPunchParams();
 			player2->ReceiveDamage(params.damage);
-			player->OnHit(); // 多段ヒット防止のためフラグを立てる
+			player->OnHit(); // 多段ヒット防止フラグON
 
 			// --- 2P HPバーの更新 (右側) ---
-			float ratio = player2->GetHpRatio();
-			float currentWidth = m_barMaxWidth * ratio;
+			float ratio = player2->GetHpRatio(); // 残りHP割合
+			float currentWidth = m_barMaxWidth * ratio; // 現在の幅
 
 			// 減った幅 (reduceWidth) を計算
 			float reduceWidth = m_barMaxWidth - currentWidth;
 
-			// バーのサイズを更新
+			// サイズを更新
 			m_enemyhpBar->SetSize(currentWidth, 80.0f);
 
-			// ★位置補正: 減った幅の半分だけ「左(-)」にずらす
-			// 画像の中心基準描画において、右端を固定して縮んでいるように見せるための計算
+			// 位置補正: 減った幅の半分だけ「左(-)」にずらす
 			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
 		}
 
-		// ★ 2P -> 1P (ヒット)
+		// 2Pの攻撃 -> 1Pにヒットしたか？
 		bool hit1 = false;
 		if (player2->IsAttacking() && !player2->HasHit())
 		{
@@ -302,7 +320,7 @@ void SceneBlank::Update(float tick)
 
 		if (hit1)
 		{
-			// ダメージ処理
+			// ダメージ適用
 			AttackParams& params = player2->GetLightPunchParams();
 			player->ReceiveDamage(params.damage);
 			player2->OnHit(); // 多段ヒット防止
@@ -312,17 +330,16 @@ void SceneBlank::Update(float tick)
 			float currentWidth = m_barMaxWidth * ratio;
 			float reduceWidth = m_barMaxWidth - currentWidth;
 
-			// バーのサイズを更新
+			// サイズを更新
 			m_hpBar->SetSize(currentWidth, 80.0f);
 
-			// ★位置補正: 減った幅の半分だけ「右(+)」にずらす
-			// 画像の中心基準描画において、左端を固定して縮んでいるように見せるための計算
+			// 位置補正: 減った幅の半分だけ「右(+)」にずらす
 			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
 		}
 	}
 
 
-	// ★★★ カメラ制御 (格ゲー風) ★★★
+	//  カメラ制御 
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -332,27 +349,25 @@ void SceneBlank::Update(float tick)
 		// 1. 中心の計算 (X軸)
 		float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
 
-		// カメラの中心もステージ外に行かないように制限する (CAMERA_LIMIT_X)
-		// これにより、画面端でカメラが止まるようになる
+		// カメラの中心もステージ端(CAMERA_LIMIT_X)を超えないように制限
 		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
 
 		// 2. 高さの最大値 (Y軸)
 		// どちらか高い方のプレイヤーに合わせて、見切れないように高さを調整
 		float maxY = (p1Pos.y > p2Pos.y) ? p1Pos.y : p2Pos.y;
-		float targetLookY = 1.4f + (maxY * 0.2f);
-		float targetPosY = 1.5f + (maxY * 0.1f);
+		float targetLookY = 1.4f + (maxY * 0.2f); // 注視点
+		float targetPosY = 1.5f + (maxY * 0.1f);  // カメラ位置
 
 		// 3. ズーム計算 (Z軸)
 		// 2人の距離 (X軸) に応じてカメラを引く
 		float distX = fabsf(p1Pos.x - p2Pos.x);
 
-		// ズーム係数 (値を大きくすると、より大きく引くようになる)
-		float zoomFactorX = 0.45f; // 横距離に対する引き具合 (0.45 = 緩やか)
-		float zoomFactorY = 0.8f;  // 高さに対する引き具合 (0.8 = ジャンプ対応)
+		float zoomFactorX = 0.45f; // 横距離に対する引き具合
+		float zoomFactorY = 0.8f;  // 高さに対する引き具合 
 
 		// 横と縦、どちらのために引くべきか大きい方を採用する
 		float zoomAmount = 0.0f;
-		float reqZoomX = (distX - 1.5f) * zoomFactorX; // 1.5fはベース距離(これより近ければ引かない)
+		float reqZoomX = (distX - 1.5f) * zoomFactorX; // 1.5m以上離れたら引く
 		float reqZoomY = maxY * zoomFactorY;
 
 		if (reqZoomX > reqZoomY) zoomAmount = reqZoomX;
@@ -364,7 +379,7 @@ void SceneBlank::Update(float tick)
 		float baseZ = -3.5f;
 		float targetZ = baseZ - zoomAmount;
 
-		// ズームアウト制限 (-9.0f より奥には行かないようにする = キャラが小さくなりすぎない)
+		// ズームアウト制限 (-9.0f より奥には行かないようにする)
 		if (targetZ < -9.0f) targetZ = -9.0f;
 
 		// 4. 目標座標の設定
@@ -372,7 +387,6 @@ void SceneBlank::Update(float tick)
 		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
 
 		// 5. 滑らかに移動 (Lerp補間)
-		// 4.0f * tick は「ゆっくり」追従する設定。重厚感が出る。
 		float smoothSpeed = 4.0f * tick;
 
 		XMFLOAT3 currentPos = pCamera->GetPos();
@@ -439,8 +453,8 @@ void SceneBlank::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 		player->Draw();
-		player->DrawBoundingBox(); // くらい判定 (緑)
-		player->DrawHitbox();      // 攻撃判定 (赤)
+		player->DrawBoundingBox();
+		player->DrawHitbox();
 	}
 
 	// --- プレイヤー2の描画 ---
@@ -470,7 +484,6 @@ void SceneBlank::Draw()
 
 	// --- 2D UIの描画 ---
 
-	// SimpleUIの準備 (クリア -> 描画登録 -> 一括描画)
 	SimpleUI::Clear();
 	DirectX::XMFLOAT4X4 identity;
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());

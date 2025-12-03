@@ -112,9 +112,7 @@ void Player::PollInputs()
             else if (IsKeyPress(VK_RIGHT)) {
                 m_inputs.moveRight = true;
             }
-            if (IsKeyTrigger('W')) {
-                m_inputs.jump = true;
-            }
+          
         }
         if (IsKeyTrigger(VK_NUMPAD1)) {
             m_inputs.attack1 = true;
@@ -275,7 +273,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 6.0f;
+        m_velocity.y = 10.0f;
         m_isJumping = true;
     }
 }
@@ -292,7 +290,7 @@ void Player::SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, c
     m_baseHurtboxExtents[idx] = extents;
 }
 
-// ÅöèCê≥: çUåÇíÜÇÃOffsetÇ∆Sizeï‚ê≥ÇìKóp
+//  çUåÇíÜÇÃOffsetÇ∆Sizeï‚ê≥ÇìKóp
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
     if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
@@ -314,20 +312,20 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
         if (type == HurtboxType::HEAD) {
             offsetX += params.headOffsetVal.x;
             offsetY += params.headOffsetVal.y;
-            extentX += params.headSizeVal.x; // Åöí«â¡
-            extentY += params.headSizeVal.y; // Åöí«â¡
+            extentX += params.headSizeVal.x; 
+            extentY += params.headSizeVal.y;
         }
         else if (type == HurtboxType::BODY) {
             offsetX += params.bodyOffsetVal.x;
             offsetY += params.bodyOffsetVal.y;
-            extentX += params.bodySizeVal.x; // Åöí«â¡
-            extentY += params.bodySizeVal.y; // Åöí«â¡
+            extentX += params.bodySizeVal.x; 
+            extentY += params.bodySizeVal.y;
         }
         else if (type == HurtboxType::LEGS) {
             offsetX += params.legsOffsetVal.x;
             offsetY += params.legsOffsetVal.y;
-            extentX += params.legsSizeVal.x; // Åöí«â¡
-            extentY += params.legsSizeVal.y; // Åöí«â¡
+            extentX += params.legsSizeVal.x; 
+            extentY += params.legsSizeVal.y; 
         }
     }
 

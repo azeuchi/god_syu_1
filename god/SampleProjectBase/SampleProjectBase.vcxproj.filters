@@ -58,7 +58,10 @@
     <Filter Include="ソース ファイル\System\imgui">
       <UniqueIdentifier>{16fa4be9-b266-4eef-9344-9e10eb970dba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソース ファイル\PlayerState">
+    <Filter Include="ソース ファイル\Player">
+      <UniqueIdentifier>{f975e780-0816-4e9a-bc2e-dd7f15d22aeb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Player\PlayerState">
       <UniqueIdentifier>{8de4c4da-6abe-41f7-9316-2863a4d2b06e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -138,9 +141,6 @@
     <ClCompile Include="Box.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
-    <ClCompile Include="Player.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="system\imgui\imgui.cpp">
       <Filter>ソース ファイル\System\imgui</Filter>
     </ClCompile>
@@ -162,32 +162,38 @@
     <ClCompile Include="system\imgui\imgui_widgets.cpp">
       <Filter>ソース ファイル\System\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="SimpleUI.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="PlayerStateIdle.cpp">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="PlayerStateWalk.cpp">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="PlayerStateWalkBack.cpp">
-      <Filter>ソース ファイル\PlayerState</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneDebug.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="LightPunch.cpp">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="PlayerStateJump.cpp">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="MediumPunch.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="Player.cpp">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneDebug.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
     <ClCompile Include="UISprite.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="SimpleUI.cpp">
+      <Filter>ソース ファイル\System</Filter>
     </ClCompile>
     <ClCompile Include="Image2D.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -269,9 +275,6 @@
     <ClInclude Include="Box.h">
       <Filter>ヘッダー ファイル\System</Filter>
     </ClInclude>
-    <ClInclude Include="Player.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="system\commontypes.h">
       <Filter>ソース ファイル\System</Filter>
     </ClInclude>
@@ -305,35 +308,41 @@
     <ClInclude Include="system\imgui\imstb_truetype.h">
       <Filter>ソース ファイル\System\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleUI.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="PlayerState.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateIdle.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateWalk.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateWalkBack.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneDebug.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="LightPunch.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateJump.h">
-      <Filter>ソース ファイル\PlayerState</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
-    <ClInclude Include="UISprite.h">
-      <Filter>ヘッダー ファイル</Filter>
+    <ClInclude Include="Player.h">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="MediumPunch.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="Image2D.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneDebug.h">
+      <Filter>ヘッダー ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleUI.h">
+      <Filter>ヘッダー ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="UISprite.h">
+      <Filter>ヘッダー ファイル\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
