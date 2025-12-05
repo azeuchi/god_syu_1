@@ -255,15 +255,8 @@ void SceneDebug::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
-	// --- 重要な同期処理 ---
-	// デバッグシーンの「攻撃中フラグ」をプレイヤーに同期させる
-	// これにより、Player::GetHurtbox 内で「攻撃用オフセット(緑枠の変形)」が有効になり、
-	// GUIで設定した補正値がリアルタイムに反映されるようになる
 	player->SetActiveHitbox(m_isAttacking);
-
 	// --- パラメータの同期 ---
-	// 現在編集中の技(Light or Medium)のパラメータを、プレイヤーのアクティブパラメータとしてセットする
-	// これにより、GetHurtboxなどが参照すべきパラメータが切り替わる
 	if (s_currentAttackType == 0) {
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 	}
@@ -447,7 +440,8 @@ void SceneDebug::DrawImGui()
 				m_isAttacking = true;
 				m_isPaused = false; // 再生
 				m_currentFrame = 0;
-				m_animTimer = 0.0f; // タイマーリセット (重要: 飛ばないように)
+				m_animTimer = 0.0f; // タイマーリセット 
+
 			}
 
 			ImGui::SameLine();

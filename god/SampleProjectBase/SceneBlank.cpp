@@ -64,15 +64,14 @@ void SceneBlank::Init()
 
 	// --- 1P (左側) のHPバー設定 ---
 	m_hpBar = new Image2D();
-	m_hpBarPos = { 330.0f, 80.0f }; // 1Pバーの初期位置 (左上寄り)
+	m_hpBarPos = { 330.0f, 80.0f }; // 1Pバーの初期位置 
 	// 画像ファイル、X座標, Y座標, 幅, 高さ で初期化
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
 
 	// --- 2P (右側) のHPバー設定 ---
 	m_enemyhpBar = new Image2D();
-	m_enemyHpBarPos = { 950.0f, 80.0f }; // 2Pバーの初期位置 (右上寄り)
+	m_enemyHpBarPos = { 950.0f, 80.0f }; // 2Pバーの初期位置
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
-
 
 	// ==================================================
 	// 3. プレイヤー1 (自分) の生成
@@ -119,6 +118,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> lParams.damage;
 		if (!ifs.eof()) ifs >> lParams.hitFrame;
 		if (!ifs.eof()) ifs >> lParams.blockFrame;
+
 		// 攻撃中のくらい判定補正 (Offset + Size)
 		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
@@ -136,6 +136,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> mParams.damage;
 		if (!ifs.eof()) ifs >> mParams.hitFrame;
 		if (!ifs.eof()) ifs >> mParams.blockFrame;
+
 		// 攻撃中のくらい判定補正
 		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
@@ -165,9 +166,8 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	// ★修正: 中パンチアニメーションの読み込みを追加
+	// ★追加: 中パンチアニメーションの読み込み
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
 	// 初期位置の設定 (左側に配置、右を向く)
@@ -205,9 +205,8 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	// ★修正: 中パンチアニメーションの読み込みを追加
+	// ★追加: 中パンチアニメーションの読み込み
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
 	// 初期位置の設定 (右側に配置、左を向く)
@@ -371,11 +370,11 @@ void SceneBlank::Update(float tick)
 		if (hit2)
 		{
 			// ダメージ適用
-			// 本来はPlayerStateから現在の技の威力を取得すべきだが、簡易的にLightPunchParamsを使う
-			// (もしMediumPunch中ならMediumPunchParamsを使うように、Playerクラスで現在のアクティブParamsを保持するのが望ましい)
-			// ここではPlayerクラスの改修を避けるため、仮にLightPunchParamsを使用している。
-			AttackParams& params = player->GetLightPunchParams();
-			player2->ReceiveDamage(params.damage);
+			// 現在アクティブな技のパラメータを取得してダメージ計算
+			AttackParams* params = player->GetCurrentAttackParams();
+			int dmg = (params != nullptr) ? params->damage : 0;
+
+			player2->ReceiveDamage(dmg);
 
 			// 多段ヒット防止のためフラグを立てる (アニメーション再生時にリセットされる)
 			player->OnHit();
@@ -410,9 +409,11 @@ void SceneBlank::Update(float tick)
 
 		if (hit1)
 		{
-			// ダメージ適用 (現在はLightPunchParams固定)
-			AttackParams& params = player2->GetLightPunchParams();
-			player->ReceiveDamage(params.damage);
+			// ダメージ適用
+			AttackParams* params = player2->GetCurrentAttackParams();
+			int dmg = (params != nullptr) ? params->damage : 0;
+
+			player->ReceiveDamage(dmg);
 			player2->OnHit(); // 多段ヒット防止
 
 			// --- 1P HPバーの更新 (左側) ---
