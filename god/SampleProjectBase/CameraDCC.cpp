@@ -26,10 +26,10 @@ void CameraDCC::Update()
 
 	Argument arg;
 	// マウス移動量
-	POINT cursorPos;
+	/*POINT cursorPos;
 	GetCursorPos(&cursorPos);
 	arg.mouseMove = DirectX::XMFLOAT2((float)cursorPos.x - m_oldPos.x, (float)cursorPos.y - m_oldPos.y);
-	m_oldPos = cursorPos;
+	m_oldPos = cursorPos;*/
 	// カメラ情報
 	arg.vCamPos					= DirectX::XMLoadFloat3(&m_pos);
 	arg.vCamLook				= DirectX::XMLoadFloat3(&m_look);
