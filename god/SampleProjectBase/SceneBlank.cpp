@@ -42,10 +42,12 @@ void SceneBlank::Init()
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"), // スキンメッシュアニメーション用VS
 		CreateObj<PixelShader>("PS_TexColor"),           // テクスチャカラー描画用PS
+		CreateObj<VertexShader>("VS_Object")
 	};
 	const char* file[] = {
 		"Assets/Shader/VS_SkinMeshAnimation.cso",
 		"Assets/Shader/PS_TexColor.cso",
+		"Assets/Shader/VS_Object.cso"
 	};
 	int shaderNum = _countof(shader);
 	for (int i = 0; i < shaderNum; ++i)
@@ -55,6 +57,29 @@ void SceneBlank::Init()
 			MessageBox(NULL, file[i], "Shader Error", MB_OK);
 		}
 	}
+
+	// スカイドーム用のモデルを作成・ロード
+	CreateObj<Model>("SkyModel");
+	Model* skyModel = GetObj<Model>("SkyModel");
+
+	// ここにスカイドーム用のFBXファイルのパスを指定
+	if (!skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true))
+	{
+		MessageBox(NULL, "スカイドームモデルの読み込みに失敗しました", "Error", MB_OK);
+	}
+	else
+	{
+		DebugLog::log(DebugLog::INFO_LOG, "スカイドーム");
+	}
+
+	skyModel->SetTexture("Assets/Model/SkyDome/sky.jpg");
+
+	// スカイドームにピクセルシェーダー(テクスチャ描画用)をセット
+	skyModel->SetPixelShader(GetObj<Shader>("PS_TexColor"));
+
+	// スカイドームクラスのインスタンス生成と初期化
+	m_skyDome = new SkyDome();
+	m_skyDome->Init(skyModel);
 
 	// ==================================================
 	// 2. 2D画像 (HPバー) の生成と配置
@@ -72,6 +97,8 @@ void SceneBlank::Init()
 	m_enemyhpBar = new Image2D();
 	m_enemyHpBarPos = { 950.0f, 80.0f }; // 2Pバーの初期位置
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
+
+	//m_skyDome->Draw();
 
 	// ==================================================
 	// 3. プレイヤー1 (自分) の生成
@@ -205,7 +232,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	// ★追加: 中パンチアニメーションの読み込み
+	//中パンチアニメーションの読み込み
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 
@@ -234,9 +261,15 @@ void SceneBlank::Init()
  */
 void SceneBlank::Uninit()
 {
-	// 画像メモリの解放 (忘れるとメモリリークの原因になります)
+	// 画像メモリの解放 
 	if (m_hpBar) delete m_hpBar;
 	if (m_enemyhpBar) delete m_enemyhpBar;
+
+	//スカイドームのメモリ開放
+	if(m_skyDome) {
+		delete m_skyDome;
+		m_skyDome = nullptr;
+	}
 
 	if (g_uiTex) {
 		delete g_uiTex;
@@ -255,7 +288,7 @@ void SceneBlank::Update(float tick)
 	Player* player2 = GetObj<Player>("Player2");
 
 	// ==================================================
-	// 1. プレイヤーの状態更新
+	// プレイヤーの状態更新
 	// ==================================================
 	// 入力受付、アニメーション進行、ステートマシン更新
 	if (player) {
@@ -266,9 +299,9 @@ void SceneBlank::Update(float tick)
 	}
 
 	// ==================================================
-	// 2. ステージ端の制限 (見えない壁)
+	// ステージ端の制限 (見えない壁)
 	// ==================================================
-	// プレイヤーが STAGE_LIMIT_X (14m) より外に出ないように座標を補正(clamp)する
+	// プレイヤーが STAGE_LIMIT_X  より外に出ないように座標を補正(clamp)する
 	if (player)
 	{
 		XMFLOAT3 pos = player->GetPosition();
@@ -284,7 +317,7 @@ void SceneBlank::Update(float tick)
 
 
 	// ==================================================
-	// 3. 当たり判定と相互作用
+	// 当たり判定と相互作用
 	// ==================================================
 	if (player && player2)
 	{
@@ -432,7 +465,7 @@ void SceneBlank::Update(float tick)
 
 
 	// ==================================================
-	// 4. カメラ制御 (格闘ゲーム風)
+	// カメラ制御
 	// ==================================================
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
@@ -504,6 +537,14 @@ void SceneBlank::Update(float tick)
 		// カメラに適用
 		pCamera->SetPos(newPos);
 		pCamera->SetLook(newLook);
+
+		CameraBase* pCamera = GetObj<CameraBase>("Camera");
+		if (pCamera && m_skyDome)
+		{
+			// カメラの位置を渡して、スカイドームが一緒についてくるようにする
+			m_skyDome->Update(pCamera->GetPos());
+		}
+
 	}
 }
 
@@ -540,6 +581,11 @@ void SceneBlank::Draw()
 		GetObj<Shader>("VS_SkinMeshAnimation"),
 		GetObj<Shader>("PS_TexColor"),
 	};
+
+	if (m_skyDome)
+	{
+		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
+	}
 
 	// ==================================================
 	// 1. プレイヤー1の描画

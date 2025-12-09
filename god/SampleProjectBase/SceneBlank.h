@@ -1,6 +1,7 @@
 #pragma once
 #include "SceneBase.hpp"
 #include "Image2D.h"
+#include "SkyDome.h"
 #include <DirectXMath.h> // XMFLOAT2用
 
 /**
@@ -22,6 +23,7 @@ private:
 	// HPバー表示用クラス
 	Image2D* m_hpBar;
 	Image2D* m_enemyhpBar;
+	SkyDome* m_skyDome;
 
 	// HPバーの初期位置・サイズを記憶しておく変数
 	// 2P側の「右端固定」表示を実現するために使用する

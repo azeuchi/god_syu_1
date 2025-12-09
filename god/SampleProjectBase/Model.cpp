@@ -676,3 +676,20 @@ int Model::GetAnimationTotalFrame(const char* animName)
 	// 見つからない場合は適当に長い値を返しておく（0除算防止）
 	return 60;
 }
+
+void Model::SetTexture(const char* fileName)
+{
+	// 新しいテクスチャを作成して読み込む
+	auto newTex = std::make_shared<Texture>();
+	if (FAILED(newTex->Create(fileName)))
+	{
+		DebugLog::log(DebugLog::ERROR_LOG, "SetTexture: Failed to load texture: ", fileName);
+		return;
+	}
+
+	// すべてのマテリアルのテクスチャをこれに差し替える
+	for (auto& mat : m_materials)
+	{
+		mat.texture = newTex;
+	}
+}
