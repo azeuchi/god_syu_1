@@ -24,6 +24,8 @@ void CameraDCC::Update()
 	UpdateState();
 	if (m_state == CAM_DCC_NONE) return;
 
+	// ★ #if 0 ～ #endif で囲むと、中にコメントがあっても安全に無効化できます
+#if 0
 	Argument arg;
 	// マウス移動量
 	/*POINT cursorPos;
@@ -31,14 +33,14 @@ void CameraDCC::Update()
 	arg.mouseMove = DirectX::XMFLOAT2((float)cursorPos.x - m_oldPos.x, (float)cursorPos.y - m_oldPos.y);
 	m_oldPos = cursorPos;*/
 	// カメラ情報
-	arg.vCamPos					= DirectX::XMLoadFloat3(&m_pos);
-	arg.vCamLook				= DirectX::XMLoadFloat3(&m_look);
-	DirectX::XMVECTOR vCamUp	= DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_up));
-	DirectX::XMVECTOR vFront	= DirectX::XMVectorSubtract(arg.vCamLook, arg.vCamPos);
+	arg.vCamPos = DirectX::XMLoadFloat3(&m_pos);
+	arg.vCamLook = DirectX::XMLoadFloat3(&m_look);
+	DirectX::XMVECTOR vCamUp = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_up));
+	DirectX::XMVECTOR vFront = DirectX::XMVectorSubtract(arg.vCamLook, arg.vCamPos);
 	// カメラ姿勢
-	arg.vCamFront	= DirectX::XMVector3Normalize(vFront);
-	arg.vCamSide	= DirectX::XMVector3Normalize(DirectX::XMVector3Cross(vCamUp, arg.vCamFront));
-	arg.vCamUp		= DirectX::XMVector3Normalize(DirectX::XMVector3Cross(arg.vCamFront, arg.vCamSide));
+	arg.vCamFront = DirectX::XMVector3Normalize(vFront);
+	arg.vCamSide = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(vCamUp, arg.vCamFront));
+	arg.vCamUp = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(arg.vCamFront, arg.vCamSide));
 	// フォーカス距離
 	DirectX::XMStoreFloat(&arg.focus, DirectX::XMVector3Length(vFront));
 
@@ -49,9 +51,12 @@ void CameraDCC::Update()
 	case CAM_DCC_DOLLY:		UpdateDolly(arg);	break;
 	case CAM_DCC_FLIGHT:	UpdateFlight(arg);	break;
 	}
+#endif
 }
+
 void CameraDCC::UpdateState()
 {
+	/*
 	CameraDCCKind prev = (CameraDCCKind)m_state;
 	if (IsKeyPress(VK_MENU))
 	{
@@ -72,9 +77,15 @@ void CameraDCC::UpdateState()
 	{
 		GetCursorPos(&m_oldPos);
 	}
+	*/
+
+	// 強制的にNONEにしておく（念のため）
+	m_state = CAM_DCC_NONE;
 }
+
 void CameraDCC::UpdateOrbit(Argument& arg)
 {
+	/*
 	// マウスの移動量 / 画面サイズ の比率から、画面全体でどれだけ回転するか指定する。
 	float angleX =  360.0f * arg.mouseMove.x / 1280.0f;
 	float angleY =  180.0f * arg.mouseMove.y / 720.0f;
@@ -93,10 +104,12 @@ void CameraDCC::UpdateOrbit(Argument& arg)
 
 	// アップベクトル更新
 	DirectX::XMStoreFloat3(&m_up, DirectX::XMVector3Normalize(DirectX::XMVector3Cross(DirectX::XMVector3Normalize(vRelative), vAxis)));
-
+	*/
 }
+
 void CameraDCC::UpdateTrack(Argument& arg)
 {
+	/*
 	// 高さA、底辺Bとする三角形について tanΘ = A / Bが成り立つ
 	// 上記式をもとに割り出した遠景の高さを、移動量 / 画面サイズ の比率から、移動量として求める
 	float farScreenHeight = tanf(m_fovy * 0.5f) * m_far;
@@ -112,15 +125,21 @@ void CameraDCC::UpdateTrack(Argument& arg)
 	vCamMove = DirectX::XMVectorAdd(vCamMove, DirectX::XMVectorScale(arg.vCamUp, farMoveY * rate));
 	DirectX::XMStoreFloat3(&m_pos, DirectX::XMVectorAdd(arg.vCamPos, vCamMove));
 	DirectX::XMStoreFloat3(&m_look, DirectX::XMVectorAdd(arg.vCamLook, vCamMove));
+	*/
 }
+
 void CameraDCC::UpdateDolly(Argument& arg)
 {
+	/*
 	float rate = arg.focus / m_far;
 	DirectX::XMVECTOR vMove = DirectX::XMVectorScale(arg.vCamFront, m_far * 0.01f * rate * (arg.mouseMove.x + arg.mouseMove.y));
 	DirectX::XMStoreFloat3(&m_pos, DirectX::XMVectorAdd(arg.vCamPos, vMove));
+	*/
 }
+
 void CameraDCC::UpdateFlight(Argument& arg)
 {
+	/*
 	// マウスの移動量 / 画面サイズ の比率から、画面全体でどれだけ回転するか指定する。
 	float angleX = 360.0f * arg.mouseMove.x / 1280.0f;
 	float angleY = 180.0f * arg.mouseMove.y / 720.0f;
@@ -148,4 +167,5 @@ void CameraDCC::UpdateFlight(Argument& arg)
 	DirectX::XMStoreFloat3(&m_pos, vCamPos);
 	DirectX::XMStoreFloat3(&m_look, DirectX::XMVectorAdd(vCamPos, DirectX::XMVectorScale(vFrontAxis, arg.focus)));
 	DirectX::XMStoreFloat3(&m_up, DirectX::XMVector3Normalize(DirectX::XMVector3Cross(vFrontAxis, vSideAxis)));
+	*/
 }
