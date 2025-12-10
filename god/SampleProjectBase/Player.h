@@ -219,7 +219,7 @@ private:
     AnimationState m_currentAnim;
     AnimationState m_previousAnim;
     float m_blendFactor = 1.0f;
-    const float m_transitionDuration = 0.05f;
+    const float m_transitionDuration = 0.1f;
     bool m_isAnimPaused = false; // アニメーション一時停止フラグ
 
     // 再生スピード倍率 

@@ -20,7 +20,7 @@ void PlayerStateDamage::OnEnter(Player* player)
 	// d’¼ŠÔ(•b) ‚ğƒtƒŒ[ƒ€”‚ÉŠ·Z
 	float stunFramesFrame = m_stunDuration * 60.0f;
 
-	float extraFrames = 20.0f; 
+	float extraFrames = 30.0f; 
 	float targetFrames = stunFramesFrame + extraFrames;
 
 	if (targetFrames <= 1.0f) targetFrames = 1.0f;

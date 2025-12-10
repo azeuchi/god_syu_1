@@ -33,7 +33,7 @@ Player::Player()
     , m_hp(10000)
     , m_hasHit(false)
     , m_pActiveAttackParams(nullptr)
-    , m_animSpeed(1.0f) // ★追加: 初期速度1.0
+    , m_animSpeed(1.0f)
 {
     m_currentAnim = { "Idle", 0 };
     m_previousAnim = { "Idle", 0 };
@@ -183,7 +183,7 @@ void Player::UpdatePhysics(float tick)
     }
 }
 
-// ★修正: アニメーション速度を加味して更新 (tickを反映)
+// アニメーション速度を加味して更新 (tickを反映)
 void Player::UpdateAnimation(float tick)
 {
     if (m_blendFactor < 1.0f)
@@ -194,19 +194,17 @@ void Player::UpdateAnimation(float tick)
 
     if (!m_isAnimPaused)
     {
-        // ★修正ポイント:
-        // フレーム進行量 = 速度倍率 * 経過時間(秒) * 60.0f(基準FPS)
-        // これにより、tickが変動しても（処理落ちしても）、実時間に合わせて正しくアニメが進みます。
+        // tickが変動しても実時間に合わせて正しくアニメが進む
         m_currentAnim.frame += m_animSpeed * tick * 60.0f;
     }
 }
 
-// ★修正: モデル更新時にfloatフレームをintにキャストして渡す
+// モデル更新時にfloatフレームをintにキャストして渡す
 void Player::UpdateModelBlend()
 {
     m_model->UpdateWithBlend(
-        m_currentAnim.name, (int)m_currentAnim.frame, // cast
-        m_previousAnim.name, (int)m_previousAnim.frame, // cast
+        m_currentAnim.name, (int)m_currentAnim.frame,
+        m_previousAnim.name, (int)m_previousAnim.frame,
         m_blendFactor);
 }
 
@@ -222,7 +220,7 @@ void Player::SetState(PlayerState* newState)
     }
 }
 
-// ★修正: アニメーション再生時は速度をリセット
+// アニメーション再生時は速度をリセット
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
     m_isAnimPaused = false;
@@ -239,7 +237,7 @@ void Player::PlayAnimation(const char* name, bool forceRestart)
     m_blendFactor = 0.0f;
 }
 
-// ★追加: 速度設定
+// 速度設定
 void Player::SetAnimationSpeed(float speed)
 {
     m_animSpeed = speed;
@@ -537,9 +535,4 @@ void Player::ReceiveDamage(int damage)
 float Player::GetHpRatio() const
 {
     return (float)m_hp / (float)m_maxHp;
-}
-
-void Player::SetCurrentFrame(float frame)
-{
-    m_currentAnim.frame = frame;
 }
