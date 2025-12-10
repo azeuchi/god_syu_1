@@ -198,6 +198,9 @@
     <ClCompile Include="SkyDome.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerStateDamage.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -349,6 +352,9 @@
     </ClInclude>
     <ClInclude Include="SkyDome.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateDamage.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

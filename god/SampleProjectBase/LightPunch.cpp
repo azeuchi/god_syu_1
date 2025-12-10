@@ -1,31 +1,15 @@
 #include "LightPunch.h"
 #include "PlayerStateIdle.h"
 #include "Player.h"
-
 void LightPunch::OnEnter(Player* player)
 {
-	// 1. アニメーション再生開始 (この時点では速度1.0)
+	// アニメーション再生開始
 	player->PlayAnimation("LightPunch", true);
 
-	// 2. パラメータ取得
-	AttackParams& params = player->GetLightPunchParams();
+	// ★変更: プレイヤー側の自動更新を止めるため、速度を0にする
+	// これにより、Update関数内で手動制御できるようになります
+	player->SetAnimationSpeed(0.0f);
 
-	// 3. ★速度計算★
-	// 元のアニメーションの長さ(フレーム数)を取得
-	int originalFrames = player->GetModel()->GetAnimationTotalFrame("LightPunch");
-
-	// 設定された「全体フレーム(秒)」を60FPS換算のフレーム数にする
-	float targetFrames = params.totalDuration * 60.0f;
-	if (targetFrames <= 0.0f) targetFrames = 1.0f; // 0除算防止
-
-	// 倍率計算 (例: 元60F / 設定20F = 3.0倍速)
-	float speed = (float)originalFrames / targetFrames;
-
-	// 4. 計算した速度を適用
-	player->SetAnimationSpeed(speed);
-
-
-	// --- 以下、既存の初期化処理 ---
 	m_stateTimer = 0.0f;
 	player->SetActiveHitbox(false);
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
@@ -40,6 +24,24 @@ void LightPunch::Update(Player* player, float tick)
 
 	AttackParams& params = player->GetLightPunchParams();
 
+	// =========================================================
+	// ★追加: 経過時間に応じたフレーム数の計算と適用
+	// =========================================================
+	// 1. 現在の進行度 (0.0 ～ 1.0) を計算
+	float progress = m_stateTimer / params.totalDuration;
+	if (progress > 1.0f) progress = 1.0f;
+
+	// 2. 元のアニメーションの総フレーム数を取得
+	int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame("LightPunch");
+
+	// 3. 進行度に合わせてフレームを決定 (例: 50%なら総フレームの半分)
+	float currentFrame = progress * (float)totalAnimFrames;
+
+	// 4. プレイヤーに適用
+	player->SetCurrentFrame(currentFrame);
+	// =========================================================
+
+
 	if (m_stateTimer >= params.hitboxStart && m_stateTimer < params.hitboxEnd)
 	{
 		player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
@@ -52,6 +54,8 @@ void LightPunch::Update(Player* player, float tick)
 
 	if (m_stateTimer >= params.totalDuration)
 	{
+		// 終了時は速度を1.0に戻しておく
+		player->SetAnimationSpeed(1.0f);
 		player->SetState(new PlayerStateIdle());
 		return;
 	}

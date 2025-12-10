@@ -12,6 +12,7 @@
 #include "LightPunch.h" 
 #include "MediumPunch.h" 
 #include "PlayerStateJump.h" 
+#include "PlayerStateDamage.h"
 
 #include <DirectXMath.h>
 
@@ -182,7 +183,7 @@ void Player::UpdatePhysics(float tick)
     }
 }
 
-// ★修正: アニメーション速度を加味して更新
+// ★修正: アニメーション速度を加味して更新 (tickを反映)
 void Player::UpdateAnimation(float tick)
 {
     if (m_blendFactor < 1.0f)
@@ -193,8 +194,10 @@ void Player::UpdateAnimation(float tick)
 
     if (!m_isAnimPaused)
     {
-        // 速度倍率(m_animSpeed)を加算
-        m_currentAnim.frame += m_animSpeed;
+        // ★修正ポイント:
+        // フレーム進行量 = 速度倍率 * 経過時間(秒) * 60.0f(基準FPS)
+        // これにより、tickが変動しても（処理落ちしても）、実時間に合わせて正しくアニメが進みます。
+        m_currentAnim.frame += m_animSpeed * tick * 60.0f;
     }
 }
 
@@ -534,4 +537,9 @@ void Player::ReceiveDamage(int damage)
 float Player::GetHpRatio() const
 {
     return (float)m_hp / (float)m_maxHp;
+}
+
+void Player::SetCurrentFrame(float frame)
+{
+    m_currentAnim.frame = frame;
 }

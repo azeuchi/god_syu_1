@@ -4,23 +4,19 @@
 
 void MediumPunch::OnEnter(Player* player)
 {
-	// 1. アニメーション再生開始
 	player->PlayAnimation("MediumPunch", true);
 
-	// 2. パラメータ取得 (中パンチ)
 	AttackParams& params = player->GetMediumPunchParams();
 
-	// 速度計算
 	int originalFrames = player->GetModel()->GetAnimationTotalFrame("MediumPunch");
 	float targetFrames = params.totalDuration * 60.0f;
-	if (targetFrames <= 0.0f) targetFrames = 1.0f;
-	float speed = (float)originalFrames / targetFrames;
 
-	// 4. 速度適用
+	// 速度計算に余裕を持たせる
+	if (targetFrames <= 1.0f) targetFrames = 1.0f;
+	float speed = (float)originalFrames / (targetFrames - 0.9f);
+
 	player->SetAnimationSpeed(speed);
 
-
-	// --- 初期化処理 ---
 	m_stateTimer = 0.0f;
 	player->SetActiveHitbox(false);
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
@@ -32,7 +28,6 @@ void MediumPunch::OnEnter(Player* player)
 void MediumPunch::Update(Player* player, float tick)
 {
 	m_stateTimer += tick;
-
 	AttackParams& params = player->GetMediumPunchParams();
 
 	if (m_stateTimer >= params.hitboxStart && m_stateTimer < params.hitboxEnd)

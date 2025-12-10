@@ -192,6 +192,7 @@
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerStateDamage.cpp" />
     <ClCompile Include="PlayerStateIdle.cpp" />
     <ClCompile Include="PlayerStateJump.cpp" />
     <ClCompile Include="PlayerStateWalk.cpp" />
@@ -241,6 +242,7 @@
     <ClInclude Include="MoveLight.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerState.h" />
+    <ClInclude Include="PlayerStateDamage.h" />
     <ClInclude Include="PlayerStateIdle.h" />
     <ClInclude Include="PlayerStateJump.h" />
     <ClInclude Include="PlayerStateWalk.h" />

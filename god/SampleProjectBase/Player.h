@@ -81,7 +81,8 @@ public:
     void SetPixelShader(Shader* ps);
     void Draw();
     Model* GetModel();
-
+    // 現在のアニメーションフレームを強制的に指定する
+    void SetCurrentFrame(float frame);
 
     // --- 状態管理 (ステートパターン) ---
     void Update(float tick);
@@ -218,10 +219,10 @@ private:
     AnimationState m_currentAnim;
     AnimationState m_previousAnim;
     float m_blendFactor = 1.0f;
-    const float m_transitionDuration = 0.2f;
+    const float m_transitionDuration = 0.05f;
     bool m_isAnimPaused = false; // アニメーション一時停止フラグ
 
-    // ★追加: 再生スピード倍率 (デフォルト1.0f)
+    // 再生スピード倍率 
     float m_animSpeed = 1.0f;
 
     // --- 技パラメータ用メンバー ---

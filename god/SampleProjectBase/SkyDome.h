@@ -23,7 +23,7 @@ public:
 private:
 	Model* m_pModel = nullptr;
 	DirectX::XMFLOAT3 m_pos = { 0.0f,0.0f,0.0f }; // スカイドームの位置
-	DirectX::XMFLOAT3 m_scale = { 50.0f,50.0f,50.0f }; // 巨大にする
+	DirectX::XMFLOAT3 m_scale = { 80.0f,80.0f,80.0f }; // 巨大にする
 	DirectX::XMFLOAT3 m_offset = { 0.0f, -18000.0f, 0.0f }; // ズレ補正用
 };
 

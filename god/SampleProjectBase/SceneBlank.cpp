@@ -14,6 +14,7 @@
 #include "Image2D.h"
 #include <fstream> 
 #include <algorithm> // std::clamp (値を範囲内に収める関数) を使用
+#include "PlayerStateDamage.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -193,9 +194,11 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	// ★追加: 中パンチアニメーションの読み込み
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
+
+	// ★追加: やられアニメーションのロード
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 
 	// 初期位置の設定 (左側に配置、右を向く)
 	// Rotation Y = -PI/2 (-90度) で右向き
@@ -232,9 +235,9 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	//中パンチアニメーションの読み込み
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 
 	// 初期位置の設定 (右側に配置、左を向く)
 	// Rotation Y = PI/2 (90度) で左向き
@@ -266,7 +269,7 @@ void SceneBlank::Uninit()
 	if (m_enemyhpBar) delete m_enemyhpBar;
 
 	//スカイドームのメモリ開放
-	if(m_skyDome) {
+	if (m_skyDome) {
 		delete m_skyDome;
 		m_skyDome = nullptr;
 	}
@@ -406,11 +409,16 @@ void SceneBlank::Update(float tick)
 			// 現在アクティブな技のパラメータを取得してダメージ計算
 			AttackParams* params = player->GetCurrentAttackParams();
 			int dmg = (params != nullptr) ? params->damage : 0;
+			// ★追加: 技ごとのhitFrame(有利フレーム)を硬直時間として取得する
+			int stun = (params != nullptr) ? params->hitFrame : 30; // 指定がない場合は30F
 
 			player2->ReceiveDamage(dmg);
 
 			// 多段ヒット防止のためフラグを立てる (アニメーション再生時にリセットされる)
 			player->OnHit();
+
+			// ★追加: 2Pを「やられ状態」に遷移させる (stunフレーム分硬直)
+			player2->SetState(new PlayerStateDamage(stun));
 
 			// --- 2P HPバーの更新 (右側) ---
 			float ratio = player2->GetHpRatio();        // 残りHP割合 (0.0~1.0)
@@ -445,9 +453,14 @@ void SceneBlank::Update(float tick)
 			// ダメージ適用
 			AttackParams* params = player2->GetCurrentAttackParams();
 			int dmg = (params != nullptr) ? params->damage : 0;
+			// ★追加: 技ごとのhitFrame(有利フレーム)を硬直時間として取得する
+			int stun = (params != nullptr) ? params->hitFrame : 30;
 
 			player->ReceiveDamage(dmg);
 			player2->OnHit(); // 多段ヒット防止
+
+			// ★追加: 1Pを「やられ状態」に遷移させる
+			player->SetState(new PlayerStateDamage(stun));
 
 			// --- 1P HPバーの更新 (左側) ---
 			float ratio = player->GetHpRatio();
