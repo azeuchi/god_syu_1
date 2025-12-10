@@ -14,8 +14,20 @@ void PlayerStateDamage::OnEnter(Player* player)
 {
 	player->PlayAnimation("Damage", true);
 
-	// ★変更: 自動進行を停止
-	player->SetAnimationSpeed(0.0f);
+	// --- 速度計算の修正 ---
+	int originalFrames = player->GetModel()->GetAnimationTotalFrame("Damage");
+
+	// 硬直時間(秒) をフレーム数に換算
+	float stunFramesFrame = m_stunDuration * 60.0f;
+
+	float extraFrames = 20.0f; 
+	float targetFrames = stunFramesFrame + extraFrames;
+
+	if (targetFrames <= 1.0f) targetFrames = 1.0f;
+
+	float speed = (float)originalFrames / targetFrames;
+	player->SetAnimationSpeed(speed);
+	// ---------------------
 
 	m_stateTimer = 0.0f;
 	player->SetActiveHitbox(false);
@@ -29,17 +41,9 @@ void PlayerStateDamage::Update(Player* player, float tick)
 {
 	m_stateTimer += tick;
 
-	// ★追加: フレームの手動制御
-	float progress = m_stateTimer / m_stunDuration;
-	if (progress > 1.0f) progress = 1.0f;
-
-	int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame("Damage");
-	float currentFrame = progress * (float)totalAnimFrames;
-	player->SetCurrentFrame(currentFrame);
-
-
 	if (m_stateTimer >= m_stunDuration)
 	{
+		// 終了時に速度を1.0に戻しておく
 		player->SetAnimationSpeed(1.0f);
 		player->SetState(new PlayerStateIdle());
 		return;
