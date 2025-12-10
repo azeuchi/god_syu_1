@@ -329,7 +329,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
     if (!m_isJumping) {
-        m_velocity.y = 6.0f;
+        m_velocity.y = 10.0f;
         m_isJumping = true;
     }
 }

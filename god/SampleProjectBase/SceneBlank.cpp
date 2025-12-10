@@ -13,7 +13,7 @@
 #include "UISprite.h"
 #include "Image2D.h"
 #include <fstream> 
-#include <algorithm> // std::clamp (値を範囲内に収める関数) を使用
+#include <algorithm> 
 
 // やられ状態クラスを使用するためにインクルード
 #include "PlayerStateDamage.h"
@@ -37,7 +37,7 @@ const float CAMERA_LIMIT_X = 10.0f;
 void SceneBlank::Init()
 {
 	// ==================================================
-	// 1. シェーダーの読み込み
+	// シェーダーの読み込み
 	// ==================================================
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
@@ -71,7 +71,7 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// 2. 2D画像 (HPバー) の生成と配置
+	// 2D画像 (HPバー) の生成と配置
 	// ==================================================
 	m_barMaxWidth = 500.0f;
 
@@ -87,14 +87,14 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 3. プレイヤー1 (自分) の生成
+	// プレイヤー1 (自分) の生成
 	// ==================================================
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
 	// ==================================================
-	// 4. 設定ファイルの読み込み
+	// 設定ファイルの読み込み
 	// ==================================================
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
@@ -156,7 +156,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 5. モデルとアニメーションのロード (1P)
+	//  モデルとアニメーションのロード (1P)
 	// ==================================================
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
@@ -175,7 +175,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 6. プレイヤー2 (相手) の生成
+	// プレイヤー2  の生成
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -245,6 +245,50 @@ void SceneBlank::Update(float tick)
 
 	if (player) player->Update(tick);
 	if (player2) player2->Update(tick);
+
+	if (player && player2)
+	{
+		float x1 = player->GetPosition().x;
+		float x2 = player2->GetPosition().x;
+
+		// 現在のスケール設定（大きさ）を絶対値で取得しておく
+		float absScale1 = fabsf(player->GetScale().x);
+		float absScale2 = fabsf(player2->GetScale().x);
+
+		DirectX::XMFLOAT3 s1 = player->GetScale();
+		DirectX::XMFLOAT3 s2 = player2->GetScale();
+
+		// 左向き(+90度) と 右向き(-90度) の定数
+		float rotLeft = DirectX::XM_PI / 2.0f;
+		float rotRight = DirectX::XM_PI / -2.0f;
+
+		// 1Pが 2Pより「左」にいる場合 (通常の状態)
+		if (x1 < x2)
+		{
+			// 1P: 左側配置 -> 右を向く (通常スケール)
+			s1.x = absScale1; // プラス (反転なし)
+			player->SetScale(s1);
+			player->SetRotation({ 0.0f, rotRight, 0.0f });
+
+			// 2P: 右側配置 -> 左を向く (反転スケール)
+			s2.x = -absScale2; // マイナス (左右反転)
+			player2->SetScale(s2);
+			player2->SetRotation({ 0.0f, rotLeft, 0.0f });
+		}
+		// 1Pが 2Pより「右」にいる場合 (入れ替わった状態)
+		else
+		{
+			// 1P: 右側配置 -> 左を向く (反転スケール)
+			s1.x = -absScale1; // マイナス (左右反転)
+			player->SetScale(s1);
+			player->SetRotation({ 0.0f, rotLeft, 0.0f });
+
+			// 2P: 左側配置 -> 右を向く (通常スケール)
+			s2.x = absScale2; // プラス (反転なし)
+			player2->SetScale(s2);
+			player2->SetRotation({ 0.0f, rotRight, 0.0f });
+		}
+	}
 
 	// ステージ端の制限
 	if (player)
