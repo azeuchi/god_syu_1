@@ -18,14 +18,6 @@ void PlayerStateIdle::UpdateBehavior(Player* player, float tick)
 
 	// ’ŠÛ‰»‚³‚ê‚½“ü—Í‚ðŽæ“¾
 	const PlayerInputs& inputs = player->GetInputs();
-
-	//‚µ‚á‚ª‚Ý‚Ö‚Ì‘JˆÚ
-	if (inputs.moveDown)
-	{
-		player->SetState(new PlayerStateCrouch());
-		return;
-	}
-
 	if (inputs.moveLeft) {
 		vel.x = -player->GetMoveSpeed();
 	}

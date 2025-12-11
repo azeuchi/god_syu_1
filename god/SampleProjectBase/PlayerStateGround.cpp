@@ -5,10 +5,12 @@
 #include "LightPunch.h"
 #include "MediumPunch.h"
 #include "PlayerStateJump.h"
+#include "PlayerStateCrouch.h"
 
 void PlayerStateGround::Update(Player* player, float tick)
 {
-	// --- 共通の遷移チェック (攻撃・ジャンプ) ---
+	// --- 共通の遷移チェック (攻撃・ジャンプ・しゃがみ) ---
+
 	const PlayerInputs& inputs = player->GetInputs();
 
 	// 攻撃1
@@ -16,7 +18,7 @@ void PlayerStateGround::Update(Player* player, float tick)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 		player->SetState(new LightPunch());
-		return; // ステートが変わったので終了
+		return;
 	}
 	// 攻撃2
 	else if (inputs.attack2)
@@ -30,6 +32,12 @@ void PlayerStateGround::Update(Player* player, float tick)
 	{
 		player->Jump();
 		player->SetState(new PlayerStateJump());
+		return;
+	}
+	// しゃがみ 
+	else if (inputs.moveDown && !player->GetIsCrouching())
+	{
+		player->SetState(new PlayerStateCrouch());
 		return;
 	}
 
