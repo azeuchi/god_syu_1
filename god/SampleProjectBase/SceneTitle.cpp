@@ -6,9 +6,12 @@ void SceneTitle::Init()
 {
 	DebugLog::log(DebugLog::INFO_LOG, "--- Title Scene Init ---");
 	// Image2Dのインスタンス生成
+	m_background = new Image2D();
 	m_pImage = new Image2D();
 	// 画像読み込み
 	m_pImage->Load("Assets/Texture/AZEFIGHTER.png", 650.0f, 150.0f, 676, 369.0f);
+	m_background->Load("Assets/Texture/background4.png", 640, 360.0f, 1280, 720.0f);
+
 }
 
 void SceneTitle::Uninit()
@@ -19,6 +22,8 @@ void SceneTitle::Uninit()
 	if (m_pImage)
 	{
 		delete m_pImage;
+		delete m_background;
+		m_background = nullptr;
 		m_pImage = nullptr;
 	}
 }
@@ -35,7 +40,8 @@ void SceneTitle::Draw()
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
 
+	if (m_background) m_background->Draw();
 	if (m_pImage) m_pImage->Draw();
-
+	
 	SimpleUI::DrawAll();
 }

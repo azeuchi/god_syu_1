@@ -65,7 +65,7 @@ void SceneBlank::Init()
 	{
 		MessageBox(NULL, "スカイドームモデルの読み込みに失敗しました", "Error", MB_OK);
 	}
-	skyModel->SetTexture("Assets/Model/SkyDome/ShellMask.png");
+	skyModel->SetTexture("Assets/Model/SkyDome/sky.jpg");
 	skyModel->SetPixelShader(GetObj<Shader>("PS_TexColor"));
 	m_skyDome = new SkyDome();
 	m_skyDome->Init(skyModel);
