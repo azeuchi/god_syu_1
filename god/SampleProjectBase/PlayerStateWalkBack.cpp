@@ -1,6 +1,7 @@
 #include "PlayerStateWalkBack.h"
 #include "PlayerStateIdle.h"
 #include "PlayerStateWalk.h" 
+#include "PlayerStateCrouch.h"
 #include "Player.h"
 // #include "Input.h"
 
@@ -17,6 +18,13 @@ void PlayerStateWalkBack::UpdateBehavior(Player* player, float tick)
 
 	// ’ŠÛ‰»‚³‚ê‚½“ü—Í‚ðŽæ“¾
 	const PlayerInputs& inputs = player->GetInputs();
+
+	// ‚µ‚á‚ª‚Ý‚Ö‚Ì‘JˆÚ
+	if (inputs.moveDown)
+	{
+		player->SetState(new PlayerStateCrouch());
+		return;
+	}
 
 	if (inputs.moveLeft) {
 		vel.x = -player->GetMoveSpeed();

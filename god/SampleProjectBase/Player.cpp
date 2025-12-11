@@ -65,8 +65,6 @@ void Player::Update(float tick)
     PollInputs();
 
     // 2. FSM（状態）の一元的な遷移チェック
-    // ステートマシンが自己完結して遷移を管理します。
-
     if (m_currentState) {
         m_currentState->Update(this, tick);
     }
@@ -92,7 +90,7 @@ void Player::PollInputs()
     switch (m_inputType)
     {
     case PlayerInputType::PLAYER_1:
-        // 1Pは 'A' 'D' キー
+        // 1Pは 'A' 'D' キー, 'S'でしゃがみ
         if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress('A')) {
@@ -101,6 +99,11 @@ void Player::PollInputs()
             else if (IsKeyPress('D')) {
                 m_inputs.moveRight = true;
             }
+
+            if (IsKeyPress('S')) {
+                m_inputs.moveDown = true;
+            }
+
             // 'W' キーでジャンプ
             if (IsKeyTrigger('W')) {
                 m_inputs.jump = true;
@@ -117,7 +120,7 @@ void Player::PollInputs()
         break;
 
     case PlayerInputType::PLAYER_2:
-        // 2Pは 矢印キー (左右)
+        // 2Pは 矢印キー
         if (!IsKeyPress(VK_RBUTTON))
         {
             if (IsKeyPress(VK_LEFT)) {
@@ -126,6 +129,11 @@ void Player::PollInputs()
             else if (IsKeyPress(VK_RIGHT)) {
                 m_inputs.moveRight = true;
             }
+
+            if (IsKeyPress(VK_DOWN)) {
+                m_inputs.moveDown = true;
+            }
+
             // 上矢印キーでジャンプ
             if (IsKeyTrigger(VK_UP)) {
                 m_inputs.jump = true;
@@ -517,4 +525,3 @@ float Player::GetHpRatio() const
 {
     return (float)m_hp / (float)m_maxHp;
 }
-

@@ -22,6 +22,7 @@ struct PlayerInputs
 {
     bool moveLeft = false;
     bool moveRight = false;
+    bool moveDown = false; // ★追加: しゃがみ用
     bool jump = false;    // ジャンプ
     bool attack1 = false; // 弱パンチ
     bool attack2 = false; // 中パンチ
@@ -127,7 +128,7 @@ public:
     void DrawBoundingBox();
     bool CheckCollision(const Player* other) const;
 
-    
+    // (互換性のため残存)
     void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
     DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
     void SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset);

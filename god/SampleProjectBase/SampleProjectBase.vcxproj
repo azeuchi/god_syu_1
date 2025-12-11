@@ -193,6 +193,7 @@
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayerStateAir.cpp" />
+    <ClCompile Include="PlayerStateCrouch.cpp" />
     <ClCompile Include="PlayerStateDamage.cpp" />
     <ClCompile Include="PlayerStateGround.cpp" />
     <ClCompile Include="PlayerStateIdle.cpp" />
@@ -247,6 +248,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerState.h" />
     <ClInclude Include="PlayerStateAir.h" />
+    <ClInclude Include="PlayerStateCrouch.h" />
     <ClInclude Include="PlayerStateDamage.h" />
     <ClInclude Include="PlayerStateGround.h" />
     <ClInclude Include="PlayerStateIdle.h" />

@@ -213,6 +213,9 @@
     <ClCompile Include="PlayerStateAir.cpp">
       <Filter>ソース ファイル\Player</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerStateCrouch.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -379,6 +382,9 @@
     </ClInclude>
     <ClInclude Include="PlayerStateAir.h">
       <Filter>ソース ファイル\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateCrouch.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
