@@ -201,6 +201,9 @@
     <ClCompile Include="PlayerStateDamage.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
+    <ClCompile Include="SceneTitle.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -355,6 +358,9 @@
     </ClInclude>
     <ClInclude Include="PlayerStateDamage.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneTitle.h">
+      <Filter>ソース ファイル\App\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

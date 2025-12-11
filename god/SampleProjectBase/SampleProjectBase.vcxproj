@@ -202,6 +202,7 @@
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneBlank.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
+    <ClCompile Include="SceneTitle.cpp" />
     <ClCompile Include="SceneVisual.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SimpleUI.cpp" />
@@ -253,6 +254,7 @@
     <ClInclude Include="SceneBlank.h" />
     <ClInclude Include="SceneDebug.h" />
     <ClInclude Include="SceneRoot.h" />
+    <ClInclude Include="SceneTitle.h" />
     <ClInclude Include="SceneVisual.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SimpleUI.h" />

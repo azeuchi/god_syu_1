@@ -9,6 +9,7 @@
 #include "SceneVisual.h"
 #include "SceneBlank.h"
 #include "SceneDebug.h" 
+#include "SceneTitle.h"
 
 #include "DebugLog.h"
 
@@ -18,10 +19,11 @@
 //--- 定数定義
 enum SceneKind
 {
-	SCENE_GAME,		// ゲームシーン
+	SCENE_TITLE,    // タイトル）
+	SCENE_GAME,	// ゲームシーン
 	SCENE_VISUAL,
-	SCENE_DEBUG,    
-	SCENE_MAX		
+	SCENE_DEBUG,
+	SCENE_MAX
 };
 
 /// <summary>
@@ -34,6 +36,10 @@ void SceneRoot::ChangeScene()
 	switch (m_index)
 	{
 	default:
+	case SCENE_TITLE:
+		AddSubScene<SceneTitle>();
+		m_sceneName = "SCENE_TITLE";
+		break;
 	case SCENE_GAME:
 		AddSubScene<SceneBlank>();
 		m_sceneName = "SCENE_GAME";
@@ -42,7 +48,7 @@ void SceneRoot::ChangeScene()
 		AddSubScene<SceneVisual>();
 		m_sceneName = "SCENE_VISUAL";
 		break;
-	case SCENE_DEBUG: 
+	case SCENE_DEBUG:
 		AddSubScene<SceneDebug>();
 		m_sceneName = "SCENE_DEBUG";
 		break;
@@ -73,6 +79,7 @@ const char* SettingFileName = "Assets/setting.dat";
 void SceneRoot::Init()
 {
 	// 保存データの読み込み
+	// 初期値をSCENE_TITLEに変更
 	ViewSetting setting =
 	{
 		DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f),
@@ -80,7 +87,7 @@ void SceneRoot::Init()
 		DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f),
 		0.0f, DirectX::XM_PIDIV4,
 		0.0f, 1.0f,
-		SCENE_GAME
+		SCENE_TITLE
 	};
 	FILE* fp;
 	fopen_s(&fp, SettingFileName, "rb");
@@ -140,6 +147,19 @@ void SceneRoot::Update(float tick)
 	m_isChangeScene = false;
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	LightBase* pLight = GetObj<LightBase>("Light");
+
+	// タイトルシーンでエンターキーが押されたらゲームシーンへ遷移
+	if (m_index == SCENE_TITLE)
+	{
+		if (IsKeyTrigger(VK_RETURN))
+		{
+			m_index = SCENE_GAME; // 次のシーンIDを設定
+			RemoveSubScene();     // 現在のシーンを削除
+			ChangeScene();        // 新しいシーンを生成
+			return;               // このフレームはここで終了
+		}
+	}
+
 	if (!IsKeyPress(VK_SHIFT))
 	{
 		pCamera->Update();
