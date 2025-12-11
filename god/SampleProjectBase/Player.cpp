@@ -13,6 +13,7 @@
 #include "MediumPunch.h" 
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
+#include "PlayerStateCrouch.h"
 
 #include <DirectXMath.h>
 
@@ -47,11 +48,11 @@ Player::Player()
     m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.4f };
     m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.3f, 0.4f };
 
-    // 初期設定: しゃがみ (立ちより少し低くしておく)
+    // 初期設定: しゃがみ
     m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.1f };
     m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
     m_crouchHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 0.7f };
-    m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f }; // 横に広く、低く
+    m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f };
     m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.2f };
     m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.35f, 0.2f };
 }
@@ -72,11 +73,10 @@ void Player::Update(float tick)
     // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
 
-    // しゃがみフラグは毎フレームリセットし、しゃがみStateが更新されたらTrueにする
-    m_isCrouching = false;
-
     // 2. FSM（状態）の一元的な遷移チェック
     if (m_currentState) {
+        // 現在のステートが「しゃがみ」扱いかを取得してフラグ更新
+        m_isCrouching = m_currentState->IsCrouch();
         m_currentState->Update(this, tick);
     }
 

@@ -3,11 +3,13 @@
 
 /**
  * @brief しゃがみ (Crouch) 状態
- * 下キーを入力している間はこの状態になる。
  */
 class PlayerStateCrouch : public PlayerStateGround
 {
 public:
 	void OnEnter(Player* player) override;
 	void UpdateBehavior(Player* player, float tick) override;
+
+	// この状態は「しゃがみ」であると宣言
+	bool IsCrouch() const override { return true; }
 };

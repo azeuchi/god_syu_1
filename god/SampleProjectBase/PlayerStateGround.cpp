@@ -34,8 +34,9 @@ void PlayerStateGround::Update(Player* player, float tick)
 		player->SetState(new PlayerStateJump());
 		return;
 	}
-	// しゃがみ 
-	else if (inputs.moveDown && !player->GetIsCrouching())
+	// しゃがみ
+	// 「下入力があり」かつ「現在自分がしゃがみステートではない(IsCrouch == false)」場合のみ遷移
+	else if (inputs.moveDown && !IsCrouch())
 	{
 		player->SetState(new PlayerStateCrouch());
 		return;
