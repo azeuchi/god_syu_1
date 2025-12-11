@@ -11,7 +11,7 @@
 #include "SceneBlank.h"
 #include "SceneDebug.h" 
 #include "SceneTitle.h" 
-
+#include	"SceneResult.h"
 #include "DebugLog.h"
 
 #define STR(var) #var
@@ -21,7 +21,7 @@ enum SceneKind
 {
 	SCENE_TITLE,    // タイトル
 	SCENE_GAME,		// ゲーム本編
-	SCENE_RESULT,   // リザルト（将来用）
+	SCENE_RESULT,   // リザルト
 	SCENE_DEBUG,    // デバッグ
 	SCENE_MAX
 };
@@ -41,6 +41,11 @@ void SceneRoot::ChangeScene()
 	case SCENE_GAME:
 		AddSubScene<SceneBlank>();
 		m_sceneName = "SCENE_GAME";
+		break;
+
+	case SCENE_RESULT:
+		AddSubScene<SceneResult>();
+		m_sceneName = "SCENE_RESULT";
 		break;
 
 	case SCENE_DEBUG:
@@ -121,6 +126,12 @@ void SceneRoot::Init()
 	CreateObj<Model>("Model");
 	GetObj<Model>("Model")->Load("Assets/Model/spot/spot.fbx", 1.0f, true);
 
+	// カメラのリセット
+	pCamera->SetPos(DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f));
+	pCamera->SetLook(DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f));
+	pCamera->SetUp(DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+
 	// 最初はタイトルから開始する
 	m_index = SCENE_TITLE;
 	ChangeScene();
@@ -176,16 +187,22 @@ void SceneRoot::Update(float tick)
 
 		// ゲーム本編の時
 	case SCENE_GAME:
-		// Dキーでデバッグ画面へ
+		// Pキーでデバッグ画面へ
 		if (IsKeyTrigger('P'))
 		{
 			Transition(SCENE_DEBUG);
 		}
+
+		if (IsKeyTrigger('Y'))
+		{
+			Transition(SCENE_RESULT);
+		}
+
 		break;
 
 		// デバッグ画面の時
 	case SCENE_DEBUG:
-		// 'D'キーでゲーム画面に戻る
+		// Pキーでゲーム画面に戻る
 		if (IsKeyTrigger('P'))
 		{
 			Transition(SCENE_GAME);
@@ -194,17 +211,19 @@ void SceneRoot::Update(float tick)
 
 		// リザルト画面
 	case SCENE_RESULT:
-	
+		// エンターキーでに戻る
+		if (IsKeyTrigger(VK_RETURN))
+		{
+			Transition(SCENE_TITLE);
+		}
 		break;
 	}
 
 
-	// カメラのリセット
+	
 	if (IsKeyTrigger('R'))
 	{
-		pCamera->SetPos(DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f));
-		pCamera->SetLook(DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f));
-		pCamera->SetUp(DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f));
+	
 	}
 }
 

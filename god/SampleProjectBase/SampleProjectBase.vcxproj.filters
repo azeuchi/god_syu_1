@@ -204,6 +204,9 @@
     <ClCompile Include="SceneTitle.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="SceneResult.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -360,6 +363,9 @@
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="SceneTitle.h">
+      <Filter>ソース ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneResult.h">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClInclude>
   </ItemGroup>
