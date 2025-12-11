@@ -9,7 +9,7 @@ void PlayerStateIdle::OnEnter(Player* player)
 	player->PlayAnimation("Idle");
 }
 
-void PlayerStateIdle::Update(Player* player, float tick)
+void PlayerStateIdle::UpdateBehavior(Player* player, float tick)
 {
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
 	vel.x = 0.0f;

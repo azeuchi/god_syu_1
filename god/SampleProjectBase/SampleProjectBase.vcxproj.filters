@@ -207,6 +207,12 @@
     <ClCompile Include="SceneResult.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerStateGround.cpp">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerStateAir.cpp">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -367,6 +373,12 @@
     </ClInclude>
     <ClInclude Include="SceneResult.h">
       <Filter>ソース ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateGround.h">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateAir.h">
+      <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,12 +1,12 @@
 #pragma once
-#include "PlayerState.h"
+#include "PlayerStateGround.h"
 
 /**
  * @brief å„ëﬁ (WalkBack) èÛë‘
  */
-class PlayerStateWalkBack : public PlayerState
+class PlayerStateWalkBack : public PlayerStateGround
 {
 public:
 	void OnEnter(Player* player) override;
-	void Update(Player* player, float tick) override;
+	void UpdateBehavior(Player* player, float tick) override;
 };

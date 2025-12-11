@@ -9,7 +9,7 @@ void PlayerStateWalk::OnEnter(Player* player)
 	player->PlayAnimation("Walk");
 }
 
-void PlayerStateWalk::Update(Player* player, float tick)
+void PlayerStateWalk::UpdateBehavior(Player* player, float tick)
 {
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
 	vel.x = 0.0f;

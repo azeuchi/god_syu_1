@@ -10,24 +10,18 @@ void PlayerStateJump::OnEnter(Player* player)
 	m_elapsedTime = 0.0f;
 }
 
-void PlayerStateJump::Update(Player* player, float tick)
+void PlayerStateJump::UpdateBehavior(Player* player, float tick)
 {
-	// --- 1. 着地チェック ---
-	if (!player->GetIsJumping())
-	{
-		// 着地したら待機状態へ遷移
-		player->SetState(new PlayerStateIdle());
-		return;
-	}
-
-	// --- 2. アニメーション制御 (最後まで再生したら止める) ---
+	// ---  着地チェック ---
+	
+	// --- アニメーション制御 (最後まで再生したら止める) ---
 	m_elapsedTime += tick;
 	if (m_elapsedTime >= JUMP_ANIM_DURATION)
 	{
 		player->SetAnimPause(true); // 最後のポーズで固定
 	}
 
-	// --- 3. 空中制御 (Air Control) ---
+	// --- 空中制御  ---
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
 	const PlayerInputs& inputs = player->GetInputs();
 	float moveSpeed = player->GetMoveSpeed();

@@ -127,7 +127,7 @@ public:
     void DrawBoundingBox();
     bool CheckCollision(const Player* other) const;
 
-    // (å›ä∑ê´ÇÃÇΩÇﬂécë∂)
+    
     void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
     DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
     void SetBoundingBoxOffset(const DirectX::XMFLOAT2& offset);

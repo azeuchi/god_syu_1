@@ -65,26 +65,7 @@ void Player::Update(float tick)
     PollInputs();
 
     // 2. FSM（状態）の一元的な遷移チェック
-    if (m_currentState && m_currentState->IsInterruptible())
-    {
-        // 攻撃ボタンが押されたか
-        if (m_inputs.attack1)
-        {
-            m_pActiveAttackParams = &m_lightPunchParams;
-            SetState(new LightPunch());
-        }
-        else if (m_inputs.attack2)
-        {
-            m_pActiveAttackParams = &m_mediumPunchParams;
-            SetState(new MediumPunch());
-        }
-        // ジャンプ処理
-        else if (m_inputs.jump && !m_isJumping)
-        {
-            Jump();
-            SetState(new PlayerStateJump());
-        }
-    }
+    // ステートマシンが自己完結して遷移を管理します。
 
     if (m_currentState) {
         m_currentState->Update(this, tick);
@@ -536,3 +517,4 @@ float Player::GetHpRatio() const
 {
     return (float)m_hp / (float)m_maxHp;
 }
+
