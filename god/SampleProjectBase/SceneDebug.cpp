@@ -52,9 +52,8 @@ void SceneDebug::SavePlayerSettings()
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
 
 			// ==================================================
-			// 2. 3部位の基本くらい判定 (Base Hurtbox) の保存
+			// 2. 立ち(Base)のくらい判定保存
 			// ==================================================
-			// 頭、体、足 それぞれの「サイズ(Extents)」と「位置(Offset)」を保存
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
@@ -62,7 +61,16 @@ void SceneDebug::SavePlayerSettings()
 			}
 
 			// ==================================================
-			// 3. 弱パンチ (LightPunch) パラメータの保存
+			// 3. しゃがみ(Crouch)のくらい判定保存
+			// ==================================================
+			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
+				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
+				DirectX::XMFLOAT2 off = player->GetHurtboxCrouchOffset((HurtboxType)i);
+				ofs << ext.x << " " << ext.y << " " << off.x << " " << off.y << std::endl;
+			}
+
+			// ==================================================
+			// 4. 弱パンチ (LightPunch) パラメータの保存
 			// ==================================================
 			AttackParams& lParams = player->GetLightPunchParams();
 
@@ -87,7 +95,7 @@ void SceneDebug::SavePlayerSettings()
 			ofs << lParams.legsSizeVal.x << " " << lParams.legsSizeVal.y << std::endl;
 
 			// ==================================================
-			// 4. 中パンチ (MediumPunch) パラメータの保存
+			// 5. 中パンチ (MediumPunch) パラメータの保存
 			// ==================================================
 			AttackParams& mParams = player->GetMediumPunchParams();
 
@@ -160,14 +168,21 @@ void SceneDebug::Init()
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
-		// 2. くらい判定基本設定 (3部位)
+		// 2. 立ち(Base)くらい判定
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
 			player->SetHurtboxBase((HurtboxType)i, off, ext);
 		}
 
-		// 3. 弱パンチ読み込み
+		// 3. しゃがみ(Crouch)くらい判定
+		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
+			DirectX::XMFLOAT2 ext, off;
+			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
+			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
+		}
+
+		// 4. 弱パンチ読み込み
 		if (!ifs.eof()) ifs >> lParams.totalDuration;
 		if (!ifs.eof()) ifs >> lParams.hitboxStart;
 		if (!ifs.eof()) ifs >> lParams.hitboxEnd;
@@ -184,7 +199,7 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
 
-		// 4. 中パンチ読み込み
+		// 5. 中パンチ読み込み
 		if (!ifs.eof()) ifs >> mParams.totalDuration;
 		if (!ifs.eof()) ifs >> mParams.hitboxStart;
 		if (!ifs.eof()) ifs >> mParams.hitboxEnd;
@@ -215,6 +230,7 @@ void SceneDebug::Init()
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true); // しゃがみ
 
 	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
@@ -441,7 +457,25 @@ void SceneDebug::DrawImGui()
 				m_isPaused = false; // 再生
 				m_currentFrame = 0;
 				m_animTimer = 0.0f; // タイマーリセット 
-
+				player->SetIsCrouching(false); // 攻撃テストは立ちで行う
+			}
+			ImGui::SameLine();
+			// ボタン: しゃがみ確認
+			if (ImGui::Button("Test Crouch"))
+			{
+				player->Debug_SetAnimation("CrouchIdle", true);
+				player->SetIsCrouching(true); // しゃがみフラグON
+				m_isAttacking = false;
+				m_isPaused = false;
+			}
+			ImGui::SameLine();
+			// ボタン: 立ち確認
+			if (ImGui::Button("Test Stand"))
+			{
+				player->Debug_SetAnimation("Idle", true);
+				player->SetIsCrouching(false); // しゃがみフラグOFF
+				m_isAttacking = false;
+				m_isPaused = false;
 			}
 
 			ImGui::SameLine();
@@ -456,6 +490,7 @@ void SceneDebug::DrawImGui()
 				m_isPaused = true;  // ポーズ状態で開始
 				m_currentFrame = 0;
 				m_animTimer = 0.0f;
+				player->SetIsCrouching(false);
 			}
 		}
 		else
@@ -552,8 +587,9 @@ void SceneDebug::DrawImGui()
 		// ==================================================
 		// 基本設定 (Base Settings) - 全技共通
 		// ==================================================
-		ImGui::Text("Player Base Hurtbox Settings");
 		const char* hurtboxNames[] = { "Head", "Body", "Legs" };
+
+		ImGui::Text("--- STANDING (Base) Hurtboxes ---");
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 		{
 			ImGui::PushID(i); // ID重複防止
@@ -562,11 +598,34 @@ void SceneDebug::DrawImGui()
 			DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 			DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
 
-			if (ImGui::SliderFloat2("Base Extents", &ext.x, 0.1f, 5.0f)) {
+			bool changed = false;
+			if (ImGui::SliderFloat2("Extents", &ext.x, 0.1f, 5.0f)) changed = true;
+			if (ImGui::SliderFloat2("Offset", &off.x, -5.0f, 5.0f)) changed = true;
+
+			if (changed) {
 				player->SetHurtboxBase((HurtboxType)i, off, ext);
 			}
-			if (ImGui::SliderFloat2("Base Offset", &off.x, -5.0f, 5.0f)) {
-				player->SetHurtboxBase((HurtboxType)i, off, ext);
+			ImGui::PopID();
+		}
+
+		ImGui::Separator();
+
+		// しゃがみ設定
+		ImGui::Text("--- CROUCHING Hurtboxes ---");
+		for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
+		{
+			ImGui::PushID(100 + i); // ID重複防止
+			ImGui::Text("%s", hurtboxNames[i]);
+
+			DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
+			DirectX::XMFLOAT2 off = player->GetHurtboxCrouchOffset((HurtboxType)i);
+
+			bool changed = false;
+			if (ImGui::SliderFloat2("Crouch Ext", &ext.x, 0.1f, 5.0f)) changed = true;
+			if (ImGui::SliderFloat2("Crouch Off", &off.x, -5.0f, 5.0f)) changed = true;
+
+			if (changed) {
+				player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 			}
 			ImGui::PopID();
 		}
@@ -577,7 +636,7 @@ void SceneDebug::DrawImGui()
 		ImGui::Separator();
 		if (ImGui::Button("SAVE All Settings"))
 		{
-			// 全てのデータ (基本設定 + 弱/中パンチパラメータ) をファイルに保存
+			// 全てのデータ をファイルに保存
 			SavePlayerSettings();
 		}
 	}

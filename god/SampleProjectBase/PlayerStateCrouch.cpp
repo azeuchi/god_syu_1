@@ -15,6 +15,9 @@ void PlayerStateCrouch::OnEnter(Player* player)
 
 void PlayerStateCrouch::UpdateBehavior(Player* player, float tick)
 {
+	// しゃがみ状態であることを通知（当たり判定をしゃがみ用に切り替える）
+	player->SetIsCrouching(true);
+
 	const PlayerInputs& inputs = player->GetInputs();
 
 	// 下入力がなくなったら、立ち状態(Idle)に戻る
@@ -24,5 +27,4 @@ void PlayerStateCrouch::UpdateBehavior(Player* player, float tick)
 		return;
 	}
 
-	// ここに「しゃがみガード」等の判定を将来追加できる
 }

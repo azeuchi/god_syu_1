@@ -39,13 +39,21 @@ Player::Player()
     m_previousAnim = { "Idle", 0 };
     SetState(new PlayerStateIdle());
 
-    // 初期設定: 頭・体・足のくらい判定
+    // 初期設定: 頭・体・足のくらい判定 (立ち)
     m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.6f };
     m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
     m_baseHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 1.0f };
     m_baseHurtboxExtents[(int)HurtboxType::BODY] = { 0.3f, 0.4f };
     m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.4f };
     m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.3f, 0.4f };
+
+    // 初期設定: しゃがみ (立ちより少し低くしておく)
+    m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.1f };
+    m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
+    m_crouchHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 0.7f };
+    m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f }; // 横に広く、低く
+    m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.2f };
+    m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.35f, 0.2f };
 }
 
 Player::~Player()
@@ -63,6 +71,9 @@ void Player::Update(float tick)
 {
     // 1. 入力をポーリングして m_inputs を更新
     PollInputs();
+
+    // しゃがみフラグは毎フレームリセットし、しゃがみStateが更新されたらTrueにする
+    m_isCrouching = false;
 
     // 2. FSM（状態）の一元的な遷移チェック
     if (m_currentState) {
@@ -327,6 +338,7 @@ bool Player::GetIsJumping() const
     return m_isJumping;
 }
 
+// --- 基本(立ち)設定 ---
 void Player::SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
 {
     if (type >= HurtboxType::COUNT) return;
@@ -335,6 +347,46 @@ void Player::SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, c
     m_baseHurtboxExtents[idx] = extents;
 }
 
+DirectX::XMFLOAT2 Player::GetHurtboxBaseOffset(HurtboxType type) const
+{
+    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
+    return m_baseHurtboxOffsets[(int)type];
+}
+DirectX::XMFLOAT2 Player::GetHurtboxBaseExtents(HurtboxType type) const
+{
+    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
+    return m_baseHurtboxExtents[(int)type];
+}
+
+// --- しゃがみ設定 ---
+void Player::SetHurtboxCrouch(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
+{
+    if (type >= HurtboxType::COUNT) return;
+    int idx = (int)type;
+    m_crouchHurtboxOffsets[idx] = offset;
+    m_crouchHurtboxExtents[idx] = extents;
+}
+DirectX::XMFLOAT2 Player::GetHurtboxCrouchOffset(HurtboxType type) const
+{
+    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
+    return m_crouchHurtboxOffsets[(int)type];
+}
+DirectX::XMFLOAT2 Player::GetHurtboxCrouchExtents(HurtboxType type) const
+{
+    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
+    return m_crouchHurtboxExtents[(int)type];
+}
+
+void Player::SetIsCrouching(bool isCrouching)
+{
+    m_isCrouching = isCrouching;
+}
+bool Player::GetIsCrouching() const
+{
+    return m_isCrouching;
+}
+
+// --- 判定取得 ---
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
     if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
@@ -342,11 +394,11 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
     int idx = (int)type;
     float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
 
-    // 基本値
-    float offsetX = m_baseHurtboxOffsets[idx].x;
-    float offsetY = m_baseHurtboxOffsets[idx].y;
-    float extentX = m_baseHurtboxExtents[idx].x;
-    float extentY = m_baseHurtboxExtents[idx].y;
+    // 基本値: しゃがみ中ならCrouch用、そうでなければBase用を使う
+    float offsetX = m_isCrouching ? m_crouchHurtboxOffsets[idx].x : m_baseHurtboxOffsets[idx].x;
+    float offsetY = m_isCrouching ? m_crouchHurtboxOffsets[idx].y : m_baseHurtboxOffsets[idx].y;
+    float extentX = m_isCrouching ? m_crouchHurtboxExtents[idx].x : m_baseHurtboxExtents[idx].x;
+    float extentY = m_isCrouching ? m_crouchHurtboxExtents[idx].y : m_baseHurtboxExtents[idx].y;
 
     // 攻撃中かつパラメータがあれば、補正値を足す
     if (m_isAttacking && m_pActiveAttackParams != nullptr)
@@ -383,17 +435,6 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
     };
 
     return DirectX::BoundingBox(center, extents);
-}
-
-DirectX::XMFLOAT2 Player::GetHurtboxBaseOffset(HurtboxType type) const
-{
-    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
-    return m_baseHurtboxOffsets[(int)type];
-}
-DirectX::XMFLOAT2 Player::GetHurtboxBaseExtents(HurtboxType type) const
-{
-    if (type >= HurtboxType::COUNT) return { 0.0f, 0.0f };
-    return m_baseHurtboxExtents[(int)type];
 }
 
 

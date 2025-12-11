@@ -22,7 +22,7 @@ struct PlayerInputs
 {
     bool moveLeft = false;
     bool moveRight = false;
-    bool moveDown = false; // ★追加: しゃがみ用
+    bool moveDown = false; // しゃがみ用
     bool jump = false;    // ジャンプ
     bool attack1 = false; // 弱パンチ
     bool attack2 = false; // 中パンチ
@@ -31,7 +31,7 @@ struct PlayerInputs
 struct AnimationState
 {
     const char* name = nullptr;
-    float frame = 0.0f; // ★変更: int -> float (再生速度調整のため)
+    float frame = 0.0f; // float (再生速度調整のため)
 };
 
 // くらい判定 (Hurtbox) の部位定義
@@ -101,7 +101,7 @@ public:
     // アニメーションの一時停止を設定する関数
     void SetAnimPause(bool pause);
 
-    // ★追加: アニメーション再生速度を設定 (1.0 = 等倍, 2.0 = 倍速)
+    // アニメーション再生速度を設定 (1.0 = 等倍, 2.0 = 倍速)
     void SetAnimationSpeed(float speed);
 
     float GetForwardMoveDot() const;
@@ -118,12 +118,22 @@ public:
 
 
     // --- 当たり判定 (Hurtbox) ---
+    // 基本(立ち)設定
     void SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
-
-    DirectX::BoundingBox GetHurtbox(HurtboxType type) const;
-
     DirectX::XMFLOAT2 GetHurtboxBaseOffset(HurtboxType type) const;
     DirectX::XMFLOAT2 GetHurtboxBaseExtents(HurtboxType type) const;
+
+    // しゃがみ設定
+    void SetHurtboxCrouch(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
+    DirectX::XMFLOAT2 GetHurtboxCrouchOffset(HurtboxType type) const;
+    DirectX::XMFLOAT2 GetHurtboxCrouchExtents(HurtboxType type) const;
+
+    // 現在の状態に応じたHurtboxを取得
+    DirectX::BoundingBox GetHurtbox(HurtboxType type) const;
+
+    // しゃがみ状態フラグのセット（Stateから呼ぶ）
+    void SetIsCrouching(bool isCrouching);
+    bool GetIsCrouching() const;
 
     void DrawBoundingBox();
     bool CheckCollision(const Player* other) const;
@@ -201,7 +211,13 @@ private:
     // --- 当たり判定用メンバー変数 ---
     DirectX::XMFLOAT2 m_baseHurtboxOffsets[(int)HurtboxType::COUNT];
     DirectX::XMFLOAT2 m_baseHurtboxExtents[(int)HurtboxType::COUNT];
+
+    // しゃがみ用判定
+    DirectX::XMFLOAT2 m_crouchHurtboxOffsets[(int)HurtboxType::COUNT];
+    DirectX::XMFLOAT2 m_crouchHurtboxExtents[(int)HurtboxType::COUNT];
+
     bool m_isColliding = false;
+    bool m_isCrouching = false; // 現在しゃがみ状態か
 
     // --- 攻撃判定 (Hitbox) 用メンバー ---
     DirectX::BoundingBox m_hitbox;     // 攻撃判定用のBox

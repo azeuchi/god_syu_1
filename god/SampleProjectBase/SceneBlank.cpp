@@ -14,6 +14,8 @@
 #include "Image2D.h"
 #include <fstream> 
 #include <algorithm> 
+
+// やられ状態クラスを使用するためにインクルード
 #include "PlayerStateDamage.h"
 
 using namespace DirectX;
@@ -106,10 +108,18 @@ void SceneBlank::Init()
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
+		// 立ち(Base)くらい判定
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
 			player->SetHurtboxBase((HurtboxType)i, off, ext);
+		}
+
+		// しゃがみ(Crouch)くらい判定
+		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
+			DirectX::XMFLOAT2 ext, off;
+			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
+			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 		}
 
 		// LightPunch
@@ -160,7 +170,7 @@ void SceneBlank::Init()
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-
+	// 攻撃・ダメージはループなし(false)
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
@@ -193,13 +203,17 @@ void SceneBlank::Init()
 		player2->SetHurtboxBase((HurtboxType)i,
 			player->GetHurtboxBaseOffset((HurtboxType)i),
 			player->GetHurtboxBaseExtents((HurtboxType)i));
+		// 2Pにもしゃがみ判定をコピー
+		player2->SetHurtboxCrouch((HurtboxType)i,
+			player->GetHurtboxCrouchOffset((HurtboxType)i),
+			player->GetHurtboxCrouchExtents((HurtboxType)i));
 	}
 
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-
+	// 2Pも攻撃・ダメージはループなし
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
