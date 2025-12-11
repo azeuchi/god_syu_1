@@ -14,7 +14,12 @@ public:
 	std::string GetSceneName();
 
 private:
+	// 内部処理用：シーン構築
 	void ChangeScene();
+
+	// シーン遷移を簡単にするためのヘルパー関数
+	// 引数に次のシーンの種類を渡す
+	void Transition(int nextScene);
 
 private:
 	int m_index = 0;

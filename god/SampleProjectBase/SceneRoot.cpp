@@ -6,63 +6,72 @@
 #include "Input.h"
 #include "Geometory.h"
 
+// 各シーンのインクルード
 #include "SceneVisual.h"
 #include "SceneBlank.h"
 #include "SceneDebug.h" 
-#include "SceneTitle.h"
+#include "SceneTitle.h" 
 
 #include "DebugLog.h"
-
 
 #define STR(var) #var
 
 //--- 定数定義
 enum SceneKind
 {
-	SCENE_TITLE,    // タイトル）
-	SCENE_GAME,	// ゲームシーン
-	SCENE_VISUAL,
-	SCENE_DEBUG,
+	SCENE_TITLE,    // タイトル
+	SCENE_GAME,		// ゲーム本編
+	SCENE_RESULT,   // リザルト（将来用）
+	SCENE_DEBUG,    // デバッグ
 	SCENE_MAX
 };
 
 /// <summary>
-/// シーン切り替え
-/// デバッグ出力の実装がダサいがC++だとenumの名前を
-/// 文字列として取得するのが手間なので今回はこのまま
+/// 現在の m_index に基づいてサブシーンを作成する
 /// </summary>
 void SceneRoot::ChangeScene()
 {
 	switch (m_index)
 	{
-	default:
 	case SCENE_TITLE:
 		AddSubScene<SceneTitle>();
 		m_sceneName = "SCENE_TITLE";
 		break;
+
 	case SCENE_GAME:
 		AddSubScene<SceneBlank>();
 		m_sceneName = "SCENE_GAME";
 		break;
-	case SCENE_VISUAL:
-		AddSubScene<SceneVisual>();
-		m_sceneName = "SCENE_VISUAL";
-		break;
+
 	case SCENE_DEBUG:
 		AddSubScene<SceneDebug>();
 		m_sceneName = "SCENE_DEBUG";
 		break;
-		/*case SCENE_ANIMATION:
-			AddSubScene<SceneAnimation>();
-			m_sceneName = "SCENE_ANIMATION";
-			break;*/
+
+	default:
+		// 万が一未定義のシーンに来たらタイトルへ戻すなどの安全策
+		m_index = SCENE_TITLE;
+		AddSubScene<SceneTitle>();
+		m_sceneName = "SCENE_TITLE(Fallback)";
+		break;
 	}
+
 	DebugLog::log(DebugLog::INFO_LOG, "SceneName = " + m_sceneName);
 	m_isChangeScene = true;
 }
 
+/// <summary>
+/// シーン遷移の実行
+/// 古いシーンを消して新しいシーンを作る処理をまとめたもの
+/// </summary>
+void SceneRoot::Transition(int nextScene)
+{
+	m_index = nextScene;  // 次のシーンIDをセット
+	RemoveSubScene();     // 現在のシーンを削除
+	ChangeScene();        // 新しいシーンを作成
+}
+
 //--- 構造体
-// @brief シーン情報保存
 struct ViewSetting
 {
 	DirectX::XMFLOAT3 camPos;
@@ -79,7 +88,6 @@ const char* SettingFileName = "Assets/setting.dat";
 void SceneRoot::Init()
 {
 	// 保存データの読み込み
-	// 初期値をSCENE_TITLEに変更
 	ViewSetting setting =
 	{
 		DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f),
@@ -109,14 +117,12 @@ void SceneRoot::Init()
 	pLight->SetHSV(setting.lightH, setting.lightSV);
 	pLight->UpdateParam();
 
-
 	// モデルの読み込み
 	CreateObj<Model>("Model");
 	GetObj<Model>("Model")->Load("Assets/Model/spot/spot.fbx", 1.0f, true);
 
-
-	// シーンの作成
-	m_index = setting.index;
+	// 最初はタイトルから開始する
+	m_index = SCENE_TITLE;
 	ChangeScene();
 }
 
@@ -148,40 +154,52 @@ void SceneRoot::Update(float tick)
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	LightBase* pLight = GetObj<LightBase>("Light");
 
-	// タイトルシーンでエンターキーが押されたらゲームシーンへ遷移
-	if (m_index == SCENE_TITLE)
+	// カメラとライトの更新（全シーン共通）
+	pCamera->Update();
+	pLight->Update();
+
+
+	//----------------------------------------------------------
+	// シーン遷移ロジック
+	// 現在のシーンによって、遷移条件を切り替える
+	//----------------------------------------------------------
+	switch (m_index)
 	{
+		//  タイトル画面の時
+	case SCENE_TITLE:
+		// エンターキーでゲーム本編へ
 		if (IsKeyTrigger(VK_RETURN))
 		{
-			m_index = SCENE_GAME; // 次のシーンIDを設定
-			RemoveSubScene();     // 現在のシーンを削除
-			ChangeScene();        // 新しいシーンを生成
-			return;               // このフレームはここで終了
+			Transition(SCENE_GAME);
 		}
+		break;
+
+		// ゲーム本編の時
+	case SCENE_GAME:
+		// Dキーでデバッグ画面へ
+		if (IsKeyTrigger('P'))
+		{
+			Transition(SCENE_DEBUG);
+		}
+		break;
+
+		// デバッグ画面の時
+	case SCENE_DEBUG:
+		// 'D'キーでゲーム画面に戻る
+		if (IsKeyTrigger('P'))
+		{
+			Transition(SCENE_GAME);
+		}
+		break;
+
+		// リザルト画面
+	case SCENE_RESULT:
+	
+		break;
 	}
 
-	if (!IsKeyPress(VK_SHIFT))
-	{
-		pCamera->Update();
-		pLight->Update();
-		return;
-	}
 
-	// SHIFTキーが押されてれば、シーンの切り替え処理
-	int idx = m_index;
-	if (IsKeyTrigger(VK_LEFT)) --idx;
-	if (IsKeyTrigger(VK_RIGHT)) ++idx;
-	if (idx < 0) idx = SCENE_MAX - 1;
-	if (idx >= SCENE_MAX) idx = 0;
-
-	if (idx != m_index)
-	{
-		m_index = idx;
-		RemoveSubScene();
-		ChangeScene();
-	}
-
-	// カメラ初期化
+	// カメラのリセット
 	if (IsKeyTrigger('R'))
 	{
 		pCamera->SetPos(DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f));
