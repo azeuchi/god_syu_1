@@ -181,6 +181,7 @@
     <ClCompile Include="CameraWater.cpp" />
     <ClCompile Include="CameraWipe.cpp" />
     <ClCompile Include="DirectX.cpp" />
+    <ClCompile Include="HeavyKick.cpp" />
     <ClCompile Include="Image2D.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LightBase.cpp" />
@@ -235,6 +236,7 @@
     <ClInclude Include="DebugLog.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="DirectX.h" />
+    <ClInclude Include="HeavyKick.h" />
     <ClInclude Include="Image2D.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="LightBase.h" />

@@ -28,6 +28,7 @@ const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 // 現在編集中の技を選択する変数
 // 0: 弱パンチ (LightPunch)
 // 1: 中パンチ (MediumPunch)
+// 2: 大キック (HeavyKick)
 static int s_currentAttackType = 0;
 
 /**
@@ -120,6 +121,31 @@ void SceneDebug::SavePlayerSettings()
 			ofs << mParams.legsOffsetVal.x << " " << mParams.legsOffsetVal.y << std::endl;
 			ofs << mParams.legsSizeVal.x << " " << mParams.legsSizeVal.y << std::endl;
 
+			// ==================================================
+			// 6. 大キック (HeavyKick) パラメータの保存
+			// ==================================================
+			AttackParams& hParams = player->GetHeavyKickParams();
+
+			// タイミング・判定
+			ofs << hParams.totalDuration << std::endl;
+			ofs << hParams.hitboxStart << std::endl;
+			ofs << hParams.hitboxEnd << std::endl;
+			ofs << hParams.hitboxOffset.x << " " << hParams.hitboxOffset.y << std::endl;
+			ofs << hParams.hitboxExtents.x << " " << hParams.hitboxExtents.y << std::endl;
+
+			// ゲームバランス
+			ofs << hParams.damage << std::endl;
+			ofs << hParams.hitFrame << std::endl;
+			ofs << hParams.blockFrame << std::endl;
+
+			// 攻撃中のくらい判定補正
+			ofs << hParams.headOffsetVal.x << " " << hParams.headOffsetVal.y << std::endl;
+			ofs << hParams.headSizeVal.x << " " << hParams.headSizeVal.y << std::endl;
+			ofs << hParams.bodyOffsetVal.x << " " << hParams.bodyOffsetVal.y << std::endl;
+			ofs << hParams.bodySizeVal.x << " " << hParams.bodySizeVal.y << std::endl;
+			ofs << hParams.legsOffsetVal.x << " " << hParams.legsOffsetVal.y << std::endl;
+			ofs << hParams.legsSizeVal.x << " " << hParams.legsSizeVal.y << std::endl;
+
 			ofs.close();
 		}
 	}
@@ -161,6 +187,7 @@ void SceneDebug::Init()
 	// 読み込み用の一時参照
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
+	AttackParams hParams = player->GetHeavyKickParams(); // 追加
 
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
@@ -217,6 +244,23 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
 
+		// 6. 大キック読み込み (新規追加)
+		if (!ifs.eof()) ifs >> hParams.totalDuration;
+		if (!ifs.eof()) ifs >> hParams.hitboxStart;
+		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> hParams.hitboxOffset.x >> hParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> hParams.hitboxExtents.x >> hParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> hParams.damage;
+		if (!ifs.eof()) ifs >> hParams.hitFrame;
+		if (!ifs.eof()) ifs >> hParams.blockFrame;
+		// 補正値
+		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
+
 		ifs.close();
 	}
 
@@ -225,12 +269,14 @@ void SceneDebug::Init()
 	player->SetScale(scale);
 	player->GetLightPunchParams() = lParams;
 	player->GetMediumPunchParams() = mParams;
+	player->GetHeavyKickParams() = hParams;
 
 	// --- モデル・アニメーションロード ---
 	// 必要なアニメーションだけを読み込む
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true); 
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true); // しゃがみ
 
 	// 初期状態は Idle (待機)
@@ -277,8 +323,12 @@ void SceneDebug::Update(float tick)
 	if (s_currentAttackType == 0) {
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 	}
-	else {
+	else if (s_currentAttackType == 1) {
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
+	}
+	else {
+		// 大キック
+		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
 	}
 
 	// --- アニメーション制御 ---
@@ -433,7 +483,7 @@ void SceneDebug::DrawImGui()
 	}
 
 	// ==================================================
-	// アニメーション再生・確認 
+	// アニメーション再生・確認 (CollapsingHeaderで開閉可能)
 	// ==================================================
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -441,13 +491,19 @@ void SceneDebug::DrawImGui()
 		ImGui::RadioButton("Light Punch", &s_currentAttackType, 0);
 		ImGui::SameLine();
 		ImGui::RadioButton("Medium Punch", &s_currentAttackType, 1);
+		ImGui::SameLine();
+		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 2); // 追加
 
 		if (!m_isAttacking)
 		{
 			// 技のテスト
 			if (ImGui::Button("Test Play"))
 			{
-				const char* animName = (s_currentAttackType == 0) ? "LightPunch" : "MediumPunch";
+				const char* animName = "";
+				if (s_currentAttackType == 0) animName = "LightPunch";
+				else if (s_currentAttackType == 1) animName = "MediumPunch";
+				else animName = "HeavyKick";
+
 				player->Debug_SetAnimation(animName, true);
 				m_isAttacking = true;
 				m_isPaused = false;
@@ -478,7 +534,11 @@ void SceneDebug::DrawImGui()
 			// コマ送り開始
 			if (ImGui::Button("Step Play"))
 			{
-				const char* animName = (s_currentAttackType == 0) ? "LightPunch" : "MediumPunch";
+				const char* animName = "";
+				if (s_currentAttackType == 0) animName = "LightPunch";
+				else if (s_currentAttackType == 1) animName = "MediumPunch";
+				else animName = "HeavyKick";
+
 				player->Debug_SetAnimation(animName, true);
 				m_isAttacking = true;
 				m_isPaused = true;
@@ -512,8 +572,21 @@ void SceneDebug::DrawImGui()
 	// ==================================================
 	if (ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		AttackParams& params = (s_currentAttackType == 0) ? player->GetLightPunchParams() : player->GetMediumPunchParams();
-		ImGui::Text(s_currentAttackType == 0 ? "Light Punch" : "Medium Punch");
+		AttackParams* pParams = nullptr;
+		if (s_currentAttackType == 0) {
+			pParams = &player->GetLightPunchParams();
+			ImGui::Text("Light Punch");
+		}
+		else if (s_currentAttackType == 1) {
+			pParams = &player->GetMediumPunchParams();
+			ImGui::Text("Medium Punch");
+		}
+		else {
+			pParams = &player->GetHeavyKickParams();
+			ImGui::Text("Heavy Kick");
+		}
+
+		AttackParams& params = *pParams;
 
 		// フレーム換算して編集
 		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
@@ -542,7 +615,7 @@ void SceneDebug::DrawImGui()
 		ImGui::InputInt("Hit Adv", &params.hitFrame);
 		ImGui::InputInt("Block Adv", &params.blockFrame);
 
-		// 攻撃中のくらい判定補正 
+		// 攻撃中のくらい判定補正 (TreeNodeでさらに階層化)
 		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))
 		{
 			ImGui::Text("Head");
@@ -616,7 +689,7 @@ void SceneDebug::DrawImGui()
 	// 保存ボタン
 	// ==================================================
 	ImGui::Separator();
-	if (ImGui::Button("SAVE ALL SETTINGS", ImVec2(-1, 40))) 
+	if (ImGui::Button("SAVE ALL SETTINGS", ImVec2(-1, 40))) // 幅いっぱい、高さ40
 	{
 		SavePlayerSettings();
 	}

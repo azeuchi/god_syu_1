@@ -4,6 +4,7 @@
 // 遷移先のステート
 #include "LightPunch.h"
 #include "MediumPunch.h"
+#include "HeavyKick.h" 
 #include "PlayerStateJump.h"
 #include "PlayerStateCrouch.h"
 
@@ -13,18 +14,25 @@ void PlayerStateGround::Update(Player* player, float tick)
 
 	const PlayerInputs& inputs = player->GetInputs();
 
-	// 攻撃1
+	// 攻撃1 (Light Punch)
 	if (inputs.attack1)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 		player->SetState(new LightPunch());
 		return;
 	}
-	// 攻撃2
+	// 攻撃2 (Medium Punch)
 	else if (inputs.attack2)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
 		player->SetState(new MediumPunch());
+		return;
+	}
+	// 攻撃3 (Heavy Kick)
+	else if (inputs.attack3)
+	{
+		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
+		player->SetState(new HeavyKick());
 		return;
 	}
 	// ジャンプ
@@ -35,7 +43,7 @@ void PlayerStateGround::Update(Player* player, float tick)
 		return;
 	}
 	// しゃがみ
-	// 「下入力があり」かつ「現在自分がしゃがみステートではない(IsCrouch == false)」場合のみ遷移
+	// 「下入力があり」かつ「現在自分がしゃがみステートではない」場合のみ遷移
 	else if (inputs.moveDown && !IsCrouch())
 	{
 		player->SetState(new PlayerStateCrouch());

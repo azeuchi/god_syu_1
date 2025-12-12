@@ -101,6 +101,7 @@ void SceneBlank::Init()
 
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
+	AttackParams hParams = player->GetHeavyKickParams();
 
 	std::ifstream ifs(SETTINGS_FILE);
 	if (ifs.is_open())
@@ -154,6 +155,22 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
 
+		// HeavyKick (新規追加)
+		if (!ifs.eof()) ifs >> hParams.totalDuration;
+		if (!ifs.eof()) ifs >> hParams.hitboxStart;
+		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> hParams.hitboxOffset.x >> hParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> hParams.hitboxExtents.x >> hParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> hParams.damage;
+		if (!ifs.eof()) ifs >> hParams.hitFrame;
+		if (!ifs.eof()) ifs >> hParams.blockFrame;
+		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
+
 		ifs.close();
 	}
 
@@ -161,6 +178,7 @@ void SceneBlank::Init()
 	player->SetScale(scale);
 	player->GetLightPunchParams() = lParams;
 	player->GetMediumPunchParams() = mParams;
+	player->GetHeavyKickParams() = hParams;
 
 
 	// ==================================================
@@ -175,6 +193,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true); 
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
@@ -198,6 +217,7 @@ void SceneBlank::Init()
 
 	player2->GetLightPunchParams() = lParams;
 	player2->GetMediumPunchParams() = mParams;
+	player2->GetHeavyKickParams() = hParams;
 
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 		player2->SetHurtboxBase((HurtboxType)i,
@@ -218,6 +238,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true); // 追加
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);

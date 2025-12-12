@@ -102,9 +102,6 @@
     <ClCompile Include="Sprite.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
-    <ClCompile Include="SceneRoot.cpp">
-      <Filter>ソース ファイル\App</Filter>
-    </ClCompile>
     <ClCompile Include="LightBase.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
@@ -215,6 +212,12 @@
     </ClCompile>
     <ClCompile Include="PlayerStateCrouch.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="HeavyKick.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneRoot.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -384,6 +387,9 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateCrouch.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="HeavyKick.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>

@@ -10,7 +10,8 @@
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
-#include "MediumPunch.h" 
+#include "MediumPunch.h"
+#include "HeavyKick.h" // 新規追加予定
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"
@@ -88,7 +89,7 @@ void Player::Update(float tick)
 
     // 2. FSM（状態）の更新と遷移チェック
     if (m_currentState) {
-        // 現在のステートがしゃがみ扱いかどうかを取得してフラグを更新
+        // 現在のステートが「しゃがみ」扱いかどうかを取得してフラグを更新
         // これにより GetHurtbox で使用する判定データが切り替わる
         m_isCrouching = m_currentState->IsCrouch();
 
@@ -144,6 +145,10 @@ void Player::PollInputs()
         if (IsKeyTrigger('K')) {
             m_inputs.attack2 = true;
         }
+        // 'L' キーで大キック
+        if (IsKeyTrigger('L')) {
+            m_inputs.attack3 = true;
+        }
         break;
 
     case PlayerInputType::PLAYER_2:
@@ -173,6 +178,10 @@ void Player::PollInputs()
         // テンキーの '2' で中攻撃
         if (IsKeyTrigger(VK_NUMPAD2)) {
             m_inputs.attack2 = true;
+        }
+        // テンキーの '3' で大キック
+        if (IsKeyTrigger(VK_NUMPAD3)) {
+            m_inputs.attack3 = true;
         }
         break;
 

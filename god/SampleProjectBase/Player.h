@@ -26,6 +26,7 @@ struct PlayerInputs
     bool jump = false;    // ジャンプ
     bool attack1 = false; // 弱パンチ
     bool attack2 = false; // 中パンチ
+    bool attack3 = false; // 大キック
 };
 
 struct AnimationState
@@ -167,6 +168,7 @@ public:
     // --- ImGui 調整用にパラメータを取得する関数 ---
     AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
     AttackParams& GetMediumPunchParams() { return m_mediumPunchParams; }
+    AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
     // 現在アクティブな技のパラメータを取得・設定する
     void SetCurrentAttackParams(AttackParams* params);
@@ -245,6 +247,7 @@ private:
     // --- 技パラメータ用メンバー ---
     AttackParams m_lightPunchParams;
     AttackParams m_mediumPunchParams;
+    AttackParams m_heavyKickParams;
 
     // 現在アクティブなパラメータへのポインタ
     AttackParams* m_pActiveAttackParams = nullptr;
