@@ -1,6 +1,9 @@
 #include "MediumPunch.h"
-#include "PlayerStateIdle.h" 
+#include "PlayerStateIdle.h"
 #include "Player.h"
+
+#include "LightPunch.h"
+#include "HeavyKick.h"
 
 void MediumPunch::OnEnter(Player* player)
 {
@@ -11,9 +14,8 @@ void MediumPunch::OnEnter(Player* player)
 	int originalFrames = player->GetModel()->GetAnimationTotalFrame("MediumPunch");
 	float targetFrames = params.totalDuration * 60.0f;
 
-	// 速度計算に余裕を持たせる
 	if (targetFrames <= 1.0f) targetFrames = 1.0f;
-	float speed = (float)originalFrames / (targetFrames - 0.9f);
+	float speed = (float)originalFrames / targetFrames;
 
 	player->SetAnimationSpeed(speed);
 
@@ -30,6 +32,7 @@ void MediumPunch::Update(Player* player, float tick)
 	m_stateTimer += tick;
 	AttackParams& params = player->GetMediumPunchParams();
 
+	// 攻撃判定の処理
 	if (m_stateTimer >= params.hitboxStart && m_stateTimer < params.hitboxEnd)
 	{
 		player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
@@ -40,8 +43,38 @@ void MediumPunch::Update(Player* player, float tick)
 		player->SetActiveHitbox(false);
 	}
 
+	// キャンセル処理
+	if (params.cancelEnabled)
+	{
+		if (m_stateTimer >= params.cancelStart && m_stateTimer <= params.cancelEnd)
+		{
+			const PlayerInputs& inputs = player->GetInputs();
+
+			if (params.cancelToLight && inputs.LightPunchi)
+			{
+				player->SetCurrentAttackParams(&player->GetLightPunchParams());
+				player->SetState(new LightPunch());
+				return;
+			}
+			if (params.cancelToMedium && inputs.MediumPunch)
+			{
+				player->SetCurrentAttackParams(&player->GetMediumPunchParams());
+				player->SetState(new MediumPunch());
+				return;
+			}
+			if (params.cancelToHeavy && inputs.HeavyKick)
+			{
+				player->SetCurrentAttackParams(&player->GetHeavyKickParams());
+				player->SetState(new HeavyKick());
+				return;
+			}
+		}
+	}
+
+	// 終了処理
 	if (m_stateTimer >= params.totalDuration)
 	{
+		player->SetAnimationSpeed(1.0f);
 		player->SetState(new PlayerStateIdle());
 		return;
 	}

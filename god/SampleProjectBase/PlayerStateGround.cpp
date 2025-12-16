@@ -15,21 +15,21 @@ void PlayerStateGround::Update(Player* player, float tick)
 	const PlayerInputs& inputs = player->GetInputs();
 
 	// UŒ‚1 (Light Punch)
-	if (inputs.attack1)
+	if (inputs.LightPunchi)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 		player->SetState(new LightPunch());
 		return;
 	}
 	// UŒ‚2 (Medium Punch)
-	else if (inputs.attack2)
+	else if (inputs.MediumPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
 		player->SetState(new MediumPunch());
 		return;
 	}
 	// UŒ‚3 (Heavy Kick)
-	else if (inputs.attack3)
+	else if (inputs.HeavyKick)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
 		player->SetState(new HeavyKick());

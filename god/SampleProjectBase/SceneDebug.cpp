@@ -96,6 +96,12 @@ void SceneDebug::SavePlayerSettings()
 			ofs << lParams.legsOffsetVal.x << " " << lParams.legsOffsetVal.y << std::endl;
 			ofs << lParams.legsSizeVal.x << " " << lParams.legsSizeVal.y << std::endl;
 
+			// キャンセル設定
+			ofs << lParams.cancelEnabled << std::endl;
+			ofs << lParams.cancelStart << std::endl;
+			ofs << lParams.cancelEnd << std::endl;
+			ofs << lParams.cancelToLight << " " << lParams.cancelToMedium << " " << lParams.cancelToHeavy << std::endl;
+
 			// ==================================================
 			// 5. 中パンチ (MediumPunch) パラメータの保存
 			// ==================================================
@@ -121,6 +127,12 @@ void SceneDebug::SavePlayerSettings()
 			ofs << mParams.legsOffsetVal.x << " " << mParams.legsOffsetVal.y << std::endl;
 			ofs << mParams.legsSizeVal.x << " " << mParams.legsSizeVal.y << std::endl;
 
+			// キャンセル設定
+			ofs << mParams.cancelEnabled << std::endl;
+			ofs << mParams.cancelStart << std::endl;
+			ofs << mParams.cancelEnd << std::endl;
+			ofs << mParams.cancelToLight << " " << mParams.cancelToMedium << " " << mParams.cancelToHeavy << std::endl;
+
 			// ==================================================
 			// 6. 大キック (HeavyKick) パラメータの保存
 			// ==================================================
@@ -145,6 +157,12 @@ void SceneDebug::SavePlayerSettings()
 			ofs << hParams.bodySizeVal.x << " " << hParams.bodySizeVal.y << std::endl;
 			ofs << hParams.legsOffsetVal.x << " " << hParams.legsOffsetVal.y << std::endl;
 			ofs << hParams.legsSizeVal.x << " " << hParams.legsSizeVal.y << std::endl;
+
+			// キャンセル設定
+			ofs << hParams.cancelEnabled << std::endl;
+			ofs << hParams.cancelStart << std::endl;
+			ofs << hParams.cancelEnd << std::endl;
+			ofs << hParams.cancelToLight << " " << hParams.cancelToMedium << " " << hParams.cancelToHeavy << std::endl;
 
 			ofs.close();
 		}
@@ -226,6 +244,11 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> lParams.bodySizeVal.x >> lParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
+		// キャンセル設定
+		if (!ifs.eof()) ifs >> lParams.cancelEnabled;
+		if (!ifs.eof()) ifs >> lParams.cancelStart;
+		if (!ifs.eof()) ifs >> lParams.cancelEnd;
+		if (!ifs.eof()) ifs >> lParams.cancelToLight >> lParams.cancelToMedium >> lParams.cancelToHeavy;
 
 		// 5. 中パンチ読み込み
 		if (!ifs.eof()) ifs >> mParams.totalDuration;
@@ -243,8 +266,13 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> mParams.bodySizeVal.x >> mParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
+		// キャンセル設定
+		if (!ifs.eof()) ifs >> mParams.cancelEnabled;
+		if (!ifs.eof()) ifs >> mParams.cancelStart;
+		if (!ifs.eof()) ifs >> mParams.cancelEnd;
+		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
 
-		// 6. 大キック読み込み (新規追加)
+		// 6. 大キック読み込み
 		if (!ifs.eof()) ifs >> hParams.totalDuration;
 		if (!ifs.eof()) ifs >> hParams.hitboxStart;
 		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
@@ -260,6 +288,11 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
+		// キャンセル設定
+		if (!ifs.eof()) ifs >> hParams.cancelEnabled;
+		if (!ifs.eof()) ifs >> hParams.cancelStart;
+		if (!ifs.eof()) ifs >> hParams.cancelEnd;
+		if (!ifs.eof()) ifs >> hParams.cancelToLight >> hParams.cancelToMedium >> hParams.cancelToHeavy;
 
 		ifs.close();
 	}
@@ -276,8 +309,8 @@ void SceneDebug::Init()
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true); 
-	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true); // しゃがみ
+	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
 	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
@@ -335,7 +368,6 @@ void SceneDebug::Update(float tick)
 	if (m_isPaused)
 	{
 		// 一時停止中: GUIで操作された m_currentFrame (整数) を強制適用する
-		// これによりスライダーでのシークが可能になる
 		player->Debug_SetFrame(m_currentFrame);
 		m_animTimer = 0.0f; // タイマーは止めておく
 	}
@@ -492,7 +524,7 @@ void SceneDebug::DrawImGui()
 		ImGui::SameLine();
 		ImGui::RadioButton("Medium Punch", &s_currentAttackType, 1);
 		ImGui::SameLine();
-		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 2); // 追加
+		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 2);
 
 		if (!m_isAttacking)
 		{
@@ -627,6 +659,33 @@ void SceneDebug::DrawImGui()
 			ImGui::Text("Legs");
 			ImGui::SliderFloat2("Offset##L", &params.legsOffsetVal.x, -1.0f, 1.0f);
 			ImGui::SliderFloat2("Size+##L", &params.legsSizeVal.x, -1.0f, 1.0f);
+			ImGui::TreePop();
+		}
+
+		// キャンセル設定
+		if (ImGui::TreeNode("Cancel Settings"))
+		{
+			ImGui::Checkbox("Enable Cancel", &params.cancelEnabled);
+
+			if (params.cancelEnabled)
+			{
+				int cancelStartF = static_cast<int>(std::round(params.cancelStart / FRAME_TIME_60FPS));
+				int cancelEndF = static_cast<int>(std::round(params.cancelEnd / FRAME_TIME_60FPS));
+
+				if (ImGui::SliderInt("Start Frame", &cancelStartF, 0, totalFrames)) {
+					params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
+				}
+				if (ImGui::SliderInt("End Frame", &cancelEndF, 0, totalFrames)) {
+					params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
+				}
+
+				ImGui::Text("Routes:");
+				ImGui::Checkbox("-> Light", &params.cancelToLight);
+				ImGui::SameLine();
+				ImGui::Checkbox("-> Medium", &params.cancelToMedium);
+				ImGui::SameLine();
+				ImGui::Checkbox("-> Heavy", &params.cancelToHeavy);
+			}
 			ImGui::TreePop();
 		}
 	}
