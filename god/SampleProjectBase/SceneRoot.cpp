@@ -238,8 +238,9 @@ void SceneRoot::Draw()
 	Geometory::SetView(pCamera->GetView());
 	Geometory::SetProjection(pCamera->GetProj());
 
-	// 網掛け描画
 	const int GridSize = 10;
+
+	// 通常の網掛け (グレー)
 	Geometory::SetColor(DirectX::XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
 	for (int i = 1; i <= GridSize; ++i)
 	{
@@ -271,18 +272,27 @@ void SceneRoot::Draw()
 		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, -g), DirectX::XMFLOAT3(-GridSize, GridSize, -g));
 	}
 
+	// ----------------------------------------------------
+	// 中心線だけ赤くする
+	// ----------------------------------------------------
+	Geometory::SetColor(DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)); // 赤
 
-	Geometory::DrawLines();
-
-	// 軸描画
-	/*Geometory::SetColor(DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
+	// 床の十字 (X軸, Z軸)
 	Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, 0.0f), DirectX::XMFLOAT3(GridSize, 0.0f, 0.0f));
-	Geometory::SetColor(DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
-	Geometory::AddLine(DirectX::XMFLOAT3(0.0f, -GridSize, 0.0f), DirectX::XMFLOAT3(0.0f, GridSize, 0.0f));
-	Geometory::SetColor(DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f));
 	Geometory::AddLine(DirectX::XMFLOAT3(0.0f, 0.0f, -GridSize), DirectX::XMFLOAT3(0.0f, 0.0f, GridSize));
 
-	Geometory::DrawLines();*/
+	// 壁の縦センターライン (奥・手前・左・右)
+	// 奥壁 (Z = GridSize) の中心 (X=0)
+	Geometory::AddLine(DirectX::XMFLOAT3(0.0f, 0.0f, GridSize), DirectX::XMFLOAT3(0.0f, GridSize, GridSize));
+	// 手前壁 (Z = -GridSize) の中心 (X=0)
+	Geometory::AddLine(DirectX::XMFLOAT3(0.0f, 0.0f, -GridSize), DirectX::XMFLOAT3(0.0f, GridSize, -GridSize));
+	// 左壁 (X = -GridSize) の中心 (Z=0)
+	Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, 0.0f), DirectX::XMFLOAT3(-GridSize, GridSize, 0.0f));
+	// 右壁 (X = GridSize) の中心 (Z=0)
+	Geometory::AddLine(DirectX::XMFLOAT3(GridSize, 0.0f, 0.0f), DirectX::XMFLOAT3(GridSize, GridSize, 0.0f));
+
+
+	Geometory::DrawLines();
 
 	// オブジェクト描画
 	pCamera->Draw();
