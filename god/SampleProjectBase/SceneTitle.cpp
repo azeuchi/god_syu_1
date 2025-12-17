@@ -55,7 +55,7 @@ void SceneTitle::Init()
 	m_pParticleImg = new Image2D();
 
 	// 画像読み込み
-	m_pImage->Load("Assets/Texture/AZEFIGHTER.png", 650.0f, 150.0f, 676, 369.0f);
+	m_pImage->Load("Assets/Texture/AZEFIGHTER.png", 650.0f, 100.0f, 676, 369.0f);
 	m_pImage->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 	m_PressEnter->Load("Assets/Texture/PressEnter.png", 640, 550, 500, 200.0f);
 	m_pParticleImg->Load("Assets/Texture/particle.png", 0, 0, 0, 0);
