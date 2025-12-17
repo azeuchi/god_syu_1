@@ -8,7 +8,7 @@ void SceneResult::Init()
 	// Image2Dのインスタンス生成
 	m_pImage = new Image2D();
 	// 画像読み込み
-	m_pImage->Load("Assets/Texture/background.png", 640,360.0f, 1280, 720.0f);
+	m_pImage->Load("Assets/Texture/background2.png", 640,360.0f, 1280, 720.0f);
 }
 
 void SceneResult::Uninit()

@@ -23,19 +23,21 @@ public:
 	 */
 	void Draw();
 
-	// 場所・サイズ・透明度を指定して描画する
+	// 場所・サイズ・透明度を指定して描画する (パーティクル等で使用)
 	void Draw(float x, float y, float w, float h, float alpha);
 
 	// 位置やサイズを後から変えたい場合用
 	void SetPosition(float x, float y) { m_x = x; m_y = y; }
 	void SetSize(float w, float h) { m_width = w; m_height = h; }
+
+	// 色や透明度を変更する関数
 	void SetColor(float r, float g, float b, float a) { m_color = { r, g, b, a }; }
 
 private:
 	Texture* m_texture;
 	float m_x, m_y;
 	float m_width, m_height;
-	DirectX::XMFLOAT4 m_color;
+	DirectX::XMFLOAT4 m_color; // 色保存用
 
 	const float SCREEN_W = 1280.0f;
 	const float SCREEN_H = 720.0f;

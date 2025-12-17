@@ -56,6 +56,7 @@ void SceneTitle::Init()
 
 	// 画像読み込み
 	m_pImage->Load("Assets/Texture/AZEFIGHTER.png", 650.0f, 150.0f, 676, 369.0f);
+	m_pImage->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 	m_PressEnter->Load("Assets/Texture/PressEnter.png", 640, 550, 500, 200.0f);
 	m_pParticleImg->Load("Assets/Texture/particle.png", 0, 0, 0, 0);
 
@@ -86,7 +87,7 @@ void SceneTitle::Init()
 	depthDescUI.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
 
-
+	// 深度ステンシルステート作成（3D用：LESS_EQUAL）
 	D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
 	depthDesc3D.DepthEnable = TRUE;
 	depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -105,11 +106,19 @@ void SceneTitle::Uninit()
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
 	// 使い終わったらメモリ解放
+	if (m_pImage)
+	{
+		delete m_pImage;
+		delete m_PressEnter;
+		delete m_pParticleImg;
+
+		m_pImage = nullptr;
+		m_PressEnter = nullptr;
+		m_pParticleImg = nullptr;
+	}
+
 	if (m_pTitleModel) { delete m_pTitleModel; m_pTitleModel = nullptr; }
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
-	if (m_pImage) { delete m_pImage; m_pImage = nullptr; }
-	if (m_PressEnter) { delete m_PressEnter; m_PressEnter = nullptr; }
-	if (m_pParticleImg) { delete m_pParticleImg; m_pParticleImg = nullptr; }
 
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
@@ -126,8 +135,10 @@ void SceneTitle::Update(float tick)
 		float radius = 6.5f;
 		float camX = sinf(m_cameraAngle) * radius;
 		float camZ = cosf(m_cameraAngle) * radius;
-		float camY = 1.3f;
+		// カメラの高さを変更 (1.3 -> 3.5)
+		float camY = 3.5f;
 		pCamera->SetPos({ camX, camY, camZ });
+		// 視点を少し下に向ける (Y=1.2あたりを見る)
 		pCamera->SetLook({ 0.0f, 1.2f, 0.0f });
 		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
 	}

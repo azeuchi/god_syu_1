@@ -6,7 +6,7 @@ Image2D::Image2D()
 	: m_texture(nullptr)
 	, m_x(0.0f), m_y(0.0f)
 	, m_width(100.0f), m_height(100.0f)
-	, m_color({ 1.0f, 1.0f, 1.0f, 1.0f })
+	, m_color({ 1.0f, 1.0f, 1.0f, 1.0f }) // 初期色は白（不透明）
 {
 }
 
@@ -46,9 +46,11 @@ void Image2D::Draw()
 	float ndcW = (m_width / SCREEN_W) * 2.0f;
 	float ndcH = (m_height / SCREEN_H) * 2.0f;
 
+	// SimpleUIに登録 (設定された色を使用)
 	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
 }
 
+// 追加: 場所と透明度を指定して描画
 void Image2D::Draw(float x, float y, float w, float h, float alpha)
 {
 	if (!m_texture) return;
