@@ -46,7 +46,17 @@ void Image2D::Draw()
 	float ndcW = (m_width / SCREEN_W) * 2.0f;
 	float ndcH = (m_height / SCREEN_H) * 2.0f;
 
-	// SimpleUIÇ…ìoò^
-	// êFÇÕîí {1,1,1,1} (âÊëúÇªÇÃÇ‹Ç‹ÇÃêF)
 	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
+}
+
+void Image2D::Draw(float x, float y, float w, float h, float alpha)
+{
+	if (!m_texture) return;
+
+	float ndcX = (x / SCREEN_W) * 2.0f - 1.0f;
+	float ndcY = 1.0f - (y / SCREEN_H) * 2.0f;
+	float ndcW = (w / SCREEN_W) * 2.0f;
+	float ndcH = (h / SCREEN_H) * 2.0f;
+
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1.0f, 1.0f, 1.0f, alpha }, m_texture);
 }

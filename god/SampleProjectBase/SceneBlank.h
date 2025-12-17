@@ -3,6 +3,7 @@
 #include "Image2D.h"
 #include "SkyDome.h"
 #include <DirectXMath.h> // XMFLOAT2用
+#include <d3d11.h>       // DirectX用
 
 /**
  * @brief メインのゲームシーン
@@ -30,4 +31,7 @@ private:
 	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
 	DirectX::XMFLOAT2 m_enemyHpBarPos; // 2Pの初期座標
 	float m_barMaxWidth = 500.0f;      // バーの最大幅 (満タン時)
+
+	// 描画設定（スカイドーム表示用）
+	ID3D11DepthStencilState* m_pDepthState = nullptr;
 };

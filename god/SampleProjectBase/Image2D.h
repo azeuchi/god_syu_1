@@ -23,6 +23,9 @@ public:
 	 */
 	void Draw();
 
+	// 場所・サイズ・透明度を指定して描画する
+	void Draw(float x, float y, float w, float h, float alpha);
+
 	// 位置やサイズを後から変えたい場合用
 	void SetPosition(float x, float y) { m_x = x; m_y = y; }
 	void SetSize(float w, float h) { m_width = w; m_height = h; }

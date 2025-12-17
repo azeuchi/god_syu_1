@@ -41,9 +41,9 @@ void SceneBlank::Init()
 	// 1. シェーダーの読み込み
 	// ==================================================
 	Shader* shader[] = {
-		CreateObj<VertexShader>("VS_SkinMeshAnimation"), // スキンメッシュアニメーション用
-		CreateObj<PixelShader>("PS_TexColor"),           // テクスチャカラー描画用
-		CreateObj<VertexShader>("VS_Object")             // 静的オブジェクト(スカイドーム等)用
+		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
+		CreateObj<PixelShader>("PS_TexColor"),
+		CreateObj<VertexShader>("VS_Object")
 	};
 	const char* file[] = {
 		"Assets/Shader/VS_SkinMeshAnimation.cso",
@@ -60,7 +60,7 @@ void SceneBlank::Init()
 	}
 
 	// ==================================================
-	// 2. 背景（スカイドーム）の作成
+	// 2. 背景（スカイドーム）の読み込み
 	// ==================================================
 	CreateObj<Model>("SkyModel");
 	Model* skyModel = GetObj<Model>("SkyModel");
@@ -74,48 +74,43 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// 3. UI (HPバー) の作成
+	// 3. UI（HPバー）の初期化
 	// ==================================================
 	m_barMaxWidth = 500.0f;
 
-	// 1P HP Bar (左上)
 	m_hpBar = new Image2D();
 	m_hpBarPos = { 330.0f, 80.0f };
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
 
-	// 2P HP Bar (右上)
 	m_enemyhpBar = new Image2D();
 	m_enemyHpBarPos = { 950.0f, 80.0f };
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
 
 
 	// ==================================================
-	// 4. プレイヤー1 (1P) の生成
+	// 4. プレイヤーの生成と設定ロード
 	// ==================================================
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// ==================================================
-	// 5. 設定ファイル (ini) からパラメータを読み込む
-	// ※ SceneDebug::SavePlayerSettings と同じ順序で読み込む必要がある
-	// ==================================================
+	// デフォルト値
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
-	// 設定適用先の一時参照を取得
+	// 攻撃パラメータの一時保存用
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
 	AttackParams hParams = player->GetHeavyKickParams();
 
+	// ファイルから読み込み
 	std::ifstream ifs(SETTINGS_FILE);
 	if (ifs.is_open())
 	{
-		// 基本設定
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
-		// 立ち状態の当たり判定 (Head -> Body -> Legs)
+		// 立ち状態の当たり判定
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
@@ -129,7 +124,7 @@ void SceneBlank::Init()
 			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 		}
 
-		// 弱パンチ (LightPunch) 設定読み込み
+		// 弱攻撃設定
 		if (!ifs.eof()) ifs >> lParams.totalDuration;
 		if (!ifs.eof()) ifs >> lParams.hitboxStart;
 		if (!ifs.eof()) ifs >> lParams.hitboxEnd;
@@ -138,20 +133,18 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> lParams.damage;
 		if (!ifs.eof()) ifs >> lParams.hitFrame;
 		if (!ifs.eof()) ifs >> lParams.blockFrame;
-		// 補正値
 		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> lParams.bodyOffsetVal.x >> lParams.bodyOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.bodySizeVal.x >> lParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
-		// キャンセル設定
 		if (!ifs.eof()) ifs >> lParams.cancelEnabled;
 		if (!ifs.eof()) ifs >> lParams.cancelStart;
 		if (!ifs.eof()) ifs >> lParams.cancelEnd;
 		if (!ifs.eof()) ifs >> lParams.cancelToLight >> lParams.cancelToMedium >> lParams.cancelToHeavy;
 
-		// 中パンチ (MediumPunch) 設定読み込み
+		// 中攻撃設定
 		if (!ifs.eof()) ifs >> mParams.totalDuration;
 		if (!ifs.eof()) ifs >> mParams.hitboxStart;
 		if (!ifs.eof()) ifs >> mParams.hitboxEnd;
@@ -160,20 +153,18 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> mParams.damage;
 		if (!ifs.eof()) ifs >> mParams.hitFrame;
 		if (!ifs.eof()) ifs >> mParams.blockFrame;
-		// 補正値
 		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> mParams.bodyOffsetVal.x >> mParams.bodyOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.bodySizeVal.x >> mParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
-		// キャンセル設定
 		if (!ifs.eof()) ifs >> mParams.cancelEnabled;
 		if (!ifs.eof()) ifs >> mParams.cancelStart;
 		if (!ifs.eof()) ifs >> mParams.cancelEnd;
 		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
 
-		// 大キック (HeavyKick) 設定読み込み
+		// 強攻撃設定
 		if (!ifs.eof()) ifs >> hParams.totalDuration;
 		if (!ifs.eof()) ifs >> hParams.hitboxStart;
 		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
@@ -182,14 +173,12 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> hParams.damage;
 		if (!ifs.eof()) ifs >> hParams.hitFrame;
 		if (!ifs.eof()) ifs >> hParams.blockFrame;
-		// 補正値
 		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
 		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
-		// キャンセル設定
 		if (!ifs.eof()) ifs >> hParams.cancelEnabled;
 		if (!ifs.eof()) ifs >> hParams.cancelStart;
 		if (!ifs.eof()) ifs >> hParams.cancelEnd;
@@ -198,7 +187,7 @@ void SceneBlank::Init()
 		ifs.close();
 	}
 
-	// 読み込んだパラメータを1Pに適用
+	// プレイヤー1への設定適用
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 	player->GetLightPunchParams() = lParams;
@@ -206,48 +195,41 @@ void SceneBlank::Init()
 	player->GetHeavyKickParams() = hParams;
 
 
-	// ==================================================
-	// 6. モデルとアニメーションのロード (1P)
-	// ==================================================
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-	// ループアニメーション
+	// アニメーション読み込み
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-	// 単発アニメーション
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 
-	// 初期位置と向き
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 
 
 	// ==================================================
-	// 7. プレイヤー2 (2P) の生成
+	// 5. プレイヤー2の生成 (P1の設定を反転して流用)
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
 	player2->SetInputType(PlayerInputType::PLAYER_2);
 	player2->SetMoveSpeed(moveSpeed);
 
-	// スケールXをマイナスにして左右反転 (ミラーリング表示)
 	DirectX::XMFLOAT3 scaleP2 = scale;
-	scaleP2.x *= -1.0f;
+	scaleP2.x *= -1.0f; // X軸反転
 	player2->SetScale(scaleP2);
 
-	// パラメータは1Pと同じものを適用
 	player2->GetLightPunchParams() = lParams;
 	player2->GetMediumPunchParams() = mParams;
 	player2->GetHeavyKickParams() = hParams;
 
-	// 当たり判定設定もコピー
+	// 当たり判定情報のコピー
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 		player2->SetHurtboxBase((HurtboxType)i,
 			player->GetHurtboxBaseOffset((HurtboxType)i),
@@ -257,7 +239,6 @@ void SceneBlank::Init()
 			player->GetHurtboxCrouchExtents((HurtboxType)i));
 	}
 
-	// モデルロード (2P)
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
@@ -274,9 +255,7 @@ void SceneBlank::Init()
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
-	// ==================================================
-	// 8. カメラの初期配置
-	// ==================================================
+	// カメラの初期位置
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -285,34 +264,38 @@ void SceneBlank::Init()
 	}
 
 	g_uiTex = new Texture();
+
+	// ----------------------------------------------------
+	// 描画設定の作成（スカイドーム表示用）
+	// ----------------------------------------------------
+	D3D11_DEPTH_STENCIL_DESC depthDesc = {};
+	depthDesc.DepthEnable = TRUE;
+	depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 1.0(最奥)も描画する
+	depthDesc.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthState);
 }
 
-/**
- * @brief 終了処理
- */
 void SceneBlank::Uninit()
 {
 	if (m_hpBar) delete m_hpBar;
 	if (m_enemyhpBar) delete m_enemyhpBar;
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
+
+	// 描画設定の解放
+	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
 }
 
-/**
- * @brief 更新処理
- */
 void SceneBlank::Update(float tick)
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// プレイヤー更新 (FSM, 物理, アニメーション)
 	if (player) player->Update(tick);
 	if (player2) player2->Update(tick);
 
-	// ==================================================
-	// 向き制御: 相手の方を向くように回転とスケールを調整
-	// ==================================================
+	// 向きの制御 (相手の方を向く)
 	if (player && player2)
 	{
 		float x1 = player->GetPosition().x;
@@ -327,37 +310,31 @@ void SceneBlank::Update(float tick)
 		float rotLeft = DirectX::XM_PI / 2.0f;   // 左向き
 		float rotRight = DirectX::XM_PI / -2.0f; // 右向き
 
-		// 1Pが 2Pより「左」にいる場合
 		if (x1 < x2)
 		{
-			// 1P: 右を向く (通常スケール)
+			// P1が左、P2が右
 			s1.x = absScale1;
 			player->SetScale(s1);
 			player->SetRotation({ 0.0f, rotRight, 0.0f });
 
-			// 2P: 左を向く (反転スケール)
 			s2.x = -absScale2;
 			player2->SetScale(s2);
 			player2->SetRotation({ 0.0f, rotLeft, 0.0f });
 		}
-		// 1Pが 2Pより「右」にいる場合 (位置入れ替え時)
 		else
 		{
-			// 1P: 左を向く (反転スケール)
+			// 入れ替わり
 			s1.x = -absScale1;
 			player->SetScale(s1);
 			player->SetRotation({ 0.0f, rotLeft, 0.0f });
 
-			// 2P: 右を向く (通常スケール)
 			s2.x = absScale2;
 			player2->SetScale(s2);
 			player2->SetRotation({ 0.0f, rotRight, 0.0f });
 		}
 	}
 
-	// ==================================================
-	// ステージ端の移動制限
-	// ==================================================
+	// 移動制限
 	if (player)
 	{
 		XMFLOAT3 pos = player->GetPosition();
@@ -372,19 +349,16 @@ void SceneBlank::Update(float tick)
 	}
 
 
-	// ==================================================
-	// 当たり判定と相互作用
-	// ==================================================
+	// 衝突判定と押し出し処理
 	if (player && player2)
 	{
-		// A. プレイヤー同士の押し出し処理 (めり込み防止)
 		bool isColliding = player->CheckCollision(player2);
 		player->SetIsColliding(isColliding);
 		player2->SetIsColliding(isColliding);
 
-		// どちらも攻撃中でなければ、重ならないように位置を補正
 		if (isColliding && !player->IsAttacking() && !player2->IsAttacking())
 		{
+			// 体同士の押し出し計算
 			DirectX::BoundingBox box1 = player->GetHurtbox(HurtboxType::BODY);
 			DirectX::BoundingBox box2 = player2->GetHurtbox(HurtboxType::BODY);
 
@@ -401,7 +375,6 @@ void SceneBlank::Update(float tick)
 
 			DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
 
-			// X軸またはY軸で重なりが小さいほうへ押し出す
 			if (overlapX < overlapY)
 			{
 				float pushAmount = overlapX / 2.0f;
@@ -420,7 +393,7 @@ void SceneBlank::Update(float tick)
 			pos1.y += pushVector.y;
 			pos2.y -= pushVector.y;
 
-			// 押し出し後もステージ外に出ないよう制限
+			// 画面端制限
 			pos1.x = std::clamp(pos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 			pos2.x = std::clamp(pos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 
@@ -428,11 +401,10 @@ void SceneBlank::Update(float tick)
 			player2->SetPosition(pos2);
 		}
 
-		// B. 攻撃ヒット判定 (1P -> 2P)
+		// --- 攻撃判定 (P1 -> P2) ---
 		bool hit2 = false;
 		if (player->IsAttacking() && !player->HasHit())
 		{
-			// 1PのHitbox(赤) vs 2PのHurtbox(緑:頭/体/足)
 			BoundingBox atk = player->GetActiveHitbox();
 			if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
 				atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
@@ -444,18 +416,17 @@ void SceneBlank::Update(float tick)
 
 		if (hit2)
 		{
-			// ダメージ適用
 			AttackParams* params = player->GetCurrentAttackParams();
 			int dmg = (params != nullptr) ? params->damage : 0;
 			int stun = (params != nullptr) ? params->hitFrame : 30;
 
 			player2->ReceiveDamage(dmg);
-			player->OnHit(); // 多段ヒット防止
+			player->OnHit();
 
-			// 2Pをやられ状態へ遷移
+			// ダメージモーションへ遷移
 			player2->SetState(new PlayerStateDamage(stun));
 
-			// HPバーの更新
+			// HPバー更新
 			float ratio = player2->GetHpRatio();
 			float currentWidth = m_barMaxWidth * ratio;
 			float reduceWidth = m_barMaxWidth - currentWidth;
@@ -463,7 +434,7 @@ void SceneBlank::Update(float tick)
 			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
 		}
 
-		// C. 攻撃ヒット判定 (2P -> 1P)
+		// --- 攻撃判定 (P2 -> P1) ---
 		bool hit1 = false;
 		if (player2->IsAttacking() && !player2->HasHit())
 		{
@@ -496,25 +467,20 @@ void SceneBlank::Update(float tick)
 	}
 
 
-	// ==================================================
-	// カメラ制御 (プレイヤー間の中点と距離に基づく)
-	// ==================================================
+	// カメラ制御 (プレイヤー間の中点を追尾)
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
 		XMFLOAT3 p1Pos = player->GetPosition();
 		XMFLOAT3 p2Pos = player2->GetPosition();
 
-		// 中点計算
 		float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
 		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
 
-		// 高さ調整
 		float maxY = (p1Pos.y > p2Pos.y) ? p1Pos.y : p2Pos.y;
 		float targetLookY = 1.4f + (maxY * 0.2f);
 		float targetPosY = 1.5f + (maxY * 0.1f);
 
-		// 距離に応じたズーム制御
 		float distX = fabsf(p1Pos.x - p2Pos.x);
 		float zoomFactorX = 0.45f;
 		float zoomFactorY = 0.8f;
@@ -532,7 +498,6 @@ void SceneBlank::Update(float tick)
 		XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
 		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
 
-		// スムーズな移動補間
 		float smoothSpeed = 4.0f * tick;
 		XMFLOAT3 currentPos = pCamera->GetPos();
 		XMFLOAT3 currentLook = pCamera->GetLook();
@@ -551,7 +516,6 @@ void SceneBlank::Update(float tick)
 		pCamera->SetPos(newPos);
 		pCamera->SetLook(newLook);
 
-		// スカイドームの位置もカメラに追従
 		if (m_skyDome)
 		{
 			m_skyDome->Update(pCamera->GetPos());
@@ -559,12 +523,25 @@ void SceneBlank::Update(float tick)
 	}
 }
 
-/**
- * @brief 描画処理
- */
 void SceneBlank::Draw()
 {
-	// 共通リソースの取得
+	// ==========================================================
+	// 描画設定のリセット・初期化 (タイトル画面からの影響を消す)
+	// ==========================================================
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff); // 不透明へリセット
+
+	// スカイドーム(最奥)を描画するために LESS_EQUAL をセット
+	if (m_pDepthState)
+	{
+		GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
+	}
+	else
+	{
+		GetContext()->OMSetDepthStencilState(nullptr, 0);
+	}
+
+
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	LightBase* pLight = GetObj<LightBase>("Light");
 
@@ -589,7 +566,7 @@ void SceneBlank::Draw()
 		GetObj<Shader>("PS_TexColor"),
 	};
 
-	// 1. スカイドームの描画
+	// 1. 背景の描画
 	if (m_skyDome)
 	{
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
@@ -598,7 +575,6 @@ void SceneBlank::Draw()
 	// 2. プレイヤー1の描画
 	Player* player = GetObj<Player>("Player");
 	if (player) {
-		// ワールド行列の計算
 		XMFLOAT3 pos = player->GetPosition();
 		XMFLOAT3 rot = player->GetRotation();
 		XMFLOAT3 pScale = player->GetScale();
@@ -608,7 +584,6 @@ void SceneBlank::Draw()
 		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
 
-		// シェーダーへの定数バッファ転送
 		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
 		shader[0]->WriteBuffer(0, mat);
 		shader[1]->WriteBuffer(0, light);
@@ -646,7 +621,7 @@ void SceneBlank::Draw()
 		player2->DrawHitbox();
 	}
 
-	// 4. 2D UIの描画 (最前面)
+	// 4. UIの描画
 	SimpleUI::Clear();
 	DirectX::XMFLOAT4X4 identity;
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
@@ -656,4 +631,7 @@ void SceneBlank::Draw()
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
 	SimpleUI::DrawAll();
+
+	// 念のためデフォルトに戻す
+	GetContext()->OMSetDepthStencilState(nullptr, 0);
 }
