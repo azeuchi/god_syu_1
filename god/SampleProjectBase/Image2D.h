@@ -26,11 +26,13 @@ public:
 	// 位置やサイズを後から変えたい場合用
 	void SetPosition(float x, float y) { m_x = x; m_y = y; }
 	void SetSize(float w, float h) { m_width = w; m_height = h; }
+	void SetColor(float r, float g, float b, float a) { m_color = { r, g, b, a }; }
 
 private:
 	Texture* m_texture;
 	float m_x, m_y;
 	float m_width, m_height;
+	DirectX::XMFLOAT4 m_color;
 
 	const float SCREEN_W = 1280.0f;
 	const float SCREEN_H = 720.0f;

@@ -16,6 +16,8 @@ private:
 	Image2D* m_pImage = nullptr; // 画像管理用ポインタ
 	Image2D* m_background = nullptr; // 背景画像管理用ポインタ
 	Image2D* m_PressEnter = nullptr; // エンターキー
+
+	float m_blinkTimer = 0.0f;
 };
 
 #endif // __SCENE_TITLE_H__

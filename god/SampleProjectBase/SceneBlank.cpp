@@ -28,8 +28,8 @@ Texture* g_uiTex = nullptr;
 const char* SETTINGS_FILE = "player_settings.ini";
 
 // ステージとカメラの移動制限範囲
-const float STAGE_LIMIT_X = 14.0f;
-const float CAMERA_LIMIT_X = 10.0f;
+const float STAGE_LIMIT_X = 6.0f;
+const float CAMERA_LIMIT_X = 4.0f;
 
 /**
  * @brief シーンの初期化処理
@@ -68,7 +68,7 @@ void SceneBlank::Init()
 	{
 		MessageBox(NULL, "スカイドームモデルの読み込みに失敗しました", "Error", MB_OK);
 	}
-	skyModel->SetTexture("Assets/Model/SkyDome/sky.jpg");
+	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
 	skyModel->SetPixelShader(GetObj<Shader>("PS_TexColor"));
 	m_skyDome = new SkyDome();
 	m_skyDome->Init(skyModel);

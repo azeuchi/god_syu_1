@@ -16,26 +16,22 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// UI用テクスチャ管理
 Texture* g_uiTex_debug = nullptr;
 
-// 設定ファイルのパス
 const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
-// 1フレームあたりの時間 (60FPS = 1/60秒 = 約0.0166秒)
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
-// 現在編集中の技を選択する変数
-// 0: 弱パンチ (LightPunch)
-// 1: 中パンチ (MediumPunch)
-// 2: 大キック (HeavyKick)
 static int s_currentAttackType = 0;
 
-/**
- * @brief プレイヤー設定の保存
- * 現在のパラメータを ini ファイルに書き出す
- * ※ Init() での読み込み順序と完全に一致させる必要がある
- */
+// ★追加: 現在選択中の技のアニメーション名を取得するヘルパー関数
+static const char* GetCurrentAnimName()
+{
+	if (s_currentAttackType == 0) return "LightPunch";
+	if (s_currentAttackType == 1) return "MediumPunch";
+	return "HeavyKick";
+}
+
 void SceneDebug::SavePlayerSettings()
 {
 	Player* player = GetObj<Player>("Player");
@@ -169,9 +165,6 @@ void SceneDebug::SavePlayerSettings()
 	}
 }
 
-/**
- * @brief 初期化処理
- */
 void SceneDebug::Init()
 {
 	// --- シェーダー読み込み ---
@@ -205,7 +198,7 @@ void SceneDebug::Init()
 	// 読み込み用の一時参照
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
-	AttackParams hParams = player->GetHeavyKickParams(); // 追加
+	AttackParams hParams = player->GetHeavyKickParams();
 
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
@@ -381,6 +374,7 @@ void SceneDebug::Update(float tick)
 			// 処理落ちしても動きがスローにならないよう、経過時間分だけフレームを進める
 			while (m_animTimer >= FRAME_TIME_60FPS)
 			{
+				// Player::UpdateAnimation内で m_animSpeed が考慮される
 				player->UpdateAnimation(FRAME_TIME_60FPS);
 				m_animTimer -= FRAME_TIME_60FPS;
 			}
@@ -399,16 +393,14 @@ void SceneDebug::Update(float tick)
 	// --- 攻撃終了判定 ---
 	if (m_isAttacking)
 	{
-		// 選択中の技のパラメータを取得
-		AttackParams* params = player->GetCurrentAttackParams();
+		// 選択中の技のアニメーション名
+		const char* animName = GetCurrentAnimName();
+		// モデルが持つ本来の総フレーム数
+		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 
-		float totalDuration = params->totalDuration;
-		// 秒数を60FPS基準のフレーム数に換算
-		int animLengthInFrames = static_cast<int>(std::round(totalDuration / FRAME_TIME_60FPS));
-		if (animLengthInFrames <= 0) animLengthInFrames = 1;
-
-		// 最終フレームに達したら Idle に戻す
-		if (m_currentFrame >= (animLengthInFrames - 1))
+		// 現在のフレーム(int)が総フレーム数を超えたら終了
+		// Player::UpdateAnimation が速度調整をしているため、m_currentFrame も調整された速度で進む
+		if (m_currentFrame >= (totalAnimFrames - 1))
 		{
 			player->Debug_SetAnimation("Idle", true);
 			m_isAttacking = false; // 攻撃終了
@@ -478,9 +470,19 @@ void SceneDebug::Draw()
 			// 現在アクティブなパラメータを使用
 			AttackParams* params = player->GetCurrentAttackParams();
 
-			// 秒 -> フレーム変換
-			int startFrame = static_cast<int>(std::round(params->hitboxStart / FRAME_TIME_60FPS));
-			int endFrame = static_cast<int>(std::round(params->hitboxEnd / FRAME_TIME_60FPS));
+			// ★修正点: アニメーション速度に合わせてフレーム数を計算する
+			// ゲーム本編では「秒」で管理されているが、ここでは「フレーム番号」と比較するため変換が必要
+			const char* animName = GetCurrentAnimName();
+			int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
+
+			// 速度倍率 = モデル総フレーム / (設定された全体時間 * 60)
+			float speed = (float)totalAnimFrames / (params->totalDuration * 60.0f);
+			if (speed <= 0.0f) speed = 1.0f; // 安全策
+
+			// 開始・終了時間をフレーム番号(モデル基準)に変換
+			// 時間(秒) * 60FPS * 速度倍率 = フレーム番号
+			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f * speed));
+			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f * speed));
 
 			// 現在フレームが発生期間内なら描画
 			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
@@ -528,20 +530,41 @@ void SceneDebug::DrawImGui()
 
 		if (!m_isAttacking)
 		{
-			// 技のテスト
-			if (ImGui::Button("Test Play"))
-			{
-				const char* animName = "";
-				if (s_currentAttackType == 0) animName = "LightPunch";
-				else if (s_currentAttackType == 1) animName = "MediumPunch";
-				else animName = "HeavyKick";
+			// ★追加: 再生処理をまとめるラムダ式
+			auto StartAttack = [&](bool startPaused) {
+				const char* animName = GetCurrentAnimName();
 
+				// 1. アニメーションをセット
 				player->Debug_SetAnimation(animName, true);
+
+				// 2. パラメータを取得
+				AttackParams* pParams = nullptr;
+				if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
+				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
+				else pParams = &player->GetHeavyKickParams();
+
+				// 3. 再生速度を計算して適用 (ゲーム本編と同じロジック)
+				if (pParams) {
+					int originalFrames = player->GetModel()->GetAnimationTotalFrame(animName);
+					float targetFrames = pParams->totalDuration * 60.0f;
+					if (targetFrames <= 1.0f) targetFrames = 1.0f;
+
+					float speed = (float)originalFrames / targetFrames;
+					player->SetAnimationSpeed(speed);
+				}
+
+				// 4. フラグ設定
 				m_isAttacking = true;
-				m_isPaused = false;
+				m_isPaused = startPaused; // 引数で一時停止するか決める
 				m_currentFrame = 0;
 				m_animTimer = 0.0f;
 				player->SetIsCrouching(false);
+				};
+
+			// 技のテスト
+			if (ImGui::Button("Test Play"))
+			{
+				StartAttack(false); // 停止せず再生
 			}
 			ImGui::SameLine();
 			// しゃがみ確認
@@ -563,20 +586,10 @@ void SceneDebug::DrawImGui()
 			}
 
 			ImGui::SameLine();
-			// コマ送り開始
+			// コマ送り開始 (一時停止状態でスタート)
 			if (ImGui::Button("Step Play"))
 			{
-				const char* animName = "";
-				if (s_currentAttackType == 0) animName = "LightPunch";
-				else if (s_currentAttackType == 1) animName = "MediumPunch";
-				else animName = "HeavyKick";
-
-				player->Debug_SetAnimation(animName, true);
-				m_isAttacking = true;
-				m_isPaused = true;
-				m_currentFrame = 0;
-				m_animTimer = 0.0f;
-				player->SetIsCrouching(false);
+				StartAttack(true);
 			}
 		}
 		else

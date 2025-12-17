@@ -220,10 +220,10 @@ void SceneRoot::Update(float tick)
 	}
 
 
-	
+
 	if (IsKeyTrigger('R'))
 	{
-	
+
 	}
 }
 
@@ -244,11 +244,36 @@ void SceneRoot::Draw()
 	for (int i = 1; i <= GridSize; ++i)
 	{
 		float g = (float)i;
+		// 床 (XZ平面)
 		Geometory::AddLine(DirectX::XMFLOAT3(g, 0.0f, -GridSize), DirectX::XMFLOAT3(g, 0.0f, GridSize));
 		Geometory::AddLine(DirectX::XMFLOAT3(-g, 0.0f, -GridSize), DirectX::XMFLOAT3(-g, 0.0f, GridSize));
 		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, g), DirectX::XMFLOAT3(GridSize, 0.0f, g));
 		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, -g), DirectX::XMFLOAT3(GridSize, 0.0f, -g));
+
+		// 壁 (ステージ枠)
+		// 高さ方向（Y軸）への積み上げ（横線）
+		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, g, GridSize), DirectX::XMFLOAT3(GridSize, g, GridSize)); // 奥
+		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, g, -GridSize), DirectX::XMFLOAT3(GridSize, g, -GridSize)); // 手前
+		Geometory::AddLine(DirectX::XMFLOAT3(GridSize, g, -GridSize), DirectX::XMFLOAT3(GridSize, g, GridSize)); // 右
+		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, g, -GridSize), DirectX::XMFLOAT3(-GridSize, g, GridSize)); // 左
+
+		// 垂直方向（Y軸）の線（縦線）
+		// 奥面と手前面の縦線
+		Geometory::AddLine(DirectX::XMFLOAT3(g, 0.0f, GridSize), DirectX::XMFLOAT3(g, GridSize, GridSize));
+		Geometory::AddLine(DirectX::XMFLOAT3(-g, 0.0f, GridSize), DirectX::XMFLOAT3(-g, GridSize, GridSize));
+		Geometory::AddLine(DirectX::XMFLOAT3(g, 0.0f, -GridSize), DirectX::XMFLOAT3(g, GridSize, -GridSize));
+		Geometory::AddLine(DirectX::XMFLOAT3(-g, 0.0f, -GridSize), DirectX::XMFLOAT3(-g, GridSize, -GridSize));
+
+		// 左面と右面の縦線
+		Geometory::AddLine(DirectX::XMFLOAT3(GridSize, 0.0f, g), DirectX::XMFLOAT3(GridSize, GridSize, g));
+		Geometory::AddLine(DirectX::XMFLOAT3(GridSize, 0.0f, -g), DirectX::XMFLOAT3(GridSize, GridSize, -g));
+		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, g), DirectX::XMFLOAT3(-GridSize, GridSize, g));
+		Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, -g), DirectX::XMFLOAT3(-GridSize, GridSize, -g));
 	}
+
+
+	Geometory::DrawLines();
+
 	// 軸描画
 	/*Geometory::SetColor(DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
 	Geometory::AddLine(DirectX::XMFLOAT3(-GridSize, 0.0f, 0.0f), DirectX::XMFLOAT3(GridSize, 0.0f, 0.0f));

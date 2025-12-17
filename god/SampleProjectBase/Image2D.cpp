@@ -6,6 +6,7 @@ Image2D::Image2D()
 	: m_texture(nullptr)
 	, m_x(0.0f), m_y(0.0f)
 	, m_width(100.0f), m_height(100.0f)
+	, m_color({ 1.0f, 1.0f, 1.0f, 1.0f })
 {
 }
 
@@ -30,7 +31,7 @@ void Image2D::Load(const char* filePath, float x, float y, float w, float h)
 	m_texture = new Texture();
 	if (FAILED(m_texture->Create(filePath)))
 	{
-	
+
 	}
 }
 
@@ -47,5 +48,5 @@ void Image2D::Draw()
 
 	// SimpleUI‚É“o˜^
 	// F‚Í”’ {1,1,1,1} (‰æ‘œ‚»‚Ì‚Ü‚Ü‚ÌF)
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1.0f, 1.0f, 1.0f, 1.0f }, m_texture);
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
 }
