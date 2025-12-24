@@ -37,4 +37,10 @@ private:
 
 	// ヒットストップ演出用タイマー
 	float m_hitStopTimer = 0.0f;
+
+	// ヒットシェイク（振動）制御用
+	float m_shakeTimerP1 = 0.0f; // 1Pの振動残り時間
+	float m_shakeTimerP2 = 0.0f; // 2Pの振動残り時間
+	DirectX::XMFLOAT3 m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f }; // 1Pの描画ずらし量
+	DirectX::XMFLOAT3 m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f }; // 2Pの描画ずらし量
 };

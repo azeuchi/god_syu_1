@@ -37,7 +37,12 @@ const float CAMERA_LIMIT_X = 4.0f;
  */
 void SceneBlank::Init()
 {
+	// ★初期化
 	m_hitStopTimer = 0.0f;
+	m_shakeTimerP1 = 0.0f;
+	m_shakeTimerP2 = 0.0f;
+	m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f };
+	m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f };
 
 	// ==================================================
 	// 1. シェーダーの読み込み
@@ -309,6 +314,35 @@ void SceneBlank::Update(float tick)
 	if (player) player->Update(playerTick);
 	if (player2) player2->Update(playerTick);
 
+	// ★追加: ヒットシェイク計算 (振動)
+	// P1用
+	if (m_shakeTimerP1 > 0.0f)
+	{
+		m_shakeTimerP1 -= tick;
+		// ランダムに少しずらす (範囲: -0.05 ~ 0.05 程度)
+		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+		float offsetY = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+		m_shakeOffsetP1 = { offsetX, offsetY, 0.0f };
+	}
+	else
+	{
+		m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f };
+	}
+
+	// P2用
+	if (m_shakeTimerP2 > 0.0f)
+	{
+		m_shakeTimerP2 -= tick;
+		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+		float offsetY = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+		m_shakeOffsetP2 = { offsetX, offsetY, 0.0f };
+	}
+	else
+	{
+		m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f };
+	}
+
+
 	// 向きの制御 (相手の方を向く)
 	if (player && player2)
 	{
@@ -447,9 +481,10 @@ void SceneBlank::Update(float tick)
 			m_enemyhpBar->SetSize(currentWidth, 80.0f);
 			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
 
-			// ヒットストップ開始 
+			// ヒットストップ & ヒットシェイク開始
 			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
 			m_hitStopTimer = stopTime;
+			m_shakeTimerP2 = stopTime; // やられた側(P2)を揺らす
 		}
 
 		// --- 攻撃判定 (P2 -> P1) ---
@@ -482,9 +517,10 @@ void SceneBlank::Update(float tick)
 			m_hpBar->SetSize(currentWidth, 80.0f);
 			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
 
-			//  ヒットストップ開始
+			//  ヒットストップ & ヒットシェイク開始
 			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
 			m_hitStopTimer = stopTime;
+			m_shakeTimerP1 = stopTime; // やられた側(P1)を揺らす
 		}
 	}
 
@@ -598,13 +634,16 @@ void SceneBlank::Draw()
 	// 2. プレイヤー1の描画
 	Player* player = GetObj<Player>("Player");
 	if (player) {
+		// ★追加: シェイクオフセットを加味して描画
 		XMFLOAT3 pos = player->GetPosition();
+		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
+
 		XMFLOAT3 rot = player->GetRotation();
 		XMFLOAT3 pScale = player->GetScale();
 		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
 		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
 		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
 		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
 
 		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
@@ -616,20 +655,27 @@ void SceneBlank::Draw()
 
 		// 本体とデバッグ用ボックスの描画
 		player->Draw();
+
+		// ★修正: デバッグビルド時のみボックスを描画する
+#ifdef _DEBUG
 		player->DrawBoundingBox();
 		player->DrawHitbox();
+#endif
 	}
 
 	// 3. プレイヤー2の描画
 	Player* player2 = GetObj<Player>("Player2");
 	if (player2) {
+		// ★追加: シェイクオフセットを加味して描画
 		XMFLOAT3 pos = player2->GetPosition();
+		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
+
 		XMFLOAT3 rot = player2->GetRotation();
 		XMFLOAT3 pScale = player2->GetScale();
 		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
 		Matrix modelBaseScaleMat = player2->GetModel()->GetScaleBaseMatrix();
 		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
 		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
 
 		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
@@ -640,8 +686,12 @@ void SceneBlank::Draw()
 		player2->SetPixelShader(shader[1]);
 
 		player2->Draw();
+
+		// ★修正: デバッグビルド時のみボックスを描画する
+#ifdef _DEBUG
 		player2->DrawBoundingBox();
 		player2->DrawHitbox();
+#endif
 	}
 
 	// 4. UIの描画
