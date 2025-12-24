@@ -51,7 +51,7 @@ void HeavyKick::Update(Player* player, float tick)
 		{
 			const PlayerInputs& inputs = player->GetInputs();
 
-			if (params.cancelToLight && inputs.LightPunchi)
+			if (params.cancelToLight && inputs.LightPunch)
 			{
 				player->SetCurrentAttackParams(&player->GetLightPunchParams());
 				player->SetState(new LightPunch());

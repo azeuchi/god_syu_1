@@ -34,4 +34,7 @@ private:
 
 	// 描画設定（スカイドーム表示用）
 	ID3D11DepthStencilState* m_pDepthState = nullptr;
+
+	// ヒットストップ演出用タイマー
+	float m_hitStopTimer = 0.0f;
 };

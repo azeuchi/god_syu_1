@@ -24,7 +24,6 @@ const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
 static int s_currentAttackType = 0;
 
-// ★追加: 現在選択中の技のアニメーション名を取得するヘルパー関数
 static const char* GetCurrentAnimName()
 {
 	if (s_currentAttackType == 0) return "LightPunch";
@@ -83,6 +82,7 @@ void SceneDebug::SavePlayerSettings()
 			ofs << lParams.damage << std::endl;      // ダメージ
 			ofs << lParams.hitFrame << std::endl;    // ヒット有利F
 			ofs << lParams.blockFrame << std::endl;  // ガード有利F
+			ofs << lParams.hitStop << std::endl;     // ヒットストップ時間
 
 			// 攻撃中のくらい判定補正 (Head -> Body -> Legs)
 			ofs << lParams.headOffsetVal.x << " " << lParams.headOffsetVal.y << std::endl;
@@ -114,6 +114,7 @@ void SceneDebug::SavePlayerSettings()
 			ofs << mParams.damage << std::endl;
 			ofs << mParams.hitFrame << std::endl;
 			ofs << mParams.blockFrame << std::endl;
+			ofs << mParams.hitStop << std::endl;
 
 			// 攻撃中のくらい判定補正
 			ofs << mParams.headOffsetVal.x << " " << mParams.headOffsetVal.y << std::endl;
@@ -145,6 +146,7 @@ void SceneDebug::SavePlayerSettings()
 			ofs << hParams.damage << std::endl;
 			ofs << hParams.hitFrame << std::endl;
 			ofs << hParams.blockFrame << std::endl;
+			ofs << hParams.hitStop << std::endl;
 
 			// 攻撃中のくらい判定補正
 			ofs << hParams.headOffsetVal.x << " " << hParams.headOffsetVal.y << std::endl;
@@ -230,6 +232,7 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> lParams.damage;
 		if (!ifs.eof()) ifs >> lParams.hitFrame;
 		if (!ifs.eof()) ifs >> lParams.blockFrame;
+		if (!ifs.eof()) ifs >> lParams.hitStop;
 		// 補正値
 		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
@@ -252,6 +255,7 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> mParams.damage;
 		if (!ifs.eof()) ifs >> mParams.hitFrame;
 		if (!ifs.eof()) ifs >> mParams.blockFrame;
+		if (!ifs.eof()) ifs >> mParams.hitStop;
 		// 補正値
 		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
@@ -274,6 +278,7 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> hParams.damage;
 		if (!ifs.eof()) ifs >> hParams.hitFrame;
 		if (!ifs.eof()) ifs >> hParams.blockFrame;
+		if (!ifs.eof()) ifs >> hParams.hitStop;
 		// 補正値
 		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
@@ -357,12 +362,29 @@ void SceneDebug::Update(float tick)
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
 	}
 
+	// --- 速度計算用ロジック (Update/Draw共通で使用するため変数化) ---
+	float speed = 1.0f;
+	AttackParams* params = player->GetCurrentAttackParams();
+	if (m_isAttacking && params) {
+		const char* animName = GetCurrentAnimName();
+		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
+		float targetFrames = params->totalDuration * 60.0f;
+		if (targetFrames <= 1.0f) targetFrames = 1.0f;
+		speed = (float)totalAnimFrames / targetFrames;
+	}
+
 	// --- アニメーション制御 ---
 	if (m_isPaused)
 	{
-		// 一時停止中: GUIで操作された m_currentFrame (整数) を強制適用する
-		player->Debug_SetFrame(m_currentFrame);
-		m_animTimer = 0.0f; // タイマーは止めておく
+		// ★変更点: m_currentFrame は「ゲームフレーム」として扱う
+		// 一時停止中: 
+		// 1. ゲームフレーム(m_currentFrame) に 速度倍率(speed) を掛けて、モデルフレームを算出する
+		int modelFrame = static_cast<int>(m_currentFrame * speed);
+
+		// 2. モデルに適用
+		player->Debug_SetFrame(modelFrame);
+
+		m_animTimer = 0.0f;
 	}
 	else
 	{
@@ -379,36 +401,43 @@ void SceneDebug::Update(float tick)
 				m_animTimer -= FRAME_TIME_60FPS;
 			}
 		}
+
+		// ★変更点: プレイヤーから現在のモデルフレームを取得し、ゲームフレームに逆変換して同期
+		if (m_isAttacking)
+		{
+			// GameFrame = ModelFrame / speed
+			float currentModelFrame = (float)player->Debug_GetFrame();
+			if (speed > 0.0f) {
+				m_currentFrame = static_cast<int>(currentModelFrame / speed);
+			}
+			else {
+				m_currentFrame = (int)currentModelFrame;
+			}
+		}
 	}
 
 	// ボーン行列の更新 (アニメ停止中でも姿勢を反映するために毎フレーム呼ぶ)
 	player->UpdateModelBlend();
 
-	// 再生中はプレイヤーから現在のフレーム数を取得して同期
-	if (!m_isPaused)
-	{
-		m_currentFrame = player->Debug_GetFrame();
-	}
-
 	// --- 攻撃終了判定 ---
 	if (m_isAttacking)
 	{
-		// 選択中の技のアニメーション名
-		const char* animName = GetCurrentAnimName();
-		// モデルが持つ本来の総フレーム数
-		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
-
-		// 現在のフレーム(int)が総フレーム数を超えたら終了
-		// Player::UpdateAnimation が速度調整をしているため、m_currentFrame も調整された速度で進む
-		if (m_currentFrame >= (totalAnimFrames - 1))
+		// 判定も「ゲームフレーム」で行うことで、GUI設定と完全に同期させる
+		if (params)
 		{
-			player->Debug_SetAnimation("Idle", true);
-			m_isAttacking = false; // 攻撃終了
-			m_isPaused = false;    // 再生状態に戻す
-			m_currentFrame = 0;
+			// 全体フレーム(ゲーム内時間)を超えたら終了
+			int totalGameFrames = static_cast<int>(std::round(params->totalDuration * 60.0f));
 
-			// パラメータリンクを解除 (安全のため)
-			player->SetCurrentAttackParams(nullptr);
+			if (m_currentFrame >= totalGameFrames)
+			{
+				player->Debug_SetAnimation("Idle", true);
+				m_isAttacking = false; // 攻撃終了
+				m_isPaused = false;    // 再生状態に戻す
+				m_currentFrame = 0;
+
+				// パラメータリンクを解除 (安全のため)
+				player->SetCurrentAttackParams(nullptr);
+			}
 		}
 	}
 }
@@ -470,19 +499,12 @@ void SceneDebug::Draw()
 			// 現在アクティブなパラメータを使用
 			AttackParams* params = player->GetCurrentAttackParams();
 
-			// ★修正点: アニメーション速度に合わせてフレーム数を計算する
-			// ゲーム本編では「秒」で管理されているが、ここでは「フレーム番号」と比較するため変換が必要
-			const char* animName = GetCurrentAnimName();
-			int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
+			// ★修正点: m_currentFrame を「ゲームフレーム」としたため、
+			// hitboxStart (秒) を単純に 60倍してフレームに直すだけで比較可能になる
+			// speed の乗算は不要 (GUIで「開始フレーム: 5」としたら 5フレーム目に表示される)
 
-			// 速度倍率 = モデル総フレーム / (設定された全体時間 * 60)
-			float speed = (float)totalAnimFrames / (params->totalDuration * 60.0f);
-			if (speed <= 0.0f) speed = 1.0f; // 安全策
-
-			// 開始・終了時間をフレーム番号(モデル基準)に変換
-			// 時間(秒) * 60FPS * 速度倍率 = フレーム番号
-			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f * speed));
-			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f * speed));
+			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
+			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
 
 			// 現在フレームが発生期間内なら描画
 			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
@@ -603,6 +625,7 @@ void SceneDebug::DrawImGui()
 		if (m_isPaused)
 		{
 			ImGui::SameLine();
+			// ここでの+1は「1ゲームフレーム」進むことを意味する
 			if (ImGui::Button("+1 Frame")) m_currentFrame++;
 			ImGui::InputInt("Frame", &m_currentFrame);
 		}
@@ -637,6 +660,8 @@ void SceneDebug::DrawImGui()
 		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
 		int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
+		int hitStopFrames = static_cast<int>(std::round(params.hitStop / FRAME_TIME_60FPS));
+
 
 		if (ImGui::InputInt("Total Frames", &totalFrames)) {
 			if (totalFrames < 1) totalFrames = 1;
@@ -659,6 +684,11 @@ void SceneDebug::DrawImGui()
 		ImGui::InputInt("Damage", &params.damage);
 		ImGui::InputInt("Hit Adv", &params.hitFrame);
 		ImGui::InputInt("Block Adv", &params.blockFrame);
+
+		if (ImGui::InputInt("Hit Stop (Frames)", &hitStopFrames)) {
+			if (hitStopFrames < 0) hitStopFrames = 0;
+			params.hitStop = hitStopFrames * FRAME_TIME_60FPS;
+		}
 
 		// 攻撃中のくらい判定補正 (TreeNodeでさらに階層化)
 		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))

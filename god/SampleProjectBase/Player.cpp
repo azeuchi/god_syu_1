@@ -129,7 +129,7 @@ void Player::PollInputs()
 		}
 		// 'J' キーで弱攻撃
 		if (IsKeyTrigger('J')) {
-			m_inputs.LightPunchi = true;
+			m_inputs.LightPunch = true;
 		}
 		// 'K' キーで中攻撃
 		if (IsKeyTrigger('K')) {
@@ -163,7 +163,7 @@ void Player::PollInputs()
 		}
 		// テンキーの '1' で弱攻撃
 		if (IsKeyTrigger(VK_NUMPAD1)) {
-			m_inputs.LightPunchi = true;
+			m_inputs.LightPunch = true;
 		}
 		// テンキーの '2' で中攻撃
 		if (IsKeyTrigger(VK_NUMPAD2)) {

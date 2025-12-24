@@ -12,9 +12,9 @@ class Shader;
 // プレイヤーの入力タイプを明確化
 enum class PlayerInputType
 {
-	PLAYER_1, // 1P (例: 'A','D'キー)
-	PLAYER_2, // 2P (例: 矢印キー)
-	AI        // AI (何もしない)
+	PLAYER_1, // 1P
+	PLAYER_2, // 2P
+	AI        // AI
 };
 
 // 抽象化された入力状態を保持する構造体
@@ -22,25 +22,25 @@ struct PlayerInputs
 {
 	bool moveLeft = false;
 	bool moveRight = false;
-	bool moveDown = false; // しゃがみ用
-	bool jump = false;    // ジャンプ
-	bool LightPunchi = false; // 弱パンチ
-	bool MediumPunch = false; // 中パンチ
-	bool HeavyKick = false; // 大キック
+	bool moveDown = false;
+	bool jump = false;
+	bool LightPunch = false;
+	bool MediumPunch = false;
+	bool HeavyKick = false;
 };
 
 struct AnimationState
 {
 	const char* name = nullptr;
-	float frame = 0.0f; // float (再生速度調整のため)
+	float frame = 0.0f;
 };
 
 // くらい判定 (Hurtbox) の部位定義
 enum class HurtboxType
 {
-	HEAD, // 頭 (上段・ジャンプ攻撃用)
-	BODY, // 体 (中段・基本判定)
-	LEGS, // 足 (下段・足払い用)
+	HEAD,
+	BODY,
+	LEGS,
 	COUNT
 };
 
@@ -70,6 +70,9 @@ struct AttackParams
 	int damage = 10;       // ダメージ量
 	int hitFrame = 5;      // ヒット時の有利フレーム
 	int blockFrame = -2;   // ガード時の有利フレーム
+
+	// ヒットストップ時間 (秒)
+	float hitStop = 0.1f;
 
 	// --- キャンセル設定 ---
 	bool cancelEnabled = false;     // キャンセルが可能か
@@ -105,14 +108,10 @@ public:
 	void SetInputType(PlayerInputType type);
 	PlayerInputType GetInputType() const;
 
-	// 抽象化された入力を State が取得するための関数
 	const PlayerInputs& GetInputs() const;
 
 	void PlayAnimation(const char* name, bool forceRestart = false);
-	// アニメーションの一時停止を設定する関数
 	void SetAnimPause(bool pause);
-
-	// アニメーション再生速度を設定 (1.0 = 等倍, 2.0 = 倍速)
 	void SetAnimationSpeed(float speed);
 
 	float GetForwardMoveDot() const;
@@ -128,25 +127,22 @@ public:
 	bool GetIsJumping() const;
 
 	// --- 当たり判定 (Hurtbox) ---
-	// 基本(立ち)設定
 	void SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
 	DirectX::XMFLOAT2 GetHurtboxBaseOffset(HurtboxType type) const;
 	DirectX::XMFLOAT2 GetHurtboxBaseExtents(HurtboxType type) const;
 
-	// しゃがみ設定
 	void SetHurtboxCrouch(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
 	DirectX::XMFLOAT2 GetHurtboxCrouchOffset(HurtboxType type) const;
 	DirectX::XMFLOAT2 GetHurtboxCrouchExtents(HurtboxType type) const;
 
-	// 現在の状態に応じたHurtboxを取得
 	DirectX::BoundingBox GetHurtbox(HurtboxType type) const;
 
-	// しゃがみ状態フラグのセット（Stateから呼ぶ）
 	void SetIsCrouching(bool isCrouching);
 	bool GetIsCrouching() const;
 
 	void DrawBoundingBox();
 	bool CheckCollision(const Player* other) const;
+
 
 	void SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents);
 	DirectX::XMFLOAT2 GetBoundingBoxExtents() const;
@@ -159,7 +155,7 @@ public:
 	bool IsAttacking() const;
 	void SetActiveHitbox(bool isActive);
 	void UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
-	void DrawHitbox(); // デバッグ描画用
+	void DrawHitbox();
 
 	void SetIsColliding(bool isColliding);
 	bool GetIsColliding() const;
@@ -186,7 +182,6 @@ public:
 		PlayAnimation(name, forceRestart);
 		m_blendFactor = 1.0f;
 	}
-	// int へのキャストを追加
 	int Debug_GetFrame() const {
 		return (int)m_currentAnim.frame;
 	}
@@ -195,17 +190,15 @@ public:
 	}
 
 	// --- HP関連の関数 ---
-	void ReceiveDamage(int damage); // ダメージを受ける
-	float GetHpRatio() const;       // HPの割合(0.0～1.0)を取得 (UI用)
+	void ReceiveDamage(int damage);
+	float GetHpRatio() const;
 
 	// --- 攻撃ヒット管理 ---
-	bool HasHit() const { return m_hasHit; } // 今の攻撃はもう当たったか？
-	void OnHit() { m_hasHit = true; }        // 当たったことにする
+	bool HasHit() const { return m_hasHit; }
+	void OnHit() { m_hasHit = true; }
 
 private:
 	void UpdatePhysics(float tick);
-
-	// 入力タイプに応じて m_inputs を更新する
 	void PollInputs();
 
 	std::shared_ptr<Model> m_model;
@@ -216,50 +209,37 @@ private:
 	bool m_isJumping;
 	float m_moveSpeed;
 
-	// --- 当たり判定用メンバー変数 ---
 	DirectX::XMFLOAT2 m_baseHurtboxOffsets[(int)HurtboxType::COUNT];
 	DirectX::XMFLOAT2 m_baseHurtboxExtents[(int)HurtboxType::COUNT];
 
-	// しゃがみ用判定
 	DirectX::XMFLOAT2 m_crouchHurtboxOffsets[(int)HurtboxType::COUNT];
 	DirectX::XMFLOAT2 m_crouchHurtboxExtents[(int)HurtboxType::COUNT];
 
 	bool m_isColliding = false;
-	bool m_isCrouching = false; // 現在しゃがみ状態か
+	bool m_isCrouching = false;
 
-	// --- 攻撃判定 (Hitbox) 用メンバー ---
-	DirectX::BoundingBox m_hitbox;     // 攻撃判定用のBox
-	bool m_isAttacking = false; // 攻撃判定がアクティブか
+	DirectX::BoundingBox m_hitbox;
+	bool m_isAttacking = false;
 
-	// --- FSM (ステートパターン) 用メンバー ---
 	PlayerState* m_currentState;
-
-	// --- 入力タイプ用メンバー ---
 	PlayerInputType m_inputType;
-
-	// 抽象化された入力状態
 	PlayerInputs m_inputs;
 
-	// --- アニメーション用メンバー ---
 	AnimationState m_currentAnim;
 	AnimationState m_previousAnim;
 	float m_blendFactor = 1.0f;
 	const float m_transitionDuration = 0.1f;
-	bool m_isAnimPaused = false; // アニメーション一時停止フラグ
+	bool m_isAnimPaused = false;
 
-	// 再生スピード倍率 
 	float m_animSpeed = 1.0f;
 
-	// --- 技パラメータ用メンバー ---
 	AttackParams m_lightPunchParams;
 	AttackParams m_mediumPunchParams;
 	AttackParams m_heavyKickParams;
 
-	// 現在アクティブなパラメータへのポインタ
 	AttackParams* m_pActiveAttackParams = nullptr;
 
-	// --- HPとヒット管理 ---
 	int m_hp;
-	const int m_maxHp = 10000; // 最大HP 10000固定
-	bool m_hasHit = false;     // 現在の攻撃が既にヒットしたか
+	const int m_maxHp = 10000;
+	bool m_hasHit = false;
 };

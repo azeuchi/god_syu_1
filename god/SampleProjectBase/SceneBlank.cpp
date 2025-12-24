@@ -37,6 +37,8 @@ const float CAMERA_LIMIT_X = 4.0f;
  */
 void SceneBlank::Init()
 {
+	m_hitStopTimer = 0.0f;
+
 	// ==================================================
 	// 1. シェーダーの読み込み
 	// ==================================================
@@ -133,6 +135,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> lParams.damage;
 		if (!ifs.eof()) ifs >> lParams.hitFrame;
 		if (!ifs.eof()) ifs >> lParams.blockFrame;
+		if (!ifs.eof()) ifs >> lParams.hitStop;
 		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> lParams.bodyOffsetVal.x >> lParams.bodyOffsetVal.y;
@@ -153,6 +156,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> mParams.damage;
 		if (!ifs.eof()) ifs >> mParams.hitFrame;
 		if (!ifs.eof()) ifs >> mParams.blockFrame;
+		if (!ifs.eof()) ifs >> mParams.hitStop;
 		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> mParams.bodyOffsetVal.x >> mParams.bodyOffsetVal.y;
@@ -173,6 +177,7 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> hParams.damage;
 		if (!ifs.eof()) ifs >> hParams.hitFrame;
 		if (!ifs.eof()) ifs >> hParams.blockFrame;
+		if (!ifs.eof()) ifs >> hParams.hitStop;
 		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
 		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
 		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
@@ -292,8 +297,17 @@ void SceneBlank::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	if (player) player->Update(tick);
-	if (player2) player2->Update(tick);
+	// ヒットストップ中は、プレイヤーの更新時間を 0 にする
+	// これによりアニメーションと物理演算は止まるが、入力受付(PollInputs)は動き続ける
+	float playerTick = tick;
+	if (m_hitStopTimer > 0.0f)
+	{
+		m_hitStopTimer -= tick;
+		playerTick = 0.0f; // 時間停止
+	}
+
+	if (player) player->Update(playerTick);
+	if (player2) player2->Update(playerTick);
 
 	// 向きの制御 (相手の方を向く)
 	if (player && player2)
@@ -432,6 +446,10 @@ void SceneBlank::Update(float tick)
 			float reduceWidth = m_barMaxWidth - currentWidth;
 			m_enemyhpBar->SetSize(currentWidth, 80.0f);
 			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
+
+			// ヒットストップ開始 
+			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
+			m_hitStopTimer = stopTime;
 		}
 
 		// --- 攻撃判定 (P2 -> P1) ---
@@ -463,6 +481,10 @@ void SceneBlank::Update(float tick)
 			float reduceWidth = m_barMaxWidth - currentWidth;
 			m_hpBar->SetSize(currentWidth, 80.0f);
 			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
+
+			//  ヒットストップ開始
+			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
+			m_hitStopTimer = stopTime;
 		}
 	}
 
@@ -498,6 +520,7 @@ void SceneBlank::Update(float tick)
 		XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
 		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
 
+		// カメラは時間を止めない
 		float smoothSpeed = 4.0f * tick;
 		XMFLOAT3 currentPos = pCamera->GetPos();
 		XMFLOAT3 currentLook = pCamera->GetLook();
@@ -526,7 +549,7 @@ void SceneBlank::Update(float tick)
 void SceneBlank::Draw()
 {
 	// ==========================================================
-	// 描画設定のリセット・初期化 (タイトル画面からの影響を消す)
+	// 描画設定のリセット・初期化
 	// ==========================================================
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff); // 不透明へリセット

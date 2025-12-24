@@ -15,7 +15,7 @@ void PlayerStateGround::Update(Player* player, float tick)
 	const PlayerInputs& inputs = player->GetInputs();
 
 	// UŒ‚1 (Light Punch)
-	if (inputs.LightPunchi)
+	if (inputs.LightPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
 		player->SetState(new LightPunch());
