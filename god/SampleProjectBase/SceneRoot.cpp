@@ -198,6 +198,13 @@ void SceneRoot::Update(float tick)
 			Transition(SCENE_RESULT);
 		}
 
+		// ゲームセットになったらリザルトへ (静的フラグをチェック)
+		if (SceneBlank::s_isGameSet)
+		{
+			Transition(SCENE_RESULT);
+			SceneBlank::s_isGameSet = false; // フラグを戻しておく
+		}
+
 		break;
 
 		// デバッグ画面の時

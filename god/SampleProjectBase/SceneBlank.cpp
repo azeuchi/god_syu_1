@@ -31,18 +31,32 @@ const char* SETTINGS_FILE = "player_settings.ini";
 const float STAGE_LIMIT_X = 6.0f;
 const float CAMERA_LIMIT_X = 4.0f;
 
+// 定数定義
+const int ROUND_TO_WIN = 2;         // 2本先取で勝利
+const float ROUND_WAIT_TIME = 2.0f; // ラウンド終了後の待機時間
+
+// 静的メンバ変数の実体定義
+bool SceneBlank::s_isGameSet = false;
+
 /**
  * @brief シーンの初期化処理
  * シェーダー、モデル、UI、プレイヤーの生成と設定ロードを行う
  */
 void SceneBlank::Init()
 {
-	// ★初期化
+	// 初期化
 	m_hitStopTimer = 0.0f;
 	m_shakeTimerP1 = 0.0f;
 	m_shakeTimerP2 = 0.0f;
 	m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f };
 	m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f };
+
+	// ラウンド情報の初期化
+	m_winCountP1 = 0;
+	m_winCountP2 = 0;
+	m_isRoundOver = false;
+	m_roundEndTimer = 0.0f;
+	s_isGameSet = false;
 
 	// ==================================================
 	// 1. シェーダーの読み込み
@@ -219,8 +233,8 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 
-	player->SetPosition({ -2.0f, 0.0f, 0.0f });
-	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
+	// 初期位置設定
+	ResetRound();
 
 
 	// ==================================================
@@ -262,6 +276,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
+	// 初期位置設定 (ResetRoundで上書きされるが念のため)
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
@@ -297,235 +312,305 @@ void SceneBlank::Uninit()
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
 }
 
+/**
+ * @brief ラウンド開始・リセット処理
+ * 位置、HP、向き、状態を初期状態に戻す
+ */
+void SceneBlank::ResetRound()
+{
+	m_isRoundOver = false;
+	m_roundEndTimer = 0.0f;
+	m_hitStopTimer = 0.0f;
+	m_shakeTimerP1 = 0.0f;
+	m_shakeTimerP2 = 0.0f;
+
+	// 1Pリセット
+	Player* player = GetObj<Player>("Player");
+	if (player)
+	{
+		player->SetPosition({ -2.0f, 0.0f, 0.0f });
+		player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
+		player->Reset(); // HP全回復、ステートリセット
+		player->SetInputType(PlayerInputType::PLAYER_1); // 操作可能に戻す
+	}
+
+	// 2Pリセット
+	Player* player2 = GetObj<Player>("Player2");
+	if (player2)
+	{
+		player2->SetPosition({ 2.0f, 0.0f, 0.0f });
+		player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
+		player2->Reset();
+		player2->SetInputType(PlayerInputType::PLAYER_2);
+	}
+
+	// HPバーの見た目もリセット
+	if (m_hpBar) m_hpBar->SetSize(m_barMaxWidth, 80.0f);
+	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, 80.0f);
+	// 位置も初期位置へ
+	if (m_hpBar) m_hpBar->SetPosition(m_hpBarPos.x, m_hpBarPos.y);
+	if (m_enemyhpBar) m_enemyhpBar->SetPosition(m_enemyHpBarPos.x, m_enemyHpBarPos.y);
+
+	// カメラリセット
+	CameraBase* pCamera = GetObj<CameraBase>("Camera");
+	if (pCamera)
+	{
+		pCamera->SetPos({ 0.0f, 1.2f, -5.0f });
+		pCamera->SetLook({ 0.0f, 1.0f, 4.0f });
+	}
+
+	DebugLog::log(DebugLog::INFO_LOG, "--- Round Start ---");
+}
+
+
 void SceneBlank::Update(float tick)
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// ヒットストップ中は、プレイヤーの更新時間を 0 にする
-	// これによりアニメーションと物理演算は止まるが、入力受付(PollInputs)は動き続ける
-	float playerTick = tick;
-	if (m_hitStopTimer > 0.0f)
+	// ==========================================================
+	// 1. ラウンド終了後の待機処理
+	// ==========================================================
+	if (m_isRoundOver)
 	{
-		m_hitStopTimer -= tick;
-		playerTick = 0.0f; // 時間停止
+		m_roundEndTimer += tick;
+
+		// やられモーション等の更新のため、プレイヤーのUpdateは呼ぶが、
+		// 操作は受け付けないように InputType を AI に変更しておく(ResetRoundで戻す)
+		if (player) player->Update(tick);
+		if (player2) player2->Update(tick);
+
+		// カメラ更新は続ける
+		// (後述のカメラ制御コードへ続く)
+
+		// 2秒経ったら次へ
+		if (m_roundEndTimer >= ROUND_WAIT_TIME)
+		{
+			// どちらかが規定ラウンド数勝っていたらリザルトへ (静的フラグを立てる)
+			if (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN)
+			{
+				s_isGameSet = true;
+			}
+			else
+			{
+				// まだ決着がついていないなら次のラウンドへ
+				ResetRound();
+			}
+		}
+
+		// これ以降のヒット判定などは行わないのでreturnしないが、
+		// 判定処理をスキップするようにフラグで制御する
+	}
+	else
+	{
+		// ==========================================================
+		// 2. 通常のゲーム進行
+		// ==========================================================
+
+		// ヒットストップ中は、プレイヤーの更新時間を 0 にする
+		float playerTick = tick;
+		if (m_hitStopTimer > 0.0f)
+		{
+			m_hitStopTimer -= tick;
+			playerTick = 0.0f; // 時間停止
+		}
+
+		if (player) player->Update(playerTick);
+		if (player2) player2->Update(playerTick);
+
+		// 向きの制御、移動制限、押し出し処理などはラウンド中のみ有効
+
+		// 向きの制御
+		if (player && player2)
+		{
+			float x1 = player->GetPosition().x;
+			float x2 = player2->GetPosition().x;
+			float absScale1 = fabsf(player->GetScale().x);
+			float absScale2 = fabsf(player2->GetScale().x);
+			DirectX::XMFLOAT3 s1 = player->GetScale();
+			DirectX::XMFLOAT3 s2 = player2->GetScale();
+			float rotLeft = DirectX::XM_PI / 2.0f;
+			float rotRight = DirectX::XM_PI / -2.0f;
+
+			if (x1 < x2) {
+				s1.x = absScale1; player->SetScale(s1); player->SetRotation({ 0.0f, rotRight, 0.0f });
+				s2.x = -absScale2; player2->SetScale(s2); player2->SetRotation({ 0.0f, rotLeft, 0.0f });
+			}
+			else {
+				s1.x = -absScale1; player->SetScale(s1); player->SetRotation({ 0.0f, rotLeft, 0.0f });
+				s2.x = absScale2; player2->SetScale(s2); player2->SetRotation({ 0.0f, rotRight, 0.0f });
+			}
+		}
+
+		// 移動制限
+		if (player) {
+			XMFLOAT3 pos = player->GetPosition();
+			pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+			player->SetPosition(pos);
+		}
+		if (player2) {
+			XMFLOAT3 pos = player2->GetPosition();
+			pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+			player2->SetPosition(pos);
+		}
+
+		// 衝突判定と押し出し
+		if (player && player2)
+		{
+			bool isColliding = player->CheckCollision(player2);
+			player->SetIsColliding(isColliding);
+			player2->SetIsColliding(isColliding);
+
+			if (isColliding && !player->IsAttacking() && !player2->IsAttacking())
+			{
+				DirectX::BoundingBox box1 = player->GetHurtbox(HurtboxType::BODY);
+				DirectX::BoundingBox box2 = player2->GetHurtbox(HurtboxType::BODY);
+				DirectX::XMFLOAT3 pos1 = player->GetPosition();
+				DirectX::XMFLOAT3 pos2 = player2->GetPosition();
+
+				float deltaX = box1.Center.x - box2.Center.x;
+				float sumExtentsX = box1.Extents.x + box2.Extents.x;
+				float overlapX = sumExtentsX - abs(deltaX);
+
+				float deltaY = box1.Center.y - box2.Center.y;
+				float sumExtentsY = box1.Extents.y + box2.Extents.y;
+				float overlapY = sumExtentsY - abs(deltaY);
+
+				DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
+
+				if (overlapX < overlapY) {
+					float pushAmount = overlapX / 2.0f;
+					float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
+					pushVector.x = direction * pushAmount;
+				}
+				else {
+					float pushAmount = overlapY / 2.0f;
+					float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
+					pushVector.y = direction * pushAmount;
+				}
+
+				pos1.x += pushVector.x; pos2.x -= pushVector.x;
+				pos1.y += pushVector.y; pos2.y -= pushVector.y;
+				pos1.x = std::clamp(pos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+				pos2.x = std::clamp(pos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+				player->SetPosition(pos1);
+				player2->SetPosition(pos2);
+			}
+
+			// --- 攻撃判定 (P1 -> P2) ---
+			bool hit2 = false;
+			if (player->IsAttacking() && !player->HasHit())
+			{
+				BoundingBox atk = player->GetActiveHitbox();
+				if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
+					atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
+					atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+				{
+					hit2 = true;
+				}
+			}
+
+			if (hit2)
+			{
+				AttackParams* params = player->GetCurrentAttackParams();
+				int dmg = (params != nullptr) ? params->damage : 0;
+				int stun = (params != nullptr) ? params->hitFrame : 30;
+
+				player2->ReceiveDamage(dmg);
+				player->OnHit();
+				player2->SetState(new PlayerStateDamage(stun));
+
+				float ratio = player2->GetHpRatio();
+				float currentWidth = m_barMaxWidth * ratio;
+				float reduceWidth = m_barMaxWidth - currentWidth;
+				m_enemyhpBar->SetSize(currentWidth, 80.0f);
+				m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
+
+				float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
+				m_hitStopTimer = stopTime;
+				m_shakeTimerP2 = stopTime;
+
+				// KOチェック
+				if (player2->GetHpRatio() <= 0.0f)
+				{
+					m_winCountP1++;
+					m_isRoundOver = true;
+					player->SetInputType(PlayerInputType::AI); // 操作不能に
+					player2->SetInputType(PlayerInputType::AI);
+					DebugLog::log(DebugLog::INFO_LOG, "P1 WIN ROUND!");
+				}
+			}
+
+			// --- 攻撃判定 (P2 -> P1) ---
+			// 既にラウンドが終わっていたら判定しない
+			bool hit1 = false;
+			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
+			{
+				BoundingBox atk = player2->GetActiveHitbox();
+				if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
+					atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
+					atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+				{
+					hit1 = true;
+				}
+			}
+
+			if (hit1)
+			{
+				AttackParams* params = player2->GetCurrentAttackParams();
+				int dmg = (params != nullptr) ? params->damage : 0;
+				int stun = (params != nullptr) ? params->hitFrame : 30;
+
+				player->ReceiveDamage(dmg);
+				player2->OnHit();
+				player->SetState(new PlayerStateDamage(stun));
+
+				float ratio = player->GetHpRatio();
+				float currentWidth = m_barMaxWidth * ratio;
+				float reduceWidth = m_barMaxWidth - currentWidth;
+				m_hpBar->SetSize(currentWidth, 80.0f);
+				m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
+
+				float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
+				m_hitStopTimer = stopTime;
+				m_shakeTimerP1 = stopTime;
+
+				// KOチェック
+				if (player->GetHpRatio() <= 0.0f)
+				{
+					m_winCountP2++;
+					m_isRoundOver = true;
+					player->SetInputType(PlayerInputType::AI);
+					player2->SetInputType(PlayerInputType::AI);
+					DebugLog::log(DebugLog::INFO_LOG, "P2 WIN ROUND!");
+				}
+			}
+		}
 	}
 
-	if (player) player->Update(playerTick);
-	if (player2) player2->Update(playerTick);
-
-	// ★追加: ヒットシェイク計算 (振動)
-	// P1用
-	if (m_shakeTimerP1 > 0.0f)
-	{
+	// ヒットシェイク計算 (ラウンド終了後も振動は残ってOK)
+	if (m_shakeTimerP1 > 0.0f) {
 		m_shakeTimerP1 -= tick;
-		// ランダムに少しずらす (範囲: -0.05 ~ 0.05 程度)
 		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
 		float offsetY = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
 		m_shakeOffsetP1 = { offsetX, offsetY, 0.0f };
 	}
-	else
-	{
+	else {
 		m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f };
 	}
 
-	// P2用
-	if (m_shakeTimerP2 > 0.0f)
-	{
+	if (m_shakeTimerP2 > 0.0f) {
 		m_shakeTimerP2 -= tick;
 		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
 		float offsetY = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
 		m_shakeOffsetP2 = { offsetX, offsetY, 0.0f };
 	}
-	else
-	{
+	else {
 		m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f };
 	}
 
 
-	// 向きの制御 (相手の方を向く)
-	if (player && player2)
-	{
-		float x1 = player->GetPosition().x;
-		float x2 = player2->GetPosition().x;
-
-		float absScale1 = fabsf(player->GetScale().x);
-		float absScale2 = fabsf(player2->GetScale().x);
-
-		DirectX::XMFLOAT3 s1 = player->GetScale();
-		DirectX::XMFLOAT3 s2 = player2->GetScale();
-
-		float rotLeft = DirectX::XM_PI / 2.0f;   // 左向き
-		float rotRight = DirectX::XM_PI / -2.0f; // 右向き
-
-		if (x1 < x2)
-		{
-			// P1が左、P2が右
-			s1.x = absScale1;
-			player->SetScale(s1);
-			player->SetRotation({ 0.0f, rotRight, 0.0f });
-
-			s2.x = -absScale2;
-			player2->SetScale(s2);
-			player2->SetRotation({ 0.0f, rotLeft, 0.0f });
-		}
-		else
-		{
-			// 入れ替わり
-			s1.x = -absScale1;
-			player->SetScale(s1);
-			player->SetRotation({ 0.0f, rotLeft, 0.0f });
-
-			s2.x = absScale2;
-			player2->SetScale(s2);
-			player2->SetRotation({ 0.0f, rotRight, 0.0f });
-		}
-	}
-
-	// 移動制限
-	if (player)
-	{
-		XMFLOAT3 pos = player->GetPosition();
-		pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-		player->SetPosition(pos);
-	}
-	if (player2)
-	{
-		XMFLOAT3 pos = player2->GetPosition();
-		pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-		player2->SetPosition(pos);
-	}
-
-
-	// 衝突判定と押し出し処理
-	if (player && player2)
-	{
-		bool isColliding = player->CheckCollision(player2);
-		player->SetIsColliding(isColliding);
-		player2->SetIsColliding(isColliding);
-
-		if (isColliding && !player->IsAttacking() && !player2->IsAttacking())
-		{
-			// 体同士の押し出し計算
-			DirectX::BoundingBox box1 = player->GetHurtbox(HurtboxType::BODY);
-			DirectX::BoundingBox box2 = player2->GetHurtbox(HurtboxType::BODY);
-
-			DirectX::XMFLOAT3 pos1 = player->GetPosition();
-			DirectX::XMFLOAT3 pos2 = player2->GetPosition();
-
-			float deltaX = box1.Center.x - box2.Center.x;
-			float sumExtentsX = box1.Extents.x + box2.Extents.x;
-			float overlapX = sumExtentsX - abs(deltaX);
-
-			float deltaY = box1.Center.y - box2.Center.y;
-			float sumExtentsY = box1.Extents.y + box2.Extents.y;
-			float overlapY = sumExtentsY - abs(deltaY);
-
-			DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
-
-			if (overlapX < overlapY)
-			{
-				float pushAmount = overlapX / 2.0f;
-				float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
-				pushVector.x = direction * pushAmount;
-			}
-			else
-			{
-				float pushAmount = overlapY / 2.0f;
-				float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
-				pushVector.y = direction * pushAmount;
-			}
-
-			pos1.x += pushVector.x;
-			pos2.x -= pushVector.x;
-			pos1.y += pushVector.y;
-			pos2.y -= pushVector.y;
-
-			// 画面端制限
-			pos1.x = std::clamp(pos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-			pos2.x = std::clamp(pos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-
-			player->SetPosition(pos1);
-			player2->SetPosition(pos2);
-		}
-
-		// --- 攻撃判定 (P1 -> P2) ---
-		bool hit2 = false;
-		if (player->IsAttacking() && !player->HasHit())
-		{
-			BoundingBox atk = player->GetActiveHitbox();
-			if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
-				atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
-				atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
-			{
-				hit2 = true;
-			}
-		}
-
-		if (hit2)
-		{
-			AttackParams* params = player->GetCurrentAttackParams();
-			int dmg = (params != nullptr) ? params->damage : 0;
-			int stun = (params != nullptr) ? params->hitFrame : 30;
-
-			player2->ReceiveDamage(dmg);
-			player->OnHit();
-
-			// ダメージモーションへ遷移
-			player2->SetState(new PlayerStateDamage(stun));
-
-			// HPバー更新
-			float ratio = player2->GetHpRatio();
-			float currentWidth = m_barMaxWidth * ratio;
-			float reduceWidth = m_barMaxWidth - currentWidth;
-			m_enemyhpBar->SetSize(currentWidth, 80.0f);
-			m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
-
-			// ヒットストップ & ヒットシェイク開始
-			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
-			m_hitStopTimer = stopTime;
-			m_shakeTimerP2 = stopTime; // やられた側(P2)を揺らす
-		}
-
-		// --- 攻撃判定 (P2 -> P1) ---
-		bool hit1 = false;
-		if (player2->IsAttacking() && !player2->HasHit())
-		{
-			BoundingBox atk = player2->GetActiveHitbox();
-			if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
-				atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
-				atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
-			{
-				hit1 = true;
-			}
-		}
-
-		if (hit1)
-		{
-			AttackParams* params = player2->GetCurrentAttackParams();
-			int dmg = (params != nullptr) ? params->damage : 0;
-			int stun = (params != nullptr) ? params->hitFrame : 30;
-
-			player->ReceiveDamage(dmg);
-			player2->OnHit();
-
-			player->SetState(new PlayerStateDamage(stun));
-
-			float ratio = player->GetHpRatio();
-			float currentWidth = m_barMaxWidth * ratio;
-			float reduceWidth = m_barMaxWidth - currentWidth;
-			m_hpBar->SetSize(currentWidth, 80.0f);
-			m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
-
-			//  ヒットストップ & ヒットシェイク開始
-			float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
-			m_hitStopTimer = stopTime;
-			m_shakeTimerP1 = stopTime; // やられた側(P1)を揺らす
-		}
-	}
-
-
-	// カメラ制御 (プレイヤー間の中点を追尾)
+	// カメラ制御 (ラウンド終了後もキャラを映し続ける)
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -556,7 +641,6 @@ void SceneBlank::Update(float tick)
 		XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
 		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
 
-		// カメラは時間を止めない
 		float smoothSpeed = 4.0f * tick;
 		XMFLOAT3 currentPos = pCamera->GetPos();
 		XMFLOAT3 currentLook = pCamera->GetLook();
@@ -634,7 +718,6 @@ void SceneBlank::Draw()
 	// 2. プレイヤー1の描画
 	Player* player = GetObj<Player>("Player");
 	if (player) {
-		// ★追加: シェイクオフセットを加味して描画
 		XMFLOAT3 pos = player->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
 
@@ -653,10 +736,7 @@ void SceneBlank::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 
-		// 本体とデバッグ用ボックスの描画
 		player->Draw();
-
-		// ★修正: デバッグビルド時のみボックスを描画する
 #ifdef _DEBUG
 		player->DrawBoundingBox();
 		player->DrawHitbox();
@@ -666,7 +746,6 @@ void SceneBlank::Draw()
 	// 3. プレイヤー2の描画
 	Player* player2 = GetObj<Player>("Player2");
 	if (player2) {
-		// ★追加: シェイクオフセットを加味して描画
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
 
@@ -686,8 +765,6 @@ void SceneBlank::Draw()
 		player2->SetPixelShader(shader[1]);
 
 		player2->Draw();
-
-		// ★修正: デバッグビルド時のみボックスを描画する
 #ifdef _DEBUG
 		player2->DrawBoundingBox();
 		player2->DrawHitbox();

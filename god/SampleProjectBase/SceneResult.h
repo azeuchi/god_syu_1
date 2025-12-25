@@ -14,6 +14,7 @@ public:
 
 private:
 	Image2D* m_pImage = nullptr; // 画像管理用ポインタ
+	Image2D* m_returntitle = nullptr;
 };
 
 #endif // __SCENE_RESULT_H__

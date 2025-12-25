@@ -24,6 +24,8 @@ struct PlayerInputs
 	bool moveRight = false;
 	bool moveDown = false;
 	bool jump = false;
+
+	// 名前を変更
 	bool LightPunch = false;
 	bool MediumPunch = false;
 	bool HeavyKick = false;
@@ -192,6 +194,9 @@ public:
 	// --- HP関連の関数 ---
 	void ReceiveDamage(int damage);
 	float GetHpRatio() const;
+
+	// ラウンド開始時のリセット
+	void Reset();
 
 	// --- 攻撃ヒット管理 ---
 	bool HasHit() const { return m_hasHit; }

@@ -17,8 +17,12 @@ public:
 	void Update(float tick); // 更新
 	void Draw();   // 描画
 
-	// 画像を追加する関数
-	//void AddUI(const char* filePath, float x, float y, float w, float h);
+	// SceneRootから参照するための静的フラグ
+	static bool s_isGameSet;
+
+private:
+	// 次のラウンドのために位置やHPをリセットする関数
+	void ResetRound();
 
 private:
 	// HPバー表示用クラス
@@ -43,4 +47,10 @@ private:
 	float m_shakeTimerP2 = 0.0f; // 2Pの振動残り時間
 	DirectX::XMFLOAT3 m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f }; // 1Pの描画ずらし量
 	DirectX::XMFLOAT3 m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f }; // 2Pの描画ずらし量
+
+	// ラウンド管理用
+	int m_winCountP1 = 0;      // 1Pの勝利ラウンド数
+	int m_winCountP2 = 0;      // 2Pの勝利ラウンド数
+	bool m_isRoundOver = false; // ラウンドが終わったかどうかのフラグ
+	float m_roundEndTimer = 0.0f; // ラウンド終了後の待機タイマー (2秒)
 };

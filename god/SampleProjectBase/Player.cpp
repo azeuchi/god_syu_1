@@ -609,3 +609,12 @@ float Player::GetHpRatio() const
 	return (float)m_hp / (float)m_maxHp;
 }
 
+void Player::Reset()
+{
+	m_hp = m_maxHp;
+	m_isJumping = false;
+	m_isAttacking = false;
+	m_hasHit = false;
+	m_velocity = { 0.0f, 0.0f, 0.0f };
+	SetState(new PlayerStateIdle());
+}
