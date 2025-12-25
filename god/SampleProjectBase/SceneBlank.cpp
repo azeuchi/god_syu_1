@@ -33,7 +33,11 @@ const float CAMERA_LIMIT_X = 4.0f;
 
 // 定数定義
 const int ROUND_TO_WIN = 2;         // 2本先取で勝利
-const float ROUND_WAIT_TIME = 2.0f; // ラウンド終了後の待機時間
+
+// フェード演出用定数
+const float WAIT_BEFORE_FADE = 1.0f; // ラウンド終了後、フェード開始までの待機時間
+const float FADE_DURATION = 2.0f;    // フェードにかける時間
+const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 (3.0秒)
 
 // 静的メンバ変数の実体定義
 bool SceneBlank::s_isGameSet = false;
@@ -106,6 +110,13 @@ void SceneBlank::Init()
 	m_enemyhpBar = new Image2D();
 	m_enemyHpBarPos = { 950.0f, 80.0f };
 	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
+
+	// フェード用画像
+	m_fadeBlack = new Image2D();
+	// 画面中心座標 (640, 360) に配置 (1280x720)
+	m_fadeBlack->Load("Assets/Texture/black.png", 640.0f, 360.0f, 1280.0f, 720.0f);
+	// 初期状態は透明な黒
+	m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 
 	// ==================================================
@@ -299,17 +310,42 @@ void SceneBlank::Init()
 	depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 1.0(最奥)も描画する
 	depthDesc.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthState);
+
+	// 背景ソリッド消え対策の深度無効ステート
+	D3D11_DEPTH_STENCIL_DESC depthDisableDesc = {};
+	depthDisableDesc.DepthEnable = FALSE;
+	depthDisableDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDisableDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	depthDisableDesc.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&depthDisableDesc, &m_pDepthDisableState);
+
+	// 半透明合成用ブレンドステート
+	D3D11_BLEND_DESC blendDesc = {};
+	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.IndependentBlendEnable = FALSE;
+	blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
 }
 
 void SceneBlank::Uninit()
 {
 	if (m_hpBar) delete m_hpBar;
 	if (m_enemyhpBar) delete m_enemyhpBar;
+	if (m_fadeBlack) { delete m_fadeBlack; m_fadeBlack = nullptr; }
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
 
 	// 描画設定の解放
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
+	if (m_pDepthDisableState) { m_pDepthDisableState->Release(); m_pDepthDisableState = nullptr; }
+	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 }
 
 /**
@@ -323,6 +359,11 @@ void SceneBlank::ResetRound()
 	m_hitStopTimer = 0.0f;
 	m_shakeTimerP1 = 0.0f;
 	m_shakeTimerP2 = 0.0f;
+
+	if (m_fadeBlack)
+	{
+		m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
+	}
 
 	// 1Pリセット
 	Player* player = GetObj<Player>("Player");
@@ -375,6 +416,32 @@ void SceneBlank::Update(float tick)
 	{
 		m_roundEndTimer += tick;
 
+		bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
+
+		// ゲームセットでない(次ラウンドがある)場合のみフェード
+		if (!isGameSet && m_fadeBlack)
+		{
+			// 指定時間待機してから、だんだん濃くする
+			if (m_roundEndTimer < WAIT_BEFORE_FADE)
+			{
+				// まだ待機時間内なので透明
+				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
+			}
+			else
+			{
+				// 待機時間を過ぎたらフェード開始
+				// 0.0f から 1.0f へ変化（進行度 progress）
+				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
+				if (progress > 1.0f) progress = 1.0f;
+
+				// ご要望通り 0.1 からスタート
+				float alpha = 0.1f + (progress * 0.9f);
+
+				// 色は黒(0,0,0)で、透明度だけを変える
+				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, alpha);
+			}
+		}
+
 		// やられモーション等の更新のため、プレイヤーのUpdateは呼ぶが、
 		// 操作は受け付けないように InputType を AI に変更しておく(ResetRoundで戻す)
 		if (player) player->Update(tick);
@@ -383,7 +450,7 @@ void SceneBlank::Update(float tick)
 		// カメラ更新は続ける
 		// (後述のカメラ制御コードへ続く)
 
-		// 2秒経ったら次へ
+		// 待機時間(待機+フェード時間)が経過し、完全に暗くなったらリセット
 		if (m_roundEndTimer >= ROUND_WAIT_TIME)
 		{
 			// どちらかが規定ラウンド数勝っていたらリザルトへ (静的フラグを立てる)
@@ -397,17 +464,12 @@ void SceneBlank::Update(float tick)
 				ResetRound();
 			}
 		}
-
-		// これ以降のヒット判定などは行わないのでreturnしないが、
-		// 判定処理をスキップするようにフラグで制御する
 	}
 	else
 	{
 		// ==========================================================
-		// 2. 通常のゲーム進行
+		// 2. 通常のゲーム進行 (内容は変更なし)
 		// ==========================================================
-
-		// ヒットストップ中は、プレイヤーの更新時間を 0 にする
 		float playerTick = tick;
 		if (m_hitStopTimer > 0.0f)
 		{
@@ -780,7 +842,44 @@ void SceneBlank::Draw()
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
+	// 通常UIの描画
 	SimpleUI::DrawAll();
+
+	// 5. フェード用黒画像 (半透明＆背景消え対策の設定で描画)
+	bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
+	if (m_isRoundOver && !isGameSet && m_fadeBlack)
+	{
+		SimpleUI::Clear(); // リストをクリアしてフェード画像だけ登録
+		m_fadeBlack->Draw();
+
+		// フェード進行度を計算（Updateと同じ）
+		float progress = 0.0f;
+		if (m_roundEndTimer >= WAIT_BEFORE_FADE)
+		{
+			progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
+			if (progress > 1.0f) progress = 1.0f;
+		}
+
+	
+		if (progress < 0.9f)
+		{
+			if (m_pBlendState && m_pDepthDisableState)
+			{
+				GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
+				GetContext()->OMSetDepthStencilState(m_pDepthDisableState, 0);
+			}
+			SimpleUI::DrawAll();
+
+			// 設定を戻す
+			GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
+			GetContext()->OMSetDepthStencilState(nullptr, 0);
+		}
+	
+		else
+		{
+			SimpleUI::DrawAll();
+		}
+	}
 
 	// 念のためデフォルトに戻す
 	GetContext()->OMSetDepthStencilState(nullptr, 0);

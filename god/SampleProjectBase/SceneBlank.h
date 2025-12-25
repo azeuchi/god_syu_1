@@ -30,6 +30,9 @@ private:
 	Image2D* m_enemyhpBar;
 	SkyDome* m_skyDome;
 
+	// フェード用画像
+	Image2D* m_fadeBlack;
+
 	// HPバーの初期位置・サイズを記憶しておく変数
 	// 2P側の「右端固定」表示を実現するために使用する
 	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
@@ -38,6 +41,12 @@ private:
 
 	// 描画設定（スカイドーム表示用）
 	ID3D11DepthStencilState* m_pDepthState = nullptr;
+
+	// 背景ソリッドを消さないための深度無効ステート
+	ID3D11DepthStencilState* m_pDepthDisableState = nullptr;
+
+	// 半透明合成用のブレンドステート
+	ID3D11BlendState* m_pBlendState = nullptr;
 
 	// ヒットストップ演出用タイマー
 	float m_hitStopTimer = 0.0f;
