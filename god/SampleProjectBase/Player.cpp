@@ -11,7 +11,7 @@
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
 #include "MediumPunch.h" 
-#include "HeavyKick.h" // V‹K‹Z
+#include "HeavyKick.h" 
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"

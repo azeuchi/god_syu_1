@@ -65,9 +65,14 @@ void SceneTitle::Init()
 	m_particles.clear();
 	m_cameraAngle = 0.0f;
 
-	// ブレンドステートの作成（透明有効）
+	// 1. 半透明ブレンドステート
 	D3D11_BLEND_DESC blendDesc = {};
-	blendDesc.AlphaToCoverageEnable = FALSE;
+
+	// ★ここが修正点: AlphaToCoverageを有効にする
+	// これにより、画像の透明度を利用して「透明な部分だけ深度バッファへの書き込みをキャンセル」します。
+	// 結果として、透明部分はガラス板にならず、後ろのグリッド線が見えるようになります。
+	blendDesc.AlphaToCoverageEnable = TRUE;
+
 	blendDesc.IndependentBlendEnable = FALSE;
 	blendDesc.RenderTarget[0].BlendEnable = TRUE;
 	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -79,15 +84,19 @@ void SceneTitle::Init()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
 
-	// 深度ステンシルステート作成（UI用：深度無効）
+	// 2. UI用の深度ステート (深度書き込みON)
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
-	depthDescUI.DepthEnable = FALSE;
+
+	// ★深度書き込みを有効にする
+	// 文字がある部分は「手前の壁」として認識させ、グリッド線を隠します。
+	// AlphaToCoverageが効いているため、透明部分は書き込まれません。
+	depthDescUI.DepthEnable = TRUE;
 	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS; // 常に手前に描画
 	depthDescUI.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
 
-	// 深度ステンシルステート作成（3D用：LESS_EQUAL）
+	// 3. 3D用の深度ステート
 	D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
 	depthDesc3D.DepthEnable = TRUE;
 	depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -100,18 +109,15 @@ void SceneTitle::Uninit()
 {
 	DebugLog::log(DebugLog::INFO_LOG, "--- Title Scene Uninit ---");
 
-	// 終了時に描画ステートをリセットしておく
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
-	// 使い終わったらメモリ解放
 	if (m_pImage)
 	{
 		delete m_pImage;
 		delete m_PressEnter;
 		delete m_pParticleImg;
-
 		m_pImage = nullptr;
 		m_PressEnter = nullptr;
 		m_pParticleImg = nullptr;
@@ -135,10 +141,8 @@ void SceneTitle::Update(float tick)
 		float radius = 6.5f;
 		float camX = sinf(m_cameraAngle) * radius;
 		float camZ = cosf(m_cameraAngle) * radius;
-		// カメラの高さを変更 (1.3 -> 3.5)
 		float camY = 3.5f;
 		pCamera->SetPos({ camX, camY, camZ });
-		// 視点を少し下に向ける (Y=1.2あたりを見る)
 		pCamera->SetLook({ 0.0f, 1.2f, 0.0f });
 		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
 	}
@@ -203,20 +207,24 @@ void SceneTitle::Update(float tick)
 
 	// エンターキー画像の点滅処理
 	m_blinkTimer += tick;
-	float wave = (sinf(m_blinkTimer * 3.0f) + 1.0f) * 0.5f;
-	float alpha = 0.3f + 0.7f * wave;
+	float wave = (sinf(m_blinkTimer * 3.0f) + 1.0f) * 0.5f; // 0.0 ～ 1.0 の波
+
+
+	float alpha = 0.7f + 0.3f * wave;
+
 	if (m_PressEnter) m_PressEnter->SetColor(1.0f, 1.0f, 1.0f, alpha);
 }
-
 void SceneTitle::Draw()
 {
-	// 3D描画前にステートを設定
+	// ------------------------------------------------
+	// 1. 3Dオブジェクトの描画 (深度有効)
+	// ------------------------------------------------
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 
+	// 3D描画用深度設定
 	if (m_pDepthState3D)
 	{
-		// スカイドーム用にLESS_EQUALを設定
 		GetContext()->OMSetDepthStencilState(m_pDepthState3D, 0);
 	}
 	else
@@ -245,7 +253,7 @@ void SceneTitle::Draw()
 	DirectX::XMFLOAT3 cPos = pCamera->GetPos();
 	DirectX::XMFLOAT4 camParam[] = { {cPos.x, cPos.y, cPos.z, 0.0f} };
 
-	// 3Dオブジェクトの描画
+	// スカイドームとモデルの描画
 	if (m_skyDome)
 	{
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), vsObj);
@@ -270,14 +278,18 @@ void SceneTitle::Draw()
 		m_pTitleModel->Draw();
 	}
 
-	// UIとパーティクルの描画（透明有効・深度無効）
-	if (m_pBlendState)
-	{
-		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
-	}
+	// ------------------------------------------------
+	// 2. UIの描画 (AlphaToCoverage有効 & 深度有効)
+	// ------------------------------------------------
+
 	if (m_pDepthStateUI)
 	{
 		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
+	}
+
+	if (m_pBlendState)
+	{
+		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
 	}
 
 	SimpleUI::Clear();
@@ -285,6 +297,7 @@ void SceneTitle::Draw()
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
 
+	// パーティクル
 	if (m_pParticleImg)
 	{
 		for (const auto& p : m_particles)
@@ -294,12 +307,16 @@ void SceneTitle::Draw()
 		}
 	}
 
+	// ロゴ
 	if (m_pImage) m_pImage->Draw();
+
+	// Enter
 	if (m_PressEnter) m_PressEnter->Draw();
 
+	// 描画実行
 	SimpleUI::DrawAll();
 
-	// 描画終了後にステートをリセット
+	// 後始末
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 }

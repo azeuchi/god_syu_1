@@ -852,7 +852,7 @@ void SceneBlank::Draw()
 		SimpleUI::Clear(); // リストをクリアしてフェード画像だけ登録
 		m_fadeBlack->Draw();
 
-		// フェード進行度を計算（Updateと同じ）
+		// フェード進行度を計算
 		float progress = 0.0f;
 		if (m_roundEndTimer >= WAIT_BEFORE_FADE)
 		{
@@ -861,7 +861,7 @@ void SceneBlank::Draw()
 		}
 
 	
-		if (progress < 0.9f)
+		if (progress < 0.7f)
 		{
 			if (m_pBlendState && m_pDepthDisableState)
 			{
