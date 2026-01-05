@@ -68,9 +68,8 @@ void SceneTitle::Init()
 	// 1. 半透明ブレンドステート
 	D3D11_BLEND_DESC blendDesc = {};
 
-	// ★ここが修正点: AlphaToCoverageを有効にする
-	// これにより、画像の透明度を利用して「透明な部分だけ深度バッファへの書き込みをキャンセル」します。
-	// 結果として、透明部分はガラス板にならず、後ろのグリッド線が見えるようになります。
+	//  AlphaToCoverageを有効にする
+	
 	blendDesc.AlphaToCoverageEnable = TRUE;
 
 	blendDesc.IndependentBlendEnable = FALSE;
@@ -87,9 +86,7 @@ void SceneTitle::Init()
 	// 2. UI用の深度ステート (深度書き込みON)
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
 
-	// ★深度書き込みを有効にする
-	// 文字がある部分は「手前の壁」として認識させ、グリッド線を隠します。
-	// AlphaToCoverageが効いているため、透明部分は書き込まれません。
+	// 深度書き込みを有効にする
 	depthDescUI.DepthEnable = TRUE;
 	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS; // 常に手前に描画

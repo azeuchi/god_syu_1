@@ -22,12 +22,14 @@ const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
+// 0:LP, 1:MP, 2:HP, 3:HK
 static int s_currentAttackType = 0;
 
 static const char* GetCurrentAnimName()
 {
 	if (s_currentAttackType == 0) return "LightPunch";
 	if (s_currentAttackType == 1) return "MediumPunch";
+	if (s_currentAttackType == 2) return "HeavyPunch";
 	return "HeavyKick";
 }
 
@@ -131,7 +133,39 @@ void SceneDebug::SavePlayerSettings()
 			ofs << mParams.cancelToLight << " " << mParams.cancelToMedium << " " << mParams.cancelToHeavy << std::endl;
 
 			// ==================================================
-			// 6. 大キック (HeavyKick) パラメータの保存
+			// 6. 大パンチ (HeavyPunch) パラメータの保存
+			// ==================================================
+			AttackParams& hpParams = player->GetHeavyPunchParams();
+
+			// タイミング・判定
+			ofs << hpParams.totalDuration << std::endl;
+			ofs << hpParams.hitboxStart << std::endl;
+			ofs << hpParams.hitboxEnd << std::endl;
+			ofs << hpParams.hitboxOffset.x << " " << hpParams.hitboxOffset.y << std::endl;
+			ofs << hpParams.hitboxExtents.x << " " << hpParams.hitboxExtents.y << std::endl;
+
+			// ゲームバランス
+			ofs << hpParams.damage << std::endl;
+			ofs << hpParams.hitFrame << std::endl;
+			ofs << hpParams.blockFrame << std::endl;
+			ofs << hpParams.hitStop << std::endl;
+
+			// 攻撃中のくらい判定補正
+			ofs << hpParams.headOffsetVal.x << " " << hpParams.headOffsetVal.y << std::endl;
+			ofs << hpParams.headSizeVal.x << " " << hpParams.headSizeVal.y << std::endl;
+			ofs << hpParams.bodyOffsetVal.x << " " << hpParams.bodyOffsetVal.y << std::endl;
+			ofs << hpParams.bodySizeVal.x << " " << hpParams.bodySizeVal.y << std::endl;
+			ofs << hpParams.legsOffsetVal.x << " " << hpParams.legsOffsetVal.y << std::endl;
+			ofs << hpParams.legsSizeVal.x << " " << hpParams.legsSizeVal.y << std::endl;
+
+			// キャンセル設定
+			ofs << hpParams.cancelEnabled << std::endl;
+			ofs << hpParams.cancelStart << std::endl;
+			ofs << hpParams.cancelEnd << std::endl;
+			ofs << hpParams.cancelToLight << " " << hpParams.cancelToMedium << " " << hpParams.cancelToHeavy << std::endl;
+
+			// ==================================================
+			// 7. 大キック (HeavyKick) パラメータの保存
 			// ==================================================
 			AttackParams& hParams = player->GetHeavyKickParams();
 
@@ -200,6 +234,7 @@ void SceneDebug::Init()
 	// 読み込み用の一時参照
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
+	AttackParams hpParams = player->GetHeavyPunchParams();
 	AttackParams hParams = player->GetHeavyKickParams();
 
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
@@ -269,7 +304,30 @@ void SceneDebug::Init()
 		if (!ifs.eof()) ifs >> mParams.cancelEnd;
 		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
 
-		// 6. 大キック読み込み
+		// 6. 大パンチ読み込み
+		if (!ifs.eof()) ifs >> hpParams.totalDuration;
+		if (!ifs.eof()) ifs >> hpParams.hitboxStart;
+		if (!ifs.eof()) ifs >> hpParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> hpParams.hitboxOffset.x >> hpParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> hpParams.hitboxExtents.x >> hpParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> hpParams.damage;
+		if (!ifs.eof()) ifs >> hpParams.hitFrame;
+		if (!ifs.eof()) ifs >> hpParams.blockFrame;
+		if (!ifs.eof()) ifs >> hpParams.hitStop;
+		// 補正値
+		if (!ifs.eof()) ifs >> hpParams.headOffsetVal.x >> hpParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.headSizeVal.x >> hpParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> hpParams.bodyOffsetVal.x >> hpParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.bodySizeVal.x >> hpParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> hpParams.legsOffsetVal.x >> hpParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.legsSizeVal.x >> hpParams.legsSizeVal.y;
+		// キャンセル設定
+		if (!ifs.eof()) ifs >> hpParams.cancelEnabled;
+		if (!ifs.eof()) ifs >> hpParams.cancelStart;
+		if (!ifs.eof()) ifs >> hpParams.cancelEnd;
+		if (!ifs.eof()) ifs >> hpParams.cancelToLight >> hpParams.cancelToMedium >> hpParams.cancelToHeavy;
+
+		// 7. 大キック読み込み
 		if (!ifs.eof()) ifs >> hParams.totalDuration;
 		if (!ifs.eof()) ifs >> hParams.hitboxStart;
 		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
@@ -300,6 +358,7 @@ void SceneDebug::Init()
 	player->SetScale(scale);
 	player->GetLightPunchParams() = lParams;
 	player->GetMediumPunchParams() = mParams;
+	player->GetHeavyPunchParams() = hpParams;
 	player->GetHeavyKickParams() = hParams;
 
 	// --- モデル・アニメーションロード ---
@@ -307,6 +366,7 @@ void SceneDebug::Init()
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
@@ -357,6 +417,9 @@ void SceneDebug::Update(float tick)
 	else if (s_currentAttackType == 1) {
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
 	}
+	else if (s_currentAttackType == 2) {
+		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
+	}
 	else {
 		// 大キック
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
@@ -376,7 +439,7 @@ void SceneDebug::Update(float tick)
 	// --- アニメーション制御 ---
 	if (m_isPaused)
 	{
-		// ★変更点: m_currentFrame は「ゲームフレーム」として扱う
+		// m_currentFrame は「ゲームフレーム」として扱う
 		// 一時停止中: 
 		// 1. ゲームフレーム(m_currentFrame) に 速度倍率(speed) を掛けて、モデルフレームを算出する
 		int modelFrame = static_cast<int>(m_currentFrame * speed);
@@ -402,7 +465,7 @@ void SceneDebug::Update(float tick)
 			}
 		}
 
-		// ★変更点: プレイヤーから現在のモデルフレームを取得し、ゲームフレームに逆変換して同期
+		// プレイヤーから現在のモデルフレームを取得し、ゲームフレームに逆変換して同期
 		if (m_isAttacking)
 		{
 			// GameFrame = ModelFrame / speed
@@ -499,10 +562,6 @@ void SceneDebug::Draw()
 			// 現在アクティブなパラメータを使用
 			AttackParams* params = player->GetCurrentAttackParams();
 
-			// ★修正点: m_currentFrame を「ゲームフレーム」としたため、
-			// hitboxStart (秒) を単純に 60倍してフレームに直すだけで比較可能になる
-			// speed の乗算は不要 (GUIで「開始フレーム: 5」としたら 5フレーム目に表示される)
-
 			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
 			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
 
@@ -548,11 +607,13 @@ void SceneDebug::DrawImGui()
 		ImGui::SameLine();
 		ImGui::RadioButton("Medium Punch", &s_currentAttackType, 1);
 		ImGui::SameLine();
-		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 2);
+		ImGui::RadioButton("Heavy Punch", &s_currentAttackType, 2);
+		ImGui::SameLine();
+		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 3);
 
 		if (!m_isAttacking)
 		{
-			// ★追加: 再生処理をまとめるラムダ式
+			// 再生処理をまとめるラムダ式
 			auto StartAttack = [&](bool startPaused) {
 				const char* animName = GetCurrentAnimName();
 
@@ -563,6 +624,7 @@ void SceneDebug::DrawImGui()
 				AttackParams* pParams = nullptr;
 				if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
 				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
+				else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
 				else pParams = &player->GetHeavyKickParams();
 
 				// 3. 再生速度を計算して適用 (ゲーム本編と同じロジック)
@@ -625,7 +687,6 @@ void SceneDebug::DrawImGui()
 		if (m_isPaused)
 		{
 			ImGui::SameLine();
-			// ここでの+1は「1ゲームフレーム」進むことを意味する
 			if (ImGui::Button("+1 Frame")) m_currentFrame++;
 			ImGui::InputInt("Frame", &m_currentFrame);
 		}
@@ -648,6 +709,10 @@ void SceneDebug::DrawImGui()
 		else if (s_currentAttackType == 1) {
 			pParams = &player->GetMediumPunchParams();
 			ImGui::Text("Medium Punch");
+		}
+		else if (s_currentAttackType == 2) {
+			pParams = &player->GetHeavyPunchParams();
+			ImGui::Text("Heavy Punch");
 		}
 		else {
 			pParams = &player->GetHeavyKickParams();

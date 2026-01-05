@@ -23,7 +23,7 @@ HRESULT Init(HWND hWnd, UINT width, UINT height)
 	Sprite::Init();
 	InitInput();
 
-	// ★追加：ImGuiの初期化
+	// ImGuiの初期化
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -32,7 +32,7 @@ HRESULT Init(HWND hWnd, UINT width, UINT height)
 	ImGui::StyleColorsDark(); // ダークスタイル
 	// Win32とDirectX11バックエンドの初期化
 	ImGui_ImplWin32_Init(hWnd);
-	ImGui_ImplDX11_Init(GetDevice(), GetContext()); // DirectX.h に GetDevice() がある前提
+	ImGui_ImplDX11_Init(GetDevice(), GetContext()); 
 
 
 	// シーン作成
@@ -53,7 +53,7 @@ HRESULT Init(HWND hWnd, UINT width, UINT height)
 
 void Uninit()
 {
-	// ★追加：ImGuiの終了処理
+	// ImGuiの終了処理
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();

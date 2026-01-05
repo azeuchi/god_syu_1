@@ -40,17 +40,16 @@ void Image2D::Draw()
 	if (!m_texture) return;
 
 	// --- 座標変換 (ピクセル -> NDC) ---
-	// 画面左上(0,0) を基準に計算します
 	float ndcX = (m_x / SCREEN_W) * 2.0f - 1.0f;
 	float ndcY = 1.0f - (m_y / SCREEN_H) * 2.0f;
 	float ndcW = (m_width / SCREEN_W) * 2.0f;
 	float ndcH = (m_height / SCREEN_H) * 2.0f;
 
-	// SimpleUIに登録 (設定された色を使用)
+	// SimpleUIに登録 
 	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
 }
 
-// 追加: 場所と透明度を指定して描画
+// 場所と透明度を指定して描画
 void Image2D::Draw(float x, float y, float w, float h, float alpha)
 {
 	if (!m_texture) return;

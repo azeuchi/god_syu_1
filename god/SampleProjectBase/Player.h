@@ -28,6 +28,7 @@ struct PlayerInputs
 	// 名前を変更
 	bool LightPunch = false;
 	bool MediumPunch = false;
+	bool HeavyPunch = false;
 	bool HeavyKick = false;
 };
 
@@ -173,6 +174,7 @@ public:
 	// --- ImGui 調整用にパラメータを取得する関数 ---
 	AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 	AttackParams& GetMediumPunchParams() { return m_mediumPunchParams; }
+	AttackParams& GetHeavyPunchParams() { return m_heavyPunchParams; }
 	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
 	// 現在アクティブな技のパラメータを取得・設定する
@@ -240,6 +242,7 @@ private:
 
 	AttackParams m_lightPunchParams;
 	AttackParams m_mediumPunchParams;
+	AttackParams m_heavyPunchParams;
 	AttackParams m_heavyKickParams;
 
 	AttackParams* m_pActiveAttackParams = nullptr;

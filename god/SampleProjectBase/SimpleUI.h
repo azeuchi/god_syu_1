@@ -3,7 +3,7 @@
 #include <DirectXCollision.h>
 #include <memory>
 #include <vector>
-#include "Texture.h" // 追加
+#include "Texture.h" /
 
 class SimpleUI
 {
@@ -13,7 +13,7 @@ public:
     {
         float x, y, w, h;
         DirectX::XMFLOAT4 color;
-        Texture* texture = nullptr; // 画像用ポインタを追加
+        Texture* texture = nullptr; // 画像用ポインタ
     };
 
     // 矩形UIを追加

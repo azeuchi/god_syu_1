@@ -1,6 +1,6 @@
 #include "SimpleUI.h"
 #include "Sprite.h"
-#include "DebugLog.h" // ’Ç‰Á
+#include "DebugLog.h" 
 
 static DirectX::XMFLOAT4X4 s_world, s_view, s_proj;
 

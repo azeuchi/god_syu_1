@@ -133,6 +133,7 @@ void SceneBlank::Init()
 	// 攻撃パラメータの一時保存用
 	AttackParams lParams = player->GetLightPunchParams();
 	AttackParams mParams = player->GetMediumPunchParams();
+	AttackParams hpParams = player->GetHeavyPunchParams();
 	AttackParams hParams = player->GetHeavyKickParams();
 
 	// ファイルから読み込み
@@ -198,7 +199,28 @@ void SceneBlank::Init()
 		if (!ifs.eof()) ifs >> mParams.cancelEnd;
 		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
 
-		// 強攻撃設定
+		// 大パンチ設定
+		if (!ifs.eof()) ifs >> hpParams.totalDuration;
+		if (!ifs.eof()) ifs >> hpParams.hitboxStart;
+		if (!ifs.eof()) ifs >> hpParams.hitboxEnd;
+		if (!ifs.eof()) ifs >> hpParams.hitboxOffset.x >> hpParams.hitboxOffset.y;
+		if (!ifs.eof()) ifs >> hpParams.hitboxExtents.x >> hpParams.hitboxExtents.y;
+		if (!ifs.eof()) ifs >> hpParams.damage;
+		if (!ifs.eof()) ifs >> hpParams.hitFrame;
+		if (!ifs.eof()) ifs >> hpParams.blockFrame;
+		if (!ifs.eof()) ifs >> hpParams.hitStop;
+		if (!ifs.eof()) ifs >> hpParams.headOffsetVal.x >> hpParams.headOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.headSizeVal.x >> hpParams.headSizeVal.y;
+		if (!ifs.eof()) ifs >> hpParams.bodyOffsetVal.x >> hpParams.bodyOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.bodySizeVal.x >> hpParams.bodySizeVal.y;
+		if (!ifs.eof()) ifs >> hpParams.legsOffsetVal.x >> hpParams.legsOffsetVal.y;
+		if (!ifs.eof()) ifs >> hpParams.legsSizeVal.x >> hpParams.legsSizeVal.y;
+		if (!ifs.eof()) ifs >> hpParams.cancelEnabled;
+		if (!ifs.eof()) ifs >> hpParams.cancelStart;
+		if (!ifs.eof()) ifs >> hpParams.cancelEnd;
+		if (!ifs.eof()) ifs >> hpParams.cancelToLight >> hpParams.cancelToMedium >> hpParams.cancelToHeavy;
+
+		// 強キック設定
 		if (!ifs.eof()) ifs >> hParams.totalDuration;
 		if (!ifs.eof()) ifs >> hParams.hitboxStart;
 		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
@@ -227,6 +249,7 @@ void SceneBlank::Init()
 	player->SetScale(scale);
 	player->GetLightPunchParams() = lParams;
 	player->GetMediumPunchParams() = mParams;
+	player->GetHeavyPunchParams() = hpParams;
 	player->GetHeavyKickParams() = hParams;
 
 
@@ -240,6 +263,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
@@ -262,6 +286,7 @@ void SceneBlank::Init()
 
 	player2->GetLightPunchParams() = lParams;
 	player2->GetMediumPunchParams() = mParams;
+	player2->GetHeavyPunchParams() = hpParams;
 	player2->GetHeavyKickParams() = hParams;
 
 	// 当たり判定情報のコピー
@@ -282,6 +307,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
@@ -860,7 +886,7 @@ void SceneBlank::Draw()
 			if (progress > 1.0f) progress = 1.0f;
 		}
 
-	
+
 		if (progress < 0.7f)
 		{
 			if (m_pBlendState && m_pDepthDisableState)
@@ -874,7 +900,7 @@ void SceneBlank::Draw()
 			GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 			GetContext()->OMSetDepthStencilState(nullptr, 0);
 		}
-	
+
 		else
 		{
 			SimpleUI::DrawAll();

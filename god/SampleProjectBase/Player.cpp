@@ -11,6 +11,7 @@
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
 #include "MediumPunch.h" 
+#include "HeavyPunch.h"
 #include "HeavyKick.h" 
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
@@ -135,6 +136,10 @@ void Player::PollInputs()
 		if (IsKeyTrigger('K')) {
 			m_inputs.MediumPunch = true;
 		}
+		// 'I' キーで大パンチ
+		if (IsKeyTrigger('I')) {
+			m_inputs.HeavyPunch = true;
+		}
 		// 'L' キーで大キック
 		if (IsKeyTrigger('L')) {
 			m_inputs.HeavyKick = true;
@@ -168,6 +173,10 @@ void Player::PollInputs()
 		// テンキーの '2' で中攻撃
 		if (IsKeyTrigger(VK_NUMPAD2)) {
 			m_inputs.MediumPunch = true;
+		}
+		// テンキーの '4' で大パンチ
+		if (IsKeyTrigger(VK_NUMPAD4)) {
+			m_inputs.HeavyPunch = true;
 		}
 		// テンキーの '3' で大キック
 		if (IsKeyTrigger(VK_NUMPAD3)) {

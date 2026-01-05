@@ -4,6 +4,7 @@
 // ‘JˆÚæ‚ÌƒXƒe[ƒg
 #include "LightPunch.h"
 #include "MediumPunch.h"
+#include "HeavyPunch.h" 
 #include "HeavyKick.h" 
 #include "PlayerStateJump.h"
 #include "PlayerStateCrouch.h"
@@ -28,7 +29,14 @@ void PlayerStateGround::Update(Player* player, float tick)
 		player->SetState(new MediumPunch());
 		return;
 	}
-	// UŒ‚3 (Heavy Kick)
+	// UŒ‚3 (Heavy Punch) 
+	else if (inputs.HeavyPunch)
+	{
+		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
+		player->SetState(new HeavyPunch());
+		return;
+	}
+	// UŒ‚4 (Heavy Kick)
 	else if (inputs.HeavyKick)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
