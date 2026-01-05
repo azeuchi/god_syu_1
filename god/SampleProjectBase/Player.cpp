@@ -128,19 +128,19 @@ void Player::PollInputs()
 				m_inputs.jump = true;
 			}
 		}
-		// 'J' キーで弱攻撃
-		if (IsKeyTrigger('J')) {
+		// U キーで弱攻撃 (変更)
+		if (IsKeyTrigger('U')) {
 			m_inputs.LightPunch = true;
 		}
-		// 'K' キーで中攻撃
-		if (IsKeyTrigger('K')) {
+		// I キーで中攻撃 (変更)
+		if (IsKeyTrigger('I')) {
 			m_inputs.MediumPunch = true;
 		}
-		// 'I' キーで大パンチ
-		if (IsKeyTrigger('I')) {
+		// O キーで大パンチ (変更)
+		if (IsKeyTrigger('O')) {
 			m_inputs.HeavyPunch = true;
 		}
-		// 'L' キーで大キック
+		// L キーで大キック
 		if (IsKeyTrigger('L')) {
 			m_inputs.HeavyKick = true;
 		}
@@ -226,9 +226,40 @@ void Player::UpdateAnimation(float tick)
 	// フレームを進める
 	if (!m_isAnimPaused)
 	{
-		// tickが変動しても実時間に合わせて正しくアニメが進むように補正
-		// m_animSpeed でスロー/倍速再生に対応
-		m_currentAnim.frame += m_animSpeed * tick * 60.0f;
+		// ベースとなる再生速度
+		float currentSpeed = m_animSpeed;
+
+		// 攻撃パラメータが設定されている場合、フレーム単位の速度変化を適用する
+		if (m_pActiveAttackParams)
+		{
+			// ★安全策: 現在再生中のアニメーションが攻撃技でない場合（歩きや待機など）、
+			// パラメータを無効化する。これにより「通常移動がスローになる」バグを防ぐ。
+			bool isAttackAnim = (strcmp(m_currentAnim.name, "LightPunch") == 0 ||
+				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
+				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
+				strcmp(m_currentAnim.name, "HeavyKick") == 0);
+
+			if (!isAttackAnim)
+			{
+				m_pActiveAttackParams = nullptr;
+			}
+			else
+			{
+				// 設定されている速度モディファイアを走査
+				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
+				{
+					// 現在のフレームが区間内であれば、その速度倍率を適用する
+					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
+					{
+						currentSpeed *= mod.speed;
+						break; // 適用されるのは1つだけとする
+					}
+				}
+			}
+		}
+
+		// m_animSpeed でスロー/倍速再生に対応 (さらに部分的な速度変化も適用)
+		m_currentAnim.frame += currentSpeed * tick * 60.0f;
 	}
 }
 

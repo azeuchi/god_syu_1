@@ -41,26 +41,62 @@ void SceneDebug::SavePlayerSettings()
 		std::ofstream ofs(SETTINGS_FILE_DEBUG);
 		if (ofs.is_open())
 		{
+			// ヘルパーラムダ: AttackParamsを1つ書き出す関数
+			auto WriteParams = [&](const AttackParams& params) {
+				// タイミング・判定
+				ofs << params.totalDuration << std::endl;
+				ofs << params.hitboxStart << std::endl;
+				ofs << params.hitboxEnd << std::endl;
+				ofs << params.hitboxOffset.x << " " << params.hitboxOffset.y << std::endl;
+				ofs << params.hitboxExtents.x << " " << params.hitboxExtents.y << std::endl;
+
+				// ゲームバランス
+				ofs << params.damage << std::endl;
+				ofs << params.hitFrame << std::endl;
+				ofs << params.blockFrame << std::endl;
+				ofs << params.hitStop << std::endl;
+
+				// くらい判定補正
+				ofs << params.headOffsetVal.x << " " << params.headOffsetVal.y << std::endl;
+				ofs << params.headSizeVal.x << " " << params.headSizeVal.y << std::endl;
+				ofs << params.bodyOffsetVal.x << " " << params.bodyOffsetVal.y << std::endl;
+				ofs << params.bodySizeVal.x << " " << params.bodySizeVal.y << std::endl;
+				ofs << params.legsOffsetVal.x << " " << params.legsOffsetVal.y << std::endl;
+				ofs << params.legsSizeVal.x << " " << params.legsSizeVal.y << std::endl;
+
+				// キャンセル設定
+				ofs << params.cancelEnabled << std::endl;
+				ofs << params.cancelStart << std::endl;
+				ofs << params.cancelEnd << std::endl;
+				ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavy << std::endl;
+
+				// 速度変化リスト (Speed Modifiers)
+				// まず要素数を書き込み、その後に中身を書き込む
+				size_t speedModCount = params.speedModifiers.size();
+				ofs << speedModCount << std::endl;
+				for (const auto& mod : params.speedModifiers) {
+					ofs << mod.startFrame << " " << mod.endFrame << " " << mod.speed << std::endl;
+				}
+				};
+
 			// ==================================================
 			// 1. 基本設定の保存
 			// ==================================================
-			ofs << player->GetMoveSpeed() << std::endl; // 移動速度
-
-			DirectX::XMFLOAT3 scale = player->GetScale(); // スケール
+			ofs << player->GetMoveSpeed() << std::endl;
+			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
 
 			// ==================================================
-			// 2. 立ち(Base)のくらい判定保存 (Head -> Body -> Legs)
+			// 2. 立ち(Base)のくらい判定保存
 			// ==================================================
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
-				// Extents.x, Extents.y, Offset.x, Offset.y の順で保存
 				ofs << ext.x << " " << ext.y << " " << off.x << " " << off.y << std::endl;
 			}
 
 			// ==================================================
-			// 3. しゃがみ(Crouch)のくらい判定保存 (Head -> Body -> Legs)
+			// 3. しゃがみ(Crouch)のくらい判定保存
 			// ==================================================
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
@@ -69,132 +105,12 @@ void SceneDebug::SavePlayerSettings()
 			}
 
 			// ==================================================
-			// 4. 弱パンチ (LightPunch) パラメータの保存
+			// 4. 各技パラメータの保存
 			// ==================================================
-			AttackParams& lParams = player->GetLightPunchParams();
-
-			// タイミング・判定
-			ofs << lParams.totalDuration << std::endl; // 全体フレーム(秒)
-			ofs << lParams.hitboxStart << std::endl;   // 発生(秒)
-			ofs << lParams.hitboxEnd << std::endl;     // 持続終了(秒)
-			ofs << lParams.hitboxOffset.x << " " << lParams.hitboxOffset.y << std::endl; // 判定位置
-			ofs << lParams.hitboxExtents.x << " " << lParams.hitboxExtents.y << std::endl; // 判定サイズ
-
-			// ゲームバランス
-			ofs << lParams.damage << std::endl;      // ダメージ
-			ofs << lParams.hitFrame << std::endl;    // ヒット有利F
-			ofs << lParams.blockFrame << std::endl;  // ガード有利F
-			ofs << lParams.hitStop << std::endl;     // ヒットストップ時間
-
-			// 攻撃中のくらい判定補正 (Head -> Body -> Legs)
-			ofs << lParams.headOffsetVal.x << " " << lParams.headOffsetVal.y << std::endl;
-			ofs << lParams.headSizeVal.x << " " << lParams.headSizeVal.y << std::endl;
-			ofs << lParams.bodyOffsetVal.x << " " << lParams.bodyOffsetVal.y << std::endl;
-			ofs << lParams.bodySizeVal.x << " " << lParams.bodySizeVal.y << std::endl;
-			ofs << lParams.legsOffsetVal.x << " " << lParams.legsOffsetVal.y << std::endl;
-			ofs << lParams.legsSizeVal.x << " " << lParams.legsSizeVal.y << std::endl;
-
-			// キャンセル設定
-			ofs << lParams.cancelEnabled << std::endl;
-			ofs << lParams.cancelStart << std::endl;
-			ofs << lParams.cancelEnd << std::endl;
-			ofs << lParams.cancelToLight << " " << lParams.cancelToMedium << " " << lParams.cancelToHeavy << std::endl;
-
-			// ==================================================
-			// 5. 中パンチ (MediumPunch) パラメータの保存
-			// ==================================================
-			AttackParams& mParams = player->GetMediumPunchParams();
-
-			// タイミング・判定
-			ofs << mParams.totalDuration << std::endl;
-			ofs << mParams.hitboxStart << std::endl;
-			ofs << mParams.hitboxEnd << std::endl;
-			ofs << mParams.hitboxOffset.x << " " << mParams.hitboxOffset.y << std::endl;
-			ofs << mParams.hitboxExtents.x << " " << mParams.hitboxExtents.y << std::endl;
-
-			// ゲームバランス
-			ofs << mParams.damage << std::endl;
-			ofs << mParams.hitFrame << std::endl;
-			ofs << mParams.blockFrame << std::endl;
-			ofs << mParams.hitStop << std::endl;
-
-			// 攻撃中のくらい判定補正
-			ofs << mParams.headOffsetVal.x << " " << mParams.headOffsetVal.y << std::endl;
-			ofs << mParams.headSizeVal.x << " " << mParams.headSizeVal.y << std::endl;
-			ofs << mParams.bodyOffsetVal.x << " " << mParams.bodyOffsetVal.y << std::endl;
-			ofs << mParams.bodySizeVal.x << " " << mParams.bodySizeVal.y << std::endl;
-			ofs << mParams.legsOffsetVal.x << " " << mParams.legsOffsetVal.y << std::endl;
-			ofs << mParams.legsSizeVal.x << " " << mParams.legsSizeVal.y << std::endl;
-
-			// キャンセル設定
-			ofs << mParams.cancelEnabled << std::endl;
-			ofs << mParams.cancelStart << std::endl;
-			ofs << mParams.cancelEnd << std::endl;
-			ofs << mParams.cancelToLight << " " << mParams.cancelToMedium << " " << mParams.cancelToHeavy << std::endl;
-
-			// ==================================================
-			// 6. 大パンチ (HeavyPunch) パラメータの保存
-			// ==================================================
-			AttackParams& hpParams = player->GetHeavyPunchParams();
-
-			// タイミング・判定
-			ofs << hpParams.totalDuration << std::endl;
-			ofs << hpParams.hitboxStart << std::endl;
-			ofs << hpParams.hitboxEnd << std::endl;
-			ofs << hpParams.hitboxOffset.x << " " << hpParams.hitboxOffset.y << std::endl;
-			ofs << hpParams.hitboxExtents.x << " " << hpParams.hitboxExtents.y << std::endl;
-
-			// ゲームバランス
-			ofs << hpParams.damage << std::endl;
-			ofs << hpParams.hitFrame << std::endl;
-			ofs << hpParams.blockFrame << std::endl;
-			ofs << hpParams.hitStop << std::endl;
-
-			// 攻撃中のくらい判定補正
-			ofs << hpParams.headOffsetVal.x << " " << hpParams.headOffsetVal.y << std::endl;
-			ofs << hpParams.headSizeVal.x << " " << hpParams.headSizeVal.y << std::endl;
-			ofs << hpParams.bodyOffsetVal.x << " " << hpParams.bodyOffsetVal.y << std::endl;
-			ofs << hpParams.bodySizeVal.x << " " << hpParams.bodySizeVal.y << std::endl;
-			ofs << hpParams.legsOffsetVal.x << " " << hpParams.legsOffsetVal.y << std::endl;
-			ofs << hpParams.legsSizeVal.x << " " << hpParams.legsSizeVal.y << std::endl;
-
-			// キャンセル設定
-			ofs << hpParams.cancelEnabled << std::endl;
-			ofs << hpParams.cancelStart << std::endl;
-			ofs << hpParams.cancelEnd << std::endl;
-			ofs << hpParams.cancelToLight << " " << hpParams.cancelToMedium << " " << hpParams.cancelToHeavy << std::endl;
-
-			// ==================================================
-			// 7. 大キック (HeavyKick) パラメータの保存
-			// ==================================================
-			AttackParams& hParams = player->GetHeavyKickParams();
-
-			// タイミング・判定
-			ofs << hParams.totalDuration << std::endl;
-			ofs << hParams.hitboxStart << std::endl;
-			ofs << hParams.hitboxEnd << std::endl;
-			ofs << hParams.hitboxOffset.x << " " << hParams.hitboxOffset.y << std::endl;
-			ofs << hParams.hitboxExtents.x << " " << hParams.hitboxExtents.y << std::endl;
-
-			// ゲームバランス
-			ofs << hParams.damage << std::endl;
-			ofs << hParams.hitFrame << std::endl;
-			ofs << hParams.blockFrame << std::endl;
-			ofs << hParams.hitStop << std::endl;
-
-			// 攻撃中のくらい判定補正
-			ofs << hParams.headOffsetVal.x << " " << hParams.headOffsetVal.y << std::endl;
-			ofs << hParams.headSizeVal.x << " " << hParams.headSizeVal.y << std::endl;
-			ofs << hParams.bodyOffsetVal.x << " " << hParams.bodyOffsetVal.y << std::endl;
-			ofs << hParams.bodySizeVal.x << " " << hParams.bodySizeVal.y << std::endl;
-			ofs << hParams.legsOffsetVal.x << " " << hParams.legsOffsetVal.y << std::endl;
-			ofs << hParams.legsSizeVal.x << " " << hParams.legsSizeVal.y << std::endl;
-
-			// キャンセル設定
-			ofs << hParams.cancelEnabled << std::endl;
-			ofs << hParams.cancelStart << std::endl;
-			ofs << hParams.cancelEnd << std::endl;
-			ofs << hParams.cancelToLight << " " << hParams.cancelToMedium << " " << hParams.cancelToHeavy << std::endl;
+			WriteParams(player->GetLightPunchParams());
+			WriteParams(player->GetMediumPunchParams());
+			WriteParams(player->GetHeavyPunchParams());
+			WriteParams(player->GetHeavyKickParams());
 
 			ofs.close();
 		}
@@ -231,11 +147,10 @@ void SceneDebug::Init()
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
-	// 読み込み用の一時参照
-	AttackParams lParams = player->GetLightPunchParams();
-	AttackParams mParams = player->GetMediumPunchParams();
-	AttackParams hpParams = player->GetHeavyPunchParams();
-	AttackParams hParams = player->GetHeavyKickParams();
+	// 読み込み用ヘルパー
+	auto ReadParams = [&](AttackParams& params) {
+		std::ifstream& ifs = *(std::ifstream*)nullptr; // ダミー宣言 (実際にはキャプチャできないためロジック内に直書きするか関数化する)
+		};
 
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
@@ -258,97 +173,39 @@ void SceneDebug::Init()
 			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 		}
 
-		// 4. 弱パンチ読み込み
-		if (!ifs.eof()) ifs >> lParams.totalDuration;
-		if (!ifs.eof()) ifs >> lParams.hitboxStart;
-		if (!ifs.eof()) ifs >> lParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> lParams.hitboxOffset.x >> lParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> lParams.hitboxExtents.x >> lParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> lParams.damage;
-		if (!ifs.eof()) ifs >> lParams.hitFrame;
-		if (!ifs.eof()) ifs >> lParams.blockFrame;
-		if (!ifs.eof()) ifs >> lParams.hitStop;
-		// 補正値
-		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> lParams.bodyOffsetVal.x >> lParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.bodySizeVal.x >> lParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
-		// キャンセル設定
-		if (!ifs.eof()) ifs >> lParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> lParams.cancelStart;
-		if (!ifs.eof()) ifs >> lParams.cancelEnd;
-		if (!ifs.eof()) ifs >> lParams.cancelToLight >> lParams.cancelToMedium >> lParams.cancelToHeavy;
+		// パラメータ読み込み用ラムダ
+		auto LoadOneParam = [&](AttackParams& p) {
+			if (ifs.eof()) return;
+			ifs >> p.totalDuration;
+			ifs >> p.hitboxStart >> p.hitboxEnd;
+			ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
+			ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
+			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
+			ifs >> p.headSizeVal.x >> p.headSizeVal.y;
+			ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
+			ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
+			ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
+			ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
+			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
+			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavy;
 
-		// 5. 中パンチ読み込み
-		if (!ifs.eof()) ifs >> mParams.totalDuration;
-		if (!ifs.eof()) ifs >> mParams.hitboxStart;
-		if (!ifs.eof()) ifs >> mParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> mParams.hitboxOffset.x >> mParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> mParams.hitboxExtents.x >> mParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> mParams.damage;
-		if (!ifs.eof()) ifs >> mParams.hitFrame;
-		if (!ifs.eof()) ifs >> mParams.blockFrame;
-		if (!ifs.eof()) ifs >> mParams.hitStop;
-		// 補正値
-		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> mParams.bodyOffsetVal.x >> mParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.bodySizeVal.x >> mParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
-		// キャンセル設定
-		if (!ifs.eof()) ifs >> mParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> mParams.cancelStart;
-		if (!ifs.eof()) ifs >> mParams.cancelEnd;
-		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
+			// 速度変化リスト読み込み
+			size_t count = 0;
+			if (!ifs.eof()) ifs >> count;
+			p.speedModifiers.clear();
+			for (size_t k = 0; k < count; ++k) {
+				AnimSpeedModifier mod;
+				ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
+				p.speedModifiers.push_back(mod);
+			}
+			};
 
-		// 6. 大パンチ読み込み
-		if (!ifs.eof()) ifs >> hpParams.totalDuration;
-		if (!ifs.eof()) ifs >> hpParams.hitboxStart;
-		if (!ifs.eof()) ifs >> hpParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> hpParams.hitboxOffset.x >> hpParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> hpParams.hitboxExtents.x >> hpParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> hpParams.damage;
-		if (!ifs.eof()) ifs >> hpParams.hitFrame;
-		if (!ifs.eof()) ifs >> hpParams.blockFrame;
-		if (!ifs.eof()) ifs >> hpParams.hitStop;
-		// 補正値
-		if (!ifs.eof()) ifs >> hpParams.headOffsetVal.x >> hpParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.headSizeVal.x >> hpParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> hpParams.bodyOffsetVal.x >> hpParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.bodySizeVal.x >> hpParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> hpParams.legsOffsetVal.x >> hpParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.legsSizeVal.x >> hpParams.legsSizeVal.y;
-		// キャンセル設定
-		if (!ifs.eof()) ifs >> hpParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> hpParams.cancelStart;
-		if (!ifs.eof()) ifs >> hpParams.cancelEnd;
-		if (!ifs.eof()) ifs >> hpParams.cancelToLight >> hpParams.cancelToMedium >> hpParams.cancelToHeavy;
-
-		// 7. 大キック読み込み
-		if (!ifs.eof()) ifs >> hParams.totalDuration;
-		if (!ifs.eof()) ifs >> hParams.hitboxStart;
-		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> hParams.hitboxOffset.x >> hParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> hParams.hitboxExtents.x >> hParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> hParams.damage;
-		if (!ifs.eof()) ifs >> hParams.hitFrame;
-		if (!ifs.eof()) ifs >> hParams.blockFrame;
-		if (!ifs.eof()) ifs >> hParams.hitStop;
-		// 補正値
-		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
-		// キャンセル設定
-		if (!ifs.eof()) ifs >> hParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> hParams.cancelStart;
-		if (!ifs.eof()) ifs >> hParams.cancelEnd;
-		if (!ifs.eof()) ifs >> hParams.cancelToLight >> hParams.cancelToMedium >> hParams.cancelToHeavy;
+		// 4. 各技読み込み
+		LoadOneParam(player->GetLightPunchParams());
+		LoadOneParam(player->GetMediumPunchParams());
+		LoadOneParam(player->GetHeavyPunchParams());
+		LoadOneParam(player->GetHeavyKickParams());
 
 		ifs.close();
 	}
@@ -356,13 +213,8 @@ void SceneDebug::Init()
 	// 読み込んだ値をプレイヤーに適用
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
-	player->GetLightPunchParams() = lParams;
-	player->GetMediumPunchParams() = mParams;
-	player->GetHeavyPunchParams() = hpParams;
-	player->GetHeavyKickParams() = hParams;
 
 	// --- モデル・アニメーションロード ---
-	// 必要なアニメーションだけを読み込む
 	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
@@ -562,6 +414,8 @@ void SceneDebug::Draw()
 			// 現在アクティブなパラメータを使用
 			AttackParams* params = player->GetCurrentAttackParams();
 
+			// m_currentFrame を「ゲームフレーム」としたため、
+			// hitboxStart (秒) を単純に 60倍してフレームに直すだけで比較可能になる
 			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
 			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
 
@@ -613,21 +467,16 @@ void SceneDebug::DrawImGui()
 
 		if (!m_isAttacking)
 		{
-			// 再生処理をまとめるラムダ式
 			auto StartAttack = [&](bool startPaused) {
 				const char* animName = GetCurrentAnimName();
-
-				// 1. アニメーションをセット
 				player->Debug_SetAnimation(animName, true);
 
-				// 2. パラメータを取得
 				AttackParams* pParams = nullptr;
 				if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
 				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
 				else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
 				else pParams = &player->GetHeavyKickParams();
 
-				// 3. 再生速度を計算して適用 (ゲーム本編と同じロジック)
 				if (pParams) {
 					int originalFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 					float targetFrames = pParams->totalDuration * 60.0f;
@@ -637,44 +486,16 @@ void SceneDebug::DrawImGui()
 					player->SetAnimationSpeed(speed);
 				}
 
-				// 4. フラグ設定
 				m_isAttacking = true;
-				m_isPaused = startPaused; // 引数で一時停止するか決める
+				m_isPaused = startPaused;
 				m_currentFrame = 0;
 				m_animTimer = 0.0f;
 				player->SetIsCrouching(false);
 				};
 
-			// 技のテスト
-			if (ImGui::Button("Test Play"))
-			{
-				StartAttack(false); // 停止せず再生
-			}
+			if (ImGui::Button("Test Play")) StartAttack(false);
 			ImGui::SameLine();
-			// しゃがみ確認
-			if (ImGui::Button("Test Crouch"))
-			{
-				player->Debug_SetAnimation("CrouchIdle", true);
-				player->SetIsCrouching(true);
-				m_isAttacking = false;
-				m_isPaused = false;
-			}
-			ImGui::SameLine();
-			// 立ち確認
-			if (ImGui::Button("Test Stand"))
-			{
-				player->Debug_SetAnimation("Idle", true);
-				player->SetIsCrouching(false);
-				m_isAttacking = false;
-				m_isPaused = false;
-			}
-
-			ImGui::SameLine();
-			// コマ送り開始 (一時停止状態でスタート)
-			if (ImGui::Button("Step Play"))
-			{
-				StartAttack(true);
-			}
+			if (ImGui::Button("Step Play")) StartAttack(true);
 		}
 		else
 		{
@@ -721,7 +542,6 @@ void SceneDebug::DrawImGui()
 
 		AttackParams& params = *pParams;
 
-		// フレーム換算して編集
 		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
 		int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
@@ -755,45 +575,69 @@ void SceneDebug::DrawImGui()
 			params.hitStop = hitStopFrames * FRAME_TIME_60FPS;
 		}
 
-		// 攻撃中のくらい判定補正 (TreeNodeでさらに階層化)
 		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))
 		{
-			ImGui::Text("Head");
-			ImGui::SliderFloat2("Offset##H", &params.headOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Size+##H", &params.headSizeVal.x, -1.0f, 1.0f);
-			ImGui::Text("Body");
-			ImGui::SliderFloat2("Offset##B", &params.bodyOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Size+##B", &params.bodySizeVal.x, -1.0f, 1.0f);
-			ImGui::Text("Legs");
-			ImGui::SliderFloat2("Offset##L", &params.legsOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Size+##L", &params.legsSizeVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Head Off", &params.headOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Head Sz+", &params.headSizeVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Body Off", &params.bodyOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Body Sz+", &params.bodySizeVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Legs Off", &params.legsOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Legs Sz+", &params.legsSizeVal.x, -1.0f, 1.0f);
 			ImGui::TreePop();
 		}
 
-		// キャンセル設定
 		if (ImGui::TreeNode("Cancel Settings"))
 		{
 			ImGui::Checkbox("Enable Cancel", &params.cancelEnabled);
-
-			if (params.cancelEnabled)
-			{
+			if (params.cancelEnabled) {
 				int cancelStartF = static_cast<int>(std::round(params.cancelStart / FRAME_TIME_60FPS));
 				int cancelEndF = static_cast<int>(std::round(params.cancelEnd / FRAME_TIME_60FPS));
-
-				if (ImGui::SliderInt("Start Frame", &cancelStartF, 0, totalFrames)) {
-					params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
-				}
-				if (ImGui::SliderInt("End Frame", &cancelEndF, 0, totalFrames)) {
-					params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
-				}
-
-				ImGui::Text("Routes:");
+				if (ImGui::SliderInt("Start Frame", &cancelStartF, 0, totalFrames)) params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
+				if (ImGui::SliderInt("End Frame", &cancelEndF, 0, totalFrames)) params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
 				ImGui::Checkbox("-> Light", &params.cancelToLight);
-				ImGui::SameLine();
-				ImGui::Checkbox("-> Medium", &params.cancelToMedium);
-				ImGui::SameLine();
-				ImGui::Checkbox("-> Heavy", &params.cancelToHeavy);
+				ImGui::SameLine(); ImGui::Checkbox("-> Medium", &params.cancelToMedium);
+				ImGui::SameLine(); ImGui::Checkbox("-> Heavy", &params.cancelToHeavy);
 			}
+			ImGui::TreePop();
+		}
+
+		// --- アニメーション速度調整 (Speed Modifiers) ---
+		if (ImGui::TreeNode("Speed Modifiers (Variable Speed)"))
+		{
+			ImGui::Text("Define speed changes per frame range");
+			ImGui::Text("Example: Start=4, End=8, Speed=2.0 (Fast)");
+
+			// リスト表示
+			for (int i = 0; i < (int)params.speedModifiers.size(); ++i)
+			{
+				ImGui::PushID(i);
+				AnimSpeedModifier& mod = params.speedModifiers[i];
+
+				ImGui::Text("Modifier #%d", i);
+				ImGui::SameLine();
+				if (ImGui::Button("Delete")) {
+					params.speedModifiers.erase(params.speedModifiers.begin() + i);
+					ImGui::PopID();
+					break; // 削除したらループを抜ける
+				}
+
+				// 編集用スライダー (フレーム単位)
+				int sFrame = (int)mod.startFrame;
+				int eFrame = (int)mod.endFrame;
+				if (ImGui::SliderInt("Start F", &sFrame, 0, totalFrames)) mod.startFrame = (float)sFrame;
+				if (ImGui::SliderInt("End F", &eFrame, 0, totalFrames)) mod.endFrame = (float)eFrame;
+				ImGui::SliderFloat("Speed x", &mod.speed, 0.1f, 5.0f);
+
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+
+			if (ImGui::Button("Add Modifier"))
+			{
+				// デフォルトで最初の5フレームを等倍にする設定を追加
+				params.speedModifiers.push_back({ 0.0f, 5.0f, 1.0f });
+			}
+
 			ImGui::TreePop();
 		}
 	}
@@ -805,58 +649,43 @@ void SceneDebug::DrawImGui()
 	{
 		const char* hurtboxNames[] = { "Head", "Body", "Legs" };
 
-		// 立ち状態の設定
 		if (ImGui::TreeNode("Standing (Base)"))
 		{
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 			{
-				ImGui::PushID(i); // ID重複防止
+				ImGui::PushID(i);
 				ImGui::Text("%s", hurtboxNames[i]);
-
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
-
 				bool changed = false;
 				if (ImGui::SliderFloat2("Extents", &ext.x, 0.1f, 5.0f)) changed = true;
 				if (ImGui::SliderFloat2("Offset", &off.x, -5.0f, 5.0f)) changed = true;
-
-				if (changed) {
-					player->SetHurtboxBase((HurtboxType)i, off, ext);
-				}
+				if (changed) player->SetHurtboxBase((HurtboxType)i, off, ext);
 				ImGui::PopID();
 			}
 			ImGui::TreePop();
 		}
 
-		// しゃがみ状態の設定
 		if (ImGui::TreeNode("Crouching"))
 		{
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 			{
-				ImGui::PushID(100 + i); // ID重複防止
+				ImGui::PushID(100 + i);
 				ImGui::Text("%s", hurtboxNames[i]);
-
 				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxCrouchOffset((HurtboxType)i);
-
 				bool changed = false;
 				if (ImGui::SliderFloat2("Extents", &ext.x, 0.1f, 5.0f)) changed = true;
 				if (ImGui::SliderFloat2("Offset", &off.x, -5.0f, 5.0f)) changed = true;
-
-				if (changed) {
-					player->SetHurtboxCrouch((HurtboxType)i, off, ext);
-				}
+				if (changed) player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 				ImGui::PopID();
 			}
 			ImGui::TreePop();
 		}
 	}
 
-	// ==================================================
-	// 保存ボタン
-	// ==================================================
 	ImGui::Separator();
-	if (ImGui::Button("SAVE ALL SETTINGS", ImVec2(-1, 40))) // 幅いっぱい、高さ40
+	if (ImGui::Button("SAVE ALL SETTINGS", ImVec2(-1, 40)))
 	{
 		SavePlayerSettings();
 	}

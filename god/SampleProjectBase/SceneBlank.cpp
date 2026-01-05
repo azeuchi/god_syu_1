@@ -113,9 +113,7 @@ void SceneBlank::Init()
 
 	// フェード用画像
 	m_fadeBlack = new Image2D();
-	// 画面中心座標 (640, 360) に配置 (1280x720)
 	m_fadeBlack->Load("Assets/Texture/black.png", 640.0f, 360.0f, 1280.0f, 720.0f);
-	// 初期状態は透明な黒
 	m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 
@@ -130,13 +128,34 @@ void SceneBlank::Init()
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
-	// 攻撃パラメータの一時保存用
-	AttackParams lParams = player->GetLightPunchParams();
-	AttackParams mParams = player->GetMediumPunchParams();
-	AttackParams hpParams = player->GetHeavyPunchParams();
-	AttackParams hParams = player->GetHeavyKickParams();
+	// ファイルから読み込み用ヘルパーラムダ
+	auto LoadOneParam = [&](AttackParams& p, std::ifstream& ifs) {
+		if (ifs.eof()) return;
+		ifs >> p.totalDuration;
+		ifs >> p.hitboxStart >> p.hitboxEnd;
+		ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
+		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
+		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
+		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
+		ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
+		ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
+		ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
+		ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
+		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
+		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavy;
 
-	// ファイルから読み込み
+		// 速度変化リスト読み込み
+		size_t count = 0;
+		if (!ifs.eof()) ifs >> count;
+		p.speedModifiers.clear();
+		for (size_t k = 0; k < count; ++k) {
+			AnimSpeedModifier mod;
+			ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
+			p.speedModifiers.push_back(mod);
+		}
+		};
+
 	std::ifstream ifs(SETTINGS_FILE);
 	if (ifs.is_open())
 	{
@@ -157,89 +176,11 @@ void SceneBlank::Init()
 			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 		}
 
-		// 弱攻撃設定
-		if (!ifs.eof()) ifs >> lParams.totalDuration;
-		if (!ifs.eof()) ifs >> lParams.hitboxStart;
-		if (!ifs.eof()) ifs >> lParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> lParams.hitboxOffset.x >> lParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> lParams.hitboxExtents.x >> lParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> lParams.damage;
-		if (!ifs.eof()) ifs >> lParams.hitFrame;
-		if (!ifs.eof()) ifs >> lParams.blockFrame;
-		if (!ifs.eof()) ifs >> lParams.hitStop;
-		if (!ifs.eof()) ifs >> lParams.headOffsetVal.x >> lParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.headSizeVal.x >> lParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> lParams.bodyOffsetVal.x >> lParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.bodySizeVal.x >> lParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> lParams.legsOffsetVal.x >> lParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> lParams.legsSizeVal.x >> lParams.legsSizeVal.y;
-		if (!ifs.eof()) ifs >> lParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> lParams.cancelStart;
-		if (!ifs.eof()) ifs >> lParams.cancelEnd;
-		if (!ifs.eof()) ifs >> lParams.cancelToLight >> lParams.cancelToMedium >> lParams.cancelToHeavy;
-
-		// 中攻撃設定
-		if (!ifs.eof()) ifs >> mParams.totalDuration;
-		if (!ifs.eof()) ifs >> mParams.hitboxStart;
-		if (!ifs.eof()) ifs >> mParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> mParams.hitboxOffset.x >> mParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> mParams.hitboxExtents.x >> mParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> mParams.damage;
-		if (!ifs.eof()) ifs >> mParams.hitFrame;
-		if (!ifs.eof()) ifs >> mParams.blockFrame;
-		if (!ifs.eof()) ifs >> mParams.hitStop;
-		if (!ifs.eof()) ifs >> mParams.headOffsetVal.x >> mParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.headSizeVal.x >> mParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> mParams.bodyOffsetVal.x >> mParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.bodySizeVal.x >> mParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> mParams.legsOffsetVal.x >> mParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> mParams.legsSizeVal.x >> mParams.legsSizeVal.y;
-		if (!ifs.eof()) ifs >> mParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> mParams.cancelStart;
-		if (!ifs.eof()) ifs >> mParams.cancelEnd;
-		if (!ifs.eof()) ifs >> mParams.cancelToLight >> mParams.cancelToMedium >> mParams.cancelToHeavy;
-
-		// 大パンチ設定
-		if (!ifs.eof()) ifs >> hpParams.totalDuration;
-		if (!ifs.eof()) ifs >> hpParams.hitboxStart;
-		if (!ifs.eof()) ifs >> hpParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> hpParams.hitboxOffset.x >> hpParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> hpParams.hitboxExtents.x >> hpParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> hpParams.damage;
-		if (!ifs.eof()) ifs >> hpParams.hitFrame;
-		if (!ifs.eof()) ifs >> hpParams.blockFrame;
-		if (!ifs.eof()) ifs >> hpParams.hitStop;
-		if (!ifs.eof()) ifs >> hpParams.headOffsetVal.x >> hpParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.headSizeVal.x >> hpParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> hpParams.bodyOffsetVal.x >> hpParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.bodySizeVal.x >> hpParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> hpParams.legsOffsetVal.x >> hpParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> hpParams.legsSizeVal.x >> hpParams.legsSizeVal.y;
-		if (!ifs.eof()) ifs >> hpParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> hpParams.cancelStart;
-		if (!ifs.eof()) ifs >> hpParams.cancelEnd;
-		if (!ifs.eof()) ifs >> hpParams.cancelToLight >> hpParams.cancelToMedium >> hpParams.cancelToHeavy;
-
-		// 強キック設定
-		if (!ifs.eof()) ifs >> hParams.totalDuration;
-		if (!ifs.eof()) ifs >> hParams.hitboxStart;
-		if (!ifs.eof()) ifs >> hParams.hitboxEnd;
-		if (!ifs.eof()) ifs >> hParams.hitboxOffset.x >> hParams.hitboxOffset.y;
-		if (!ifs.eof()) ifs >> hParams.hitboxExtents.x >> hParams.hitboxExtents.y;
-		if (!ifs.eof()) ifs >> hParams.damage;
-		if (!ifs.eof()) ifs >> hParams.hitFrame;
-		if (!ifs.eof()) ifs >> hParams.blockFrame;
-		if (!ifs.eof()) ifs >> hParams.hitStop;
-		if (!ifs.eof()) ifs >> hParams.headOffsetVal.x >> hParams.headOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.headSizeVal.x >> hParams.headSizeVal.y;
-		if (!ifs.eof()) ifs >> hParams.bodyOffsetVal.x >> hParams.bodyOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.bodySizeVal.x >> hParams.bodySizeVal.y;
-		if (!ifs.eof()) ifs >> hParams.legsOffsetVal.x >> hParams.legsOffsetVal.y;
-		if (!ifs.eof()) ifs >> hParams.legsSizeVal.x >> hParams.legsSizeVal.y;
-		if (!ifs.eof()) ifs >> hParams.cancelEnabled;
-		if (!ifs.eof()) ifs >> hParams.cancelStart;
-		if (!ifs.eof()) ifs >> hParams.cancelEnd;
-		if (!ifs.eof()) ifs >> hParams.cancelToLight >> hParams.cancelToMedium >> hParams.cancelToHeavy;
+		// 各攻撃のパラメータ
+		LoadOneParam(player->GetLightPunchParams(), ifs);
+		LoadOneParam(player->GetMediumPunchParams(), ifs);
+		LoadOneParam(player->GetHeavyPunchParams(), ifs);
+		LoadOneParam(player->GetHeavyKickParams(), ifs);
 
 		ifs.close();
 	}
@@ -247,11 +188,6 @@ void SceneBlank::Init()
 	// プレイヤー1への設定適用
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
-	player->GetLightPunchParams() = lParams;
-	player->GetMediumPunchParams() = mParams;
-	player->GetHeavyPunchParams() = hpParams;
-	player->GetHeavyKickParams() = hParams;
-
 
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
 	{
@@ -284,10 +220,11 @@ void SceneBlank::Init()
 	scaleP2.x *= -1.0f; // X軸反転
 	player2->SetScale(scaleP2);
 
-	player2->GetLightPunchParams() = lParams;
-	player2->GetMediumPunchParams() = mParams;
-	player2->GetHeavyPunchParams() = hpParams;
-	player2->GetHeavyKickParams() = hParams;
+	// P1からパラメータをコピー
+	player2->GetLightPunchParams() = player->GetLightPunchParams();
+	player2->GetMediumPunchParams() = player->GetMediumPunchParams();
+	player2->GetHeavyPunchParams() = player->GetHeavyPunchParams();
+	player2->GetHeavyKickParams() = player->GetHeavyKickParams();
 
 	// 当たり判定情報のコピー
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {

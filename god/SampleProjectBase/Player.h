@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include <string>
+#include <vector>
 #include "Geometory.h"
 
 // 前方宣言
@@ -47,6 +48,14 @@ enum class HurtboxType
 	COUNT
 };
 
+// アニメーションの特定区間の速度を変更する設定
+struct AnimSpeedModifier
+{
+	float startFrame = 0.0f; // 開始フレーム
+	float endFrame = 0.0f;   // 終了フレーム
+	float speed = 1.0f;      // 速度倍率 (0.5=半分, 2.0=倍速)
+};
+
 // 技の性能を管理する構造体
 struct AttackParams
 {
@@ -86,6 +95,10 @@ struct AttackParams
 	bool cancelToLight = false;     // 弱パンチへ
 	bool cancelToMedium = false;    // 中パンチへ
 	bool cancelToHeavy = false;     // 大キックへ
+
+	// --- アニメーション速度制御 ---
+	// 特定フレーム区間の速度を変えるためのリスト
+	std::vector<AnimSpeedModifier> speedModifiers;
 };
 
 
