@@ -22,7 +22,7 @@ const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
-// 0:LP, 1:MP, 2:HP, 3:HK
+// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK
 static int s_currentAttackType = 0;
 
 static const char* GetCurrentAnimName()
@@ -30,6 +30,7 @@ static const char* GetCurrentAnimName()
 	if (s_currentAttackType == 0) return "LightPunch";
 	if (s_currentAttackType == 1) return "MediumPunch";
 	if (s_currentAttackType == 2) return "HeavyPunch";
+	if (s_currentAttackType == 3) return "MediumKick";
 	return "HeavyKick";
 }
 
@@ -110,6 +111,7 @@ void SceneDebug::SavePlayerSettings()
 			WriteParams(player->GetLightPunchParams());
 			WriteParams(player->GetMediumPunchParams());
 			WriteParams(player->GetHeavyPunchParams());
+			WriteParams(player->GetMediumKickParams());
 			WriteParams(player->GetHeavyKickParams());
 
 			ofs.close();
@@ -205,6 +207,7 @@ void SceneDebug::Init()
 		LoadOneParam(player->GetLightPunchParams());
 		LoadOneParam(player->GetMediumPunchParams());
 		LoadOneParam(player->GetHeavyPunchParams());
+		LoadOneParam(player->GetMediumKickParams());
 		LoadOneParam(player->GetHeavyKickParams());
 
 		ifs.close();
@@ -219,6 +222,7 @@ void SceneDebug::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
@@ -271,6 +275,9 @@ void SceneDebug::Update(float tick)
 	}
 	else if (s_currentAttackType == 2) {
 		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
+	}
+	else if (s_currentAttackType == 3) {
+		player->SetCurrentAttackParams(&player->GetMediumKickParams());
 	}
 	else {
 		// 大キック
@@ -356,25 +363,20 @@ void SceneDebug::Update(float tick)
 		}
 	}
 
-	// --- カメラ追従処理 (SceneBlankに近い挙動に変更) ---
+	// --- カメラ追従処理 ---
 	CameraBase* camera = GetObj<CameraBase>("Camera");
 	if (camera)
 	{
-		// プレイヤーの位置を取得
 		DirectX::XMFLOAT3 playerPos = player->GetPosition();
-
-		// SceneBlankと同様に、カメラをプレイヤーの真横(Z軸マイナス側)に配置し、
-		// X座標とY座標（高さ）を追従させる。
-		// Z=-3.5f とすることで、SceneBlank(Z=-5.0f)よりも近くする
+		DirectX::XMFLOAT3 camPos = camera->GetPos();
+		DirectX::XMFLOAT3 camLook = camera->GetLook();
 
 		float targetZ = -3.5f;
-		float heightOffset = 1.2f; // SceneBlankの初期値(1.2f)に合わせる
+		float heightOffset = 1.2f;
 
 		DirectX::XMFLOAT3 targetPos = { playerPos.x, playerPos.y + heightOffset, targetZ };
-		DirectX::XMFLOAT3 targetLook = { playerPos.x, playerPos.y + 1.0f, 0.0f }; // 注視点はプレイヤー本体(Z=0)
+		DirectX::XMFLOAT3 targetLook = { playerPos.x, playerPos.y + 1.0f, 0.0f };
 
-		// 現在の位置からスムーズに補間しても良いが、
-		// デバッグ調整中は「完全追従」の方がブレなくて見やすいので即時反映させる
 		camera->SetPos(targetPos);
 		camera->SetLook(targetLook);
 	}
@@ -480,13 +482,22 @@ void SceneDebug::DrawImGui()
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text("Select Attack:");
-		ImGui::RadioButton("Light Punch", &s_currentAttackType, 0);
+
+		// Punch (上段)
+		ImGui::Text("Punch:");
 		ImGui::SameLine();
-		ImGui::RadioButton("Medium Punch", &s_currentAttackType, 1);
+		ImGui::RadioButton("Light##P", &s_currentAttackType, 0);
 		ImGui::SameLine();
-		ImGui::RadioButton("Heavy Punch", &s_currentAttackType, 2);
+		ImGui::RadioButton("Medium##P", &s_currentAttackType, 1);
 		ImGui::SameLine();
-		ImGui::RadioButton("Heavy Kick", &s_currentAttackType, 3);
+		ImGui::RadioButton("Heavy##P", &s_currentAttackType, 2);
+
+		// Kick (下段)
+		ImGui::Text("Kick :");
+		ImGui::SameLine();
+		ImGui::RadioButton("Medium##K", &s_currentAttackType, 3);
+		ImGui::SameLine();
+		ImGui::RadioButton("Heavy##K", &s_currentAttackType, 4);
 
 		if (!m_isAttacking)
 		{
@@ -498,6 +509,7 @@ void SceneDebug::DrawImGui()
 				if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
 				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
 				else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
+				else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
 				else pParams = &player->GetHeavyKickParams();
 
 				if (pParams) {
@@ -557,6 +569,10 @@ void SceneDebug::DrawImGui()
 		else if (s_currentAttackType == 2) {
 			pParams = &player->GetHeavyPunchParams();
 			ImGui::Text("Heavy Punch");
+		}
+		else if (s_currentAttackType == 3) {
+			pParams = &player->GetMediumKickParams();
+			ImGui::Text("Medium Kick");
 		}
 		else {
 			pParams = &player->GetHeavyKickParams();

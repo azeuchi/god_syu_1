@@ -180,6 +180,7 @@ void SceneBlank::Init()
 		LoadOneParam(player->GetLightPunchParams(), ifs);
 		LoadOneParam(player->GetMediumPunchParams(), ifs);
 		LoadOneParam(player->GetHeavyPunchParams(), ifs);
+		LoadOneParam(player->GetMediumKickParams(), ifs); // 追加
 		LoadOneParam(player->GetHeavyKickParams(), ifs);
 
 		ifs.close();
@@ -200,6 +201,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true); // 追加
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
@@ -224,6 +226,7 @@ void SceneBlank::Init()
 	player2->GetLightPunchParams() = player->GetLightPunchParams();
 	player2->GetMediumPunchParams() = player->GetMediumPunchParams();
 	player2->GetHeavyPunchParams() = player->GetHeavyPunchParams();
+	player2->GetMediumKickParams() = player->GetMediumKickParams(); // 追加
 	player2->GetHeavyKickParams() = player->GetHeavyKickParams();
 
 	// 当たり判定情報のコピー
@@ -245,6 +248,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true); // 追加
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);

@@ -12,6 +12,7 @@
 #include "LightPunch.h" 
 #include "MediumPunch.h" 
 #include "HeavyPunch.h"
+#include "MediumKick.h"
 #include "HeavyKick.h" 
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
@@ -128,17 +129,21 @@ void Player::PollInputs()
 				m_inputs.jump = true;
 			}
 		}
-		// U キーで弱攻撃 (変更)
+		// U キーで弱攻撃
 		if (IsKeyTrigger('U')) {
 			m_inputs.LightPunch = true;
 		}
-		// I キーで中攻撃 (変更)
+		// I キーで中攻撃
 		if (IsKeyTrigger('I')) {
 			m_inputs.MediumPunch = true;
 		}
-		// O キーで大パンチ (変更)
+		// O キーで大パンチ
 		if (IsKeyTrigger('O')) {
 			m_inputs.HeavyPunch = true;
+		}
+		// K キーで中キック (追加)
+		if (IsKeyTrigger('K')) {
+			m_inputs.MediumKick = true;
 		}
 		// L キーで大キック
 		if (IsKeyTrigger('L')) {
@@ -177,6 +182,10 @@ void Player::PollInputs()
 		// テンキーの '4' で大パンチ
 		if (IsKeyTrigger(VK_NUMPAD4)) {
 			m_inputs.HeavyPunch = true;
+		}
+		// テンキーの '5' で中キック (仮)
+		if (IsKeyTrigger(VK_NUMPAD5)) {
+			m_inputs.MediumKick = true;
 		}
 		// テンキーの '3' で大キック
 		if (IsKeyTrigger(VK_NUMPAD3)) {
@@ -232,11 +241,11 @@ void Player::UpdateAnimation(float tick)
 		// 攻撃パラメータが設定されている場合、フレーム単位の速度変化を適用する
 		if (m_pActiveAttackParams)
 		{
-			// 現在再生中のアニメーションが攻撃技でない場合、
-			// パラメータを無効化する
+			// 現在再生中のアニメーションが攻撃技であるか確認 (安全策)
 			bool isAttackAnim = (strcmp(m_currentAnim.name, "LightPunch") == 0 ||
 				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
 				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
+				strcmp(m_currentAnim.name, "MediumKick") == 0 || // 追加
 				strcmp(m_currentAnim.name, "HeavyKick") == 0);
 
 			if (!isAttackAnim)

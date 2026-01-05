@@ -187,6 +187,7 @@
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LightBase.cpp" />
     <ClCompile Include="LightPunch.cpp" />
+    <ClCompile Include="MediumKick.cpp" />
     <ClCompile Include="MediumPunch.cpp" />
     <ClCompile Include="MeshBuffer.cpp" />
     <ClCompile Include="Geometory.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="Input.h" />
     <ClInclude Include="LightBase.h" />
     <ClInclude Include="LightPunch.h" />
+    <ClInclude Include="MediumKick.h" />
     <ClInclude Include="MediumPunch.h" />
     <ClInclude Include="MeshBuffer.h" />
     <ClInclude Include="Geometory.h" />

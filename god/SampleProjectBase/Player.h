@@ -30,6 +30,7 @@ struct PlayerInputs
 	bool LightPunch = false;
 	bool MediumPunch = false;
 	bool HeavyPunch = false;
+	bool MediumKick = false; 
 	bool HeavyKick = false;
 };
 
@@ -64,11 +65,11 @@ struct AttackParams
 	float hitboxStart = 0.1f;   // UŒ‚”»’è”­¶
 	float hitboxEnd = 0.2f;     // UŒ‚”»’èI—¹
 
-	// --- UŒ‚”»’è (Hitbox: Ô˜g) ‚ÌŒ`ó ---
+	// --- UŒ‚”»’è ‚ÌŒ`ó ---
 	DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
 	DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
 
-	// --- UŒ‚’†‚Ì‚­‚ç‚¢”»’è•â³ (—Î˜g‚Ì•Ï‰») ---
+	// --- UŒ‚’†‚Ì‚­‚ç‚¢”»’è•â³  ---
 	DirectX::XMFLOAT2 headOffsetVal = { 0.0f, 0.0f };
 	DirectX::XMFLOAT2 headSizeVal = { 0.0f, 0.0f };
 
@@ -188,6 +189,7 @@ public:
 	AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 	AttackParams& GetMediumPunchParams() { return m_mediumPunchParams; }
 	AttackParams& GetHeavyPunchParams() { return m_heavyPunchParams; }
+	AttackParams& GetMediumKickParams() { return m_mediumKickParams; }
 	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
 	// Œ»İƒAƒNƒeƒBƒu‚È‹Z‚Ìƒpƒ‰ƒ[ƒ^‚ğæ“¾Eİ’è‚·‚é
@@ -256,6 +258,7 @@ private:
 	AttackParams m_lightPunchParams;
 	AttackParams m_mediumPunchParams;
 	AttackParams m_heavyPunchParams;
+	AttackParams m_mediumKickParams;
 	AttackParams m_heavyKickParams;
 
 	AttackParams* m_pActiveAttackParams = nullptr;
