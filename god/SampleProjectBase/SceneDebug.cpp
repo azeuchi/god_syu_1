@@ -355,6 +355,29 @@ void SceneDebug::Update(float tick)
 			}
 		}
 	}
+
+	// --- カメラ追従処理 (SceneBlankに近い挙動に変更) ---
+	CameraBase* camera = GetObj<CameraBase>("Camera");
+	if (camera)
+	{
+		// プレイヤーの位置を取得
+		DirectX::XMFLOAT3 playerPos = player->GetPosition();
+
+		// SceneBlankと同様に、カメラをプレイヤーの真横(Z軸マイナス側)に配置し、
+		// X座標とY座標（高さ）を追従させる。
+		// Z=-3.5f とすることで、SceneBlank(Z=-5.0f)よりも近くする
+
+		float targetZ = -3.5f;
+		float heightOffset = 1.2f; // SceneBlankの初期値(1.2f)に合わせる
+
+		DirectX::XMFLOAT3 targetPos = { playerPos.x, playerPos.y + heightOffset, targetZ };
+		DirectX::XMFLOAT3 targetLook = { playerPos.x, playerPos.y + 1.0f, 0.0f }; // 注視点はプレイヤー本体(Z=0)
+
+		// 現在の位置からスムーズに補間しても良いが、
+		// デバッグ調整中は「完全追従」の方がブレなくて見やすいので即時反映させる
+		camera->SetPos(targetPos);
+		camera->SetLook(targetLook);
+	}
 }
 
 void SceneDebug::Draw()

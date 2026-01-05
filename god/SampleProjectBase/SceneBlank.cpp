@@ -808,7 +808,7 @@ void SceneBlank::Draw()
 	// 通常UIの描画
 	SimpleUI::DrawAll();
 
-	// 5. フェード用黒画像 (半透明＆背景消え対策の設定で描画)
+	// 5. フェード用黒画像 
 	bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
 	if (m_isRoundOver && !isGameSet && m_fadeBlack)
 	{

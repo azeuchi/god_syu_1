@@ -23,8 +23,6 @@ void CameraDCC::Update()
 {
 	UpdateState();
 	if (m_state == CAM_DCC_NONE) return;
-
-	// ★ #if 0 ～ #endif で囲むと、中にコメントがあっても安全に無効化できます
 #if 0
 	Argument arg;
 	// マウス移動量

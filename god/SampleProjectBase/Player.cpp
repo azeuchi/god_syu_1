@@ -232,8 +232,8 @@ void Player::UpdateAnimation(float tick)
 		// 攻撃パラメータが設定されている場合、フレーム単位の速度変化を適用する
 		if (m_pActiveAttackParams)
 		{
-			// ★安全策: 現在再生中のアニメーションが攻撃技でない場合（歩きや待機など）、
-			// パラメータを無効化する。これにより「通常移動がスローになる」バグを防ぐ。
+			// 現在再生中のアニメーションが攻撃技でない場合、
+			// パラメータを無効化する
 			bool isAttackAnim = (strcmp(m_currentAnim.name, "LightPunch") == 0 ||
 				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
 				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
