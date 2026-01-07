@@ -284,7 +284,7 @@ void SceneDebug::Update(float tick)
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
 	}
 
-	// --- 速度計算用ロジック (Update/Draw共通で使用するため変数化) ---
+	// --- 速度計算用ロジック ---
 	float speed = 1.0f;
 	AttackParams* params = player->GetCurrentAttackParams();
 	if (m_isAttacking && params) {
@@ -299,7 +299,6 @@ void SceneDebug::Update(float tick)
 	if (m_isPaused)
 	{
 		// m_currentFrame は「ゲームフレーム」として扱う
-		// 一時停止中: 
 		// 1. ゲームフレーム(m_currentFrame) に 速度倍率(speed) を掛けて、モデルフレームを算出する
 		int modelFrame = static_cast<int>(m_currentFrame * speed);
 

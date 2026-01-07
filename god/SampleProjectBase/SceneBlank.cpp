@@ -15,7 +15,7 @@
 #include <fstream> 
 #include <algorithm> 
 
-// やられ状態への遷移に使用
+
 #include "PlayerStateDamage.h"
 
 using namespace DirectX;
@@ -37,7 +37,7 @@ const int ROUND_TO_WIN = 2;         // 2本先取で勝利
 // フェード演出用定数
 const float WAIT_BEFORE_FADE = 1.0f; // ラウンド終了後、フェード開始までの待機時間
 const float FADE_DURATION = 2.0f;    // フェードにかける時間
-const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 (3.0秒)
+const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 
 
 // 静的メンバ変数の実体定義
 bool SceneBlank::s_isGameSet = false;
@@ -99,7 +99,7 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// 3. UI（HPバー）の初期化
+	// 3. UI（HPバー・ラウンド画像）の初期化
 	// ==================================================
 	m_barMaxWidth = 500.0f;
 
@@ -115,6 +115,19 @@ void SceneBlank::Init()
 	m_fadeBlack = new Image2D();
 	m_fadeBlack->Load("Assets/Texture/black.png", 640.0f, 360.0f, 1280.0f, 720.0f);
 	m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	// ラウンドコール画像
+	m_imgRound1 = new Image2D();
+	m_imgRound1->Load("Assets/Texture/ROUND1.png", 640.0f, 360.0f, 800.0f, 350.0f); 
+
+	m_imgRound2 = new Image2D();
+	m_imgRound2->Load("Assets/Texture/ROUND2.png", 640.0f, 360.0f, 800.0f, 350.0f);
+
+	m_imgFinalRound = new Image2D();
+	m_imgFinalRound->Load("Assets/Texture/FINALROUND.png", 640.0f, 360.0f, 800.0f, 350.0f);
+
+	m_imgFight = new Image2D();
+	m_imgFight->Load("Assets/Texture/FIGHT.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
 
 	// ==================================================
@@ -180,7 +193,7 @@ void SceneBlank::Init()
 		LoadOneParam(player->GetLightPunchParams(), ifs);
 		LoadOneParam(player->GetMediumPunchParams(), ifs);
 		LoadOneParam(player->GetHeavyPunchParams(), ifs);
-		LoadOneParam(player->GetMediumKickParams(), ifs); // 追加
+		LoadOneParam(player->GetMediumKickParams(), ifs);
 		LoadOneParam(player->GetHeavyKickParams(), ifs);
 
 		ifs.close();
@@ -201,7 +214,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true); // 追加
+	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
@@ -211,7 +224,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 5. プレイヤー2の生成 (P1の設定を反転して流用)
+	// 5. プレイヤー2の生成 
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -222,14 +235,14 @@ void SceneBlank::Init()
 	scaleP2.x *= -1.0f; // X軸反転
 	player2->SetScale(scaleP2);
 
-	// P1からパラメータをコピー
+	
 	player2->GetLightPunchParams() = player->GetLightPunchParams();
 	player2->GetMediumPunchParams() = player->GetMediumPunchParams();
 	player2->GetHeavyPunchParams() = player->GetHeavyPunchParams();
-	player2->GetMediumKickParams() = player->GetMediumKickParams(); // 追加
+	player2->GetMediumKickParams() = player->GetMediumKickParams();
 	player2->GetHeavyKickParams() = player->GetHeavyKickParams();
 
-	// 当たり判定情報のコピー
+	// 当たり判定情報
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 		player2->SetHurtboxBase((HurtboxType)i,
 			player->GetHurtboxBaseOffset((HurtboxType)i),
@@ -248,13 +261,13 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true); // 追加
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
-	// 初期位置設定 (ResetRoundで上書きされるが念のため)
+	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
@@ -274,21 +287,21 @@ void SceneBlank::Init()
 	D3D11_DEPTH_STENCIL_DESC depthDesc = {};
 	depthDesc.DepthEnable = TRUE;
 	depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 1.0(最奥)も描画する
+	depthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; 
 	depthDesc.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthState);
 
-	// 背景ソリッド消え対策の深度無効ステート
-	D3D11_DEPTH_STENCIL_DESC depthDisableDesc = {};
-	depthDisableDesc.DepthEnable = FALSE;
-	depthDisableDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDisableDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-	depthDisableDesc.StencilEnable = FALSE;
-	GetDevice()->CreateDepthStencilState(&depthDisableDesc, &m_pDepthDisableState);
+	// UI用の深度ステート
+	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
+	depthDescUI.DepthEnable = TRUE;
+	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS; // 常に手前に描画
+	depthDescUI.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
 
-	// 半透明合成用ブレンドステート
+	// 半透明合成用ブレンドステート 
 	D3D11_BLEND_DESC blendDesc = {};
-	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.AlphaToCoverageEnable = TRUE;
 	blendDesc.IndependentBlendEnable = FALSE;
 	blendDesc.RenderTarget[0].BlendEnable = TRUE;
 	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -306,12 +319,18 @@ void SceneBlank::Uninit()
 	if (m_hpBar) delete m_hpBar;
 	if (m_enemyhpBar) delete m_enemyhpBar;
 	if (m_fadeBlack) { delete m_fadeBlack; m_fadeBlack = nullptr; }
+
+	if (m_imgRound1) { delete m_imgRound1; m_imgRound1 = nullptr; }
+	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }
+	if (m_imgFinalRound) { delete m_imgFinalRound; m_imgFinalRound = nullptr; }
+	if (m_imgFight) { delete m_imgFight; m_imgFight = nullptr; }
+
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
 
 	// 描画設定の解放
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
-	if (m_pDepthDisableState) { m_pDepthDisableState->Release(); m_pDepthDisableState = nullptr; }
+	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 }
 
@@ -327,6 +346,20 @@ void SceneBlank::ResetRound()
 	m_shakeTimerP1 = 0.0f;
 	m_shakeTimerP2 = 0.0f;
 
+	// フェーズ初期化
+	// どちらも0勝 (つまりラウンド1) ならREADY(溜め)から開始
+	// それ以外 (ラウンド2以降) ならROUND_CALL(画像表示)から開始
+	if (m_winCountP1 == 0 && m_winCountP2 == 0)
+	{
+		m_currentPhase = RoundPhase::READY;
+	}
+	else
+	{
+		m_currentPhase = RoundPhase::ROUND_CALL;
+	}
+
+	m_phaseTimer = 0.0f;
+
 	if (m_fadeBlack)
 	{
 		m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -339,7 +372,9 @@ void SceneBlank::ResetRound()
 		player->SetPosition({ -2.0f, 0.0f, 0.0f });
 		player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 		player->Reset(); // HP全回復、ステートリセット
-		player->SetInputType(PlayerInputType::PLAYER_1); // 操作可能に戻す
+
+		// 演出中は操作不能にする
+		player->SetInputType(PlayerInputType::AI);
 	}
 
 	// 2Pリセット
@@ -349,7 +384,7 @@ void SceneBlank::ResetRound()
 		player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 		player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 		player2->Reset();
-		player2->SetInputType(PlayerInputType::PLAYER_2);
+		player2->SetInputType(PlayerInputType::AI);
 	}
 
 	// HPバーの見た目もリセット
@@ -367,7 +402,7 @@ void SceneBlank::ResetRound()
 		pCamera->SetLook({ 0.0f, 1.0f, 4.0f });
 	}
 
-	DebugLog::log(DebugLog::INFO_LOG, "--- Round Start ---");
+	DebugLog::log(DebugLog::INFO_LOG, "--- Round Start Sequence ---");
 }
 
 
@@ -375,6 +410,61 @@ void SceneBlank::Update(float tick)
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
+
+	// ==========================================================
+	// 0. ラウンド開始演出 (フェーズ管理)
+	// ==========================================================
+	if (m_currentPhase != RoundPhase::PLAYING)
+	{
+		m_phaseTimer += tick;
+
+		if (m_currentPhase == RoundPhase::READY)
+		{
+			// 1.0秒のラグ（待機）
+			if (m_phaseTimer >= 1.0f)
+			{
+				m_currentPhase = RoundPhase::ROUND_CALL;
+				m_phaseTimer = 0.0f;
+			}
+		}
+		else if (m_currentPhase == RoundPhase::ROUND_CALL)
+		{
+			// 1.5秒経過したらFIGHTへ
+			if (m_phaseTimer >= 1.5f)
+			{
+				m_currentPhase = RoundPhase::FIGHT_CALL;
+				m_phaseTimer = 0.0f;
+			}
+		}
+		else if (m_currentPhase == RoundPhase::FIGHT_CALL)
+		{
+			// 1.0秒経過したら試合開始
+			if (m_phaseTimer >= 1.0f)
+			{
+				m_currentPhase = RoundPhase::PLAYING;
+				m_phaseTimer = 0.0f;
+
+				// 操作権限をプレイヤーに戻す
+				if (player) player->SetInputType(PlayerInputType::PLAYER_1);
+				if (player2) player2->SetInputType(PlayerInputType::PLAYER_2);
+				DebugLog::log(DebugLog::INFO_LOG, "--- FIGHT! ---");
+			}
+		}
+
+		if (player) player->Update(tick);
+		if (player2) player2->Update(tick);
+
+		// 演出中でもカメラ位置情報をスカイドームに渡して更新する
+		CameraBase* pCamera = GetObj<CameraBase>("Camera");
+		if (m_skyDome && pCamera)
+		{
+			m_skyDome->Update(pCamera->GetPos());
+		}
+
+		
+		return; 
+	}
+
 
 	// ==========================================================
 	// 1. ラウンド終了後の待機処理
@@ -397,11 +487,9 @@ void SceneBlank::Update(float tick)
 			else
 			{
 				// 待機時間を過ぎたらフェード開始
-				// 0.0f から 1.0f へ変化（進行度 progress）
 				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
 				if (progress > 1.0f) progress = 1.0f;
 
-				// ご要望通り 0.1 からスタート
 				float alpha = 0.1f + (progress * 0.9f);
 
 				// 色は黒(0,0,0)で、透明度だけを変える
@@ -435,7 +523,7 @@ void SceneBlank::Update(float tick)
 	else
 	{
 		// ==========================================================
-		// 2. 通常のゲーム進行 (内容は変更なし)
+		// 2. 通常のゲーム進行 
 		// ==========================================================
 		float playerTick = tick;
 		if (m_hitStopTimer > 0.0f)
@@ -617,7 +705,7 @@ void SceneBlank::Update(float tick)
 		}
 	}
 
-	// ヒットシェイク計算 (ラウンド終了後も振動は残ってOK)
+	// ヒットシェイク計算 
 	if (m_shakeTimerP1 > 0.0f) {
 		m_shakeTimerP1 -= tick;
 		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
@@ -639,7 +727,7 @@ void SceneBlank::Update(float tick)
 	}
 
 
-	// カメラ制御 (ラウンド終了後もキャラを映し続ける)
+	// カメラ制御 
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -773,7 +861,7 @@ void SceneBlank::Draw()
 	}
 
 	// 3. プレイヤー2の描画
-	Player* player2 = GetObj<Player>("Player2");
+	Player* player2 = GetObj<Player>("Player2"); 
 	if (player2) {
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
@@ -800,25 +888,63 @@ void SceneBlank::Draw()
 #endif
 	}
 
-	// 4. UIの描画
+	// ------------------------------------------------
+	// 4. UIの描画 
+	// ------------------------------------------------
+
+	// 深度設定: UI用 (Depth ON, Func ALWAYS)
+	if (m_pDepthStateUI)
+	{
+		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
+	}
+
+	// ブレンド設定: AlphaToCoverage ON
+	if (m_pBlendState)
+	{
+		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
+	}
+
+	// UIリストクリアと行列初期化
 	SimpleUI::Clear();
 	DirectX::XMFLOAT4X4 identity;
 	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
 	SimpleUI::SetMatrix(identity, identity, identity);
 
+	// --- HPバー描画登録 ---
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
-	// 通常UIの描画
-	SimpleUI::DrawAll();
+	// UI画像を描画する前にピクセルシェーダーを解除する
+	GetContext()->PSSetShader(nullptr, nullptr, 0);
 
-	// 5. フェード用黒画像 
+	// --- ラウンド演出の描画登録 ---
+	if (m_currentPhase == RoundPhase::ROUND_CALL)
+	{
+		// 勝利数に応じて表示画像を切り替え
+		if (m_winCountP1 == 0 && m_winCountP2 == 0)
+		{
+			if (m_imgRound1) m_imgRound1->Draw();
+		}
+		else if (m_winCountP1 == 1 && m_winCountP2 == 1)
+		{
+			// 1-1 ならファイナルラウンド
+			if (m_imgFinalRound) m_imgFinalRound->Draw();
+		}
+		else
+		{
+			// それ以外 (1-0 or 0-1) ならラウンド2
+			if (m_imgRound2) m_imgRound2->Draw();
+		}
+	}
+	else if (m_currentPhase == RoundPhase::FIGHT_CALL)
+	{
+		if (m_imgFight) m_imgFight->Draw();
+	}
+
+	// --- フェード画像の描画登録 ---
 	bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
 	if (m_isRoundOver && !isGameSet && m_fadeBlack)
 	{
-		SimpleUI::Clear(); // リストをクリアしてフェード画像だけ登録
-		m_fadeBlack->Draw();
-
 		// フェード進行度を計算
 		float progress = 0.0f;
 		if (m_roundEndTimer >= WAIT_BEFORE_FADE)
@@ -827,27 +953,16 @@ void SceneBlank::Draw()
 			if (progress > 1.0f) progress = 1.0f;
 		}
 
-
-		if (progress < 0.7f)
-		{
-			if (m_pBlendState && m_pDepthDisableState)
-			{
-				GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
-				GetContext()->OMSetDepthStencilState(m_pDepthDisableState, 0);
-			}
-			SimpleUI::DrawAll();
-
-			// 設定を戻す
-			GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
-			GetContext()->OMSetDepthStencilState(nullptr, 0);
-		}
-
-		else
-		{
-			SimpleUI::DrawAll();
-		}
+		// 透明度設定
+		float alpha = 0.1f + (progress * 0.9f);
+		m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, alpha);
+		m_fadeBlack->Draw();
 	}
 
-	// 念のためデフォルトに戻す
+	// まとめて描画実行
+	SimpleUI::DrawAll();
+
+	// 設定をデフォルトに戻す
+	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 }
