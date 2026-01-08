@@ -69,7 +69,7 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.cancelEnabled << std::endl;
 				ofs << params.cancelStart << std::endl;
 				ofs << params.cancelEnd << std::endl;
-				ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavy << std::endl;
+				ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavyPunch << " " << params.cancelToMediumKick << " " << params.cancelToHeavy << std::endl;
 
 				// 速度変化リスト (Speed Modifiers)
 				// まず要素数を書き込み、その後に中身を書き込む
@@ -190,7 +190,7 @@ void SceneDebug::Init()
 			ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
 			ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
 			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
-			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavy;
+			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
 			// 速度変化リスト読み込み
 			size_t count = 0;
@@ -284,7 +284,7 @@ void SceneDebug::Update(float tick)
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
 	}
 
-	// --- 速度計算用ロジック ---
+	// --- 速度計算用ロジック (Update/Draw共通で使用するため変数化) ---
 	float speed = 1.0f;
 	AttackParams* params = player->GetCurrentAttackParams();
 	if (m_isAttacking && params) {
@@ -299,6 +299,7 @@ void SceneDebug::Update(float tick)
 	if (m_isPaused)
 	{
 		// m_currentFrame は「ゲームフレーム」として扱う
+		// 一時停止中: 
 		// 1. ゲームフレーム(m_currentFrame) に 速度倍率(speed) を掛けて、モデルフレームを算出する
 		int modelFrame = static_cast<int>(m_currentFrame * speed);
 
@@ -632,9 +633,12 @@ void SceneDebug::DrawImGui()
 				int cancelEndF = static_cast<int>(std::round(params.cancelEnd / FRAME_TIME_60FPS));
 				if (ImGui::SliderInt("Start Frame", &cancelStartF, 0, totalFrames)) params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
 				if (ImGui::SliderInt("End Frame", &cancelEndF, 0, totalFrames)) params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
-				ImGui::Checkbox("-> Light", &params.cancelToLight);
-				ImGui::SameLine(); ImGui::Checkbox("-> Medium", &params.cancelToMedium);
-				ImGui::SameLine(); ImGui::Checkbox("-> Heavy", &params.cancelToHeavy);
+
+				ImGui::Checkbox("-> Light P", &params.cancelToLight);
+				ImGui::SameLine(); ImGui::Checkbox("-> Medium P", &params.cancelToMedium);
+				ImGui::SameLine(); ImGui::Checkbox("-> Heavy P", &params.cancelToHeavyPunch);
+				ImGui::Checkbox("-> Medium K", &params.cancelToMediumKick);
+				ImGui::SameLine(); ImGui::Checkbox("-> Heavy K", &params.cancelToHeavy);
 			}
 			ImGui::TreePop();
 		}

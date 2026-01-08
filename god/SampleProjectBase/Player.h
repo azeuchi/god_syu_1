@@ -30,7 +30,7 @@ struct PlayerInputs
 	bool LightPunch = false;
 	bool MediumPunch = false;
 	bool HeavyPunch = false;
-	bool MediumKick = false; 
+	bool MediumKick = false;
 	bool HeavyKick = false;
 };
 
@@ -65,11 +65,11 @@ struct AttackParams
 	float hitboxStart = 0.1f;   // 攻撃判定発生
 	float hitboxEnd = 0.2f;     // 攻撃判定終了
 
-	// --- 攻撃判定 の形状 ---
+	// --- 攻撃判定 (Hitbox: 赤枠) の形状 ---
 	DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
 	DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
 
-	// --- 攻撃中のくらい判定補正  ---
+	// --- 攻撃中のくらい判定補正 (緑枠の変化) ---
 	DirectX::XMFLOAT2 headOffsetVal = { 0.0f, 0.0f };
 	DirectX::XMFLOAT2 headSizeVal = { 0.0f, 0.0f };
 
@@ -93,9 +93,11 @@ struct AttackParams
 	float cancelEnd = 0.0f;         // キャンセル受付終了時間 (秒)
 
 	// どの技にキャンセルできるか (ルート設定)
-	bool cancelToLight = false;     // 弱パンチへ
-	bool cancelToMedium = false;    // 中パンチへ
-	bool cancelToHeavy = false;     // 大キックへ
+	bool cancelToLight = false;      // 弱パンチへ
+	bool cancelToMedium = false;     // 中パンチへ
+	bool cancelToHeavyPunch = false; // 大パンチへ
+	bool cancelToMediumKick = false; // 中キックへ
+	bool cancelToHeavy = false;      // 大キックへ
 
 	// --- アニメーション速度制御 ---
 	// 特定フレーム区間の速度を変えるためのリスト
