@@ -295,6 +295,16 @@ void Player::SetState(PlayerState* newState)
 	}
 }
 
+// ステートに問い合わせて無敵かどうかを返す
+bool Player::IsInvincible() const
+{
+	if (m_currentState)
+	{
+		return m_currentState->IsInvincible();
+	}
+	return false;
+}
+
 // アニメーション再生時は速度をリセット
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
@@ -419,6 +429,13 @@ void Player::Jump()
 		m_isJumping = true;
 	}
 }
+
+// 強制的にジャンプフラグを立てる（ダウン吹き飛び用）
+void Player::ForceJumpState(bool isJumping)
+{
+	m_isJumping = isJumping;
+}
+
 bool Player::GetIsJumping() const
 {
 	return m_isJumping;

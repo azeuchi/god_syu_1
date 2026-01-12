@@ -22,7 +22,7 @@ const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
-// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK
+// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK, 5:Down, 6:WakeUp
 static int s_currentAttackType = 0;
 
 static const char* GetCurrentAnimName()
@@ -31,7 +31,9 @@ static const char* GetCurrentAnimName()
 	if (s_currentAttackType == 1) return "MediumPunch";
 	if (s_currentAttackType == 2) return "HeavyPunch";
 	if (s_currentAttackType == 3) return "MediumKick";
-	return "HeavyKick";
+	if (s_currentAttackType == 4) return "HeavyKick";
+	if (s_currentAttackType == 5) return "Down";
+	return "WakeUp";
 }
 
 void SceneDebug::SavePlayerSettings()
@@ -57,6 +59,9 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.blockFrame << std::endl;
 				ofs << params.hitStop << std::endl;
 
+				// ダウン設定
+				ofs << params.isDown << std::endl;
+
 				// くらい判定補正
 				ofs << params.headOffsetVal.x << " " << params.headOffsetVal.y << std::endl;
 				ofs << params.headSizeVal.x << " " << params.headSizeVal.y << std::endl;
@@ -72,7 +77,6 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavyPunch << " " << params.cancelToMediumKick << " " << params.cancelToHeavy << std::endl;
 
 				// 速度変化リスト (Speed Modifiers)
-				// まず要素数を書き込み、その後に中身を書き込む
 				size_t speedModCount = params.speedModifiers.size();
 				ofs << speedModCount << std::endl;
 				for (const auto& mod : params.speedModifiers) {
@@ -149,11 +153,6 @@ void SceneDebug::Init()
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
-	// 読み込み用ヘルパー
-	auto ReadParams = [&](AttackParams& params) {
-		std::ifstream& ifs = *(std::ifstream*)nullptr; // ダミー宣言 (実際にはキャプチャできないためロジック内に直書きするか関数化する)
-		};
-
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
 	{
@@ -183,6 +182,7 @@ void SceneDebug::Init()
 			ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
 			ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
 			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+			ifs >> p.isDown;
 			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
 			ifs >> p.headSizeVal.x >> p.headSizeVal.y;
 			ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
@@ -226,6 +226,10 @@ void SceneDebug::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
+	// ダウンと起き上がり用アニメーションを追加
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
+
 	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
 
@@ -251,7 +255,6 @@ void SceneDebug::Uninit()
 
 /**
  * @brief 更新処理
- * GUI操作に応じたアニメーションのコマ送り制御などを行う
  */
 void SceneDebug::Update(float tick)
 {
@@ -267,67 +270,65 @@ void SceneDebug::Update(float tick)
 
 	player->SetActiveHitbox(m_isAttacking);
 	// --- パラメータの同期 ---
+	AttackParams* params = nullptr;
 	if (s_currentAttackType == 0) {
-		player->SetCurrentAttackParams(&player->GetLightPunchParams());
+		params = &player->GetLightPunchParams();
 	}
 	else if (s_currentAttackType == 1) {
-		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
+		params = &player->GetMediumPunchParams();
 	}
 	else if (s_currentAttackType == 2) {
-		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
+		params = &player->GetHeavyPunchParams();
 	}
 	else if (s_currentAttackType == 3) {
-		player->SetCurrentAttackParams(&player->GetMediumKickParams());
+		params = &player->GetMediumKickParams();
 	}
-	else {
-		// 大キック
-		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
+	else if (s_currentAttackType == 4) {
+		params = &player->GetHeavyKickParams();
 	}
+	// 5(Down), 6(WakeUp) は params = nullptr のまま
 
-	// --- 速度計算用ロジック (Update/Draw共通で使用するため変数化) ---
+	player->SetCurrentAttackParams(params);
+
+	// --- 速度計算用ロジック ---
 	float speed = 1.0f;
-	AttackParams* params = player->GetCurrentAttackParams();
-	if (m_isAttacking && params) {
+	if (m_isAttacking) {
 		const char* animName = GetCurrentAnimName();
 		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
-		float targetFrames = params->totalDuration * 60.0f;
-		if (targetFrames <= 1.0f) targetFrames = 1.0f;
-		speed = (float)totalAnimFrames / targetFrames;
+
+		// パラメータがある場合はそれに基づいて速度計算
+		if (params) {
+			float targetFrames = params->totalDuration * 60.0f;
+			if (targetFrames <= 1.0f) targetFrames = 1.0f;
+			speed = (float)totalAnimFrames / targetFrames;
+		}
+		else {
+			// ダウンや起き上がりは等倍速（または手動指定）で再生
+			speed = 1.0f;
+		}
 	}
 
 	// --- アニメーション制御 ---
 	if (m_isPaused)
 	{
-		// m_currentFrame は「ゲームフレーム」として扱う
-		// 一時停止中: 
-		// 1. ゲームフレーム(m_currentFrame) に 速度倍率(speed) を掛けて、モデルフレームを算出する
 		int modelFrame = static_cast<int>(m_currentFrame * speed);
-
-		// 2. モデルに適用
 		player->Debug_SetFrame(modelFrame);
-
 		m_animTimer = 0.0f;
 	}
 	else
 	{
-		// 再生中: 60FPS間隔でフレームを進める
-		// tick (経過秒数) を積算し、1/60秒経つごとに1フレーム進める
 		m_animTimer += tick;
 		if (m_animTimer >= FRAME_TIME_60FPS)
 		{
-			// 処理落ちしても動きがスローにならないよう、経過時間分だけフレームを進める
 			while (m_animTimer >= FRAME_TIME_60FPS)
 			{
-				// Player::UpdateAnimation内で m_animSpeed が考慮される
 				player->UpdateAnimation(FRAME_TIME_60FPS);
 				m_animTimer -= FRAME_TIME_60FPS;
 			}
 		}
 
-		// プレイヤーから現在のモデルフレームを取得し、ゲームフレームに逆変換して同期
 		if (m_isAttacking)
 		{
-			// GameFrame = ModelFrame / speed
 			float currentModelFrame = (float)player->Debug_GetFrame();
 			if (speed > 0.0f) {
 				m_currentFrame = static_cast<int>(currentModelFrame / speed);
@@ -338,28 +339,27 @@ void SceneDebug::Update(float tick)
 		}
 	}
 
-	// ボーン行列の更新 (アニメ停止中でも姿勢を反映するために毎フレーム呼ぶ)
 	player->UpdateModelBlend();
 
 	// --- 攻撃終了判定 ---
 	if (m_isAttacking)
 	{
-		// 判定も「ゲームフレーム」で行うことで、GUI設定と完全に同期させる
-		if (params)
+		int totalGameFrames = 0;
+		if (params) {
+			totalGameFrames = static_cast<int>(std::round(params->totalDuration * 60.0f));
+		}
+		else {
+			// パラメータがない場合（ダウンなど）はモデルのアニメーション長さを基準にする
+			totalGameFrames = player->GetModel()->GetAnimationTotalFrame(GetCurrentAnimName());
+		}
+
+		if (m_currentFrame >= totalGameFrames)
 		{
-			// 全体フレーム(ゲーム内時間)を超えたら終了
-			int totalGameFrames = static_cast<int>(std::round(params->totalDuration * 60.0f));
-
-			if (m_currentFrame >= totalGameFrames)
-			{
-				player->Debug_SetAnimation("Idle", true);
-				m_isAttacking = false; // 攻撃終了
-				m_isPaused = false;    // 再生状態に戻す
-				m_currentFrame = 0;
-
-				// パラメータリンクを解除 (安全のため)
-				player->SetCurrentAttackParams(nullptr);
-			}
+			player->Debug_SetAnimation("Idle", true);
+			m_isAttacking = false;
+			m_isPaused = false;
+			m_currentFrame = 0;
+			player->SetCurrentAttackParams(nullptr);
 		}
 	}
 
@@ -368,15 +368,10 @@ void SceneDebug::Update(float tick)
 	if (camera)
 	{
 		DirectX::XMFLOAT3 playerPos = player->GetPosition();
-		DirectX::XMFLOAT3 camPos = camera->GetPos();
-		DirectX::XMFLOAT3 camLook = camera->GetLook();
-
 		float targetZ = -3.5f;
 		float heightOffset = 1.2f;
-
 		DirectX::XMFLOAT3 targetPos = { playerPos.x, playerPos.y + heightOffset, targetZ };
 		DirectX::XMFLOAT3 targetLook = { playerPos.x, playerPos.y + 1.0f, 0.0f };
-
 		camera->SetPos(targetPos);
 		camera->SetLook(targetLook);
 	}
@@ -426,31 +421,23 @@ void SceneDebug::Draw()
 		player->SetVertexShader(shader[0]);
 		player->SetPixelShader(shader[1]);
 
-		// 描画
 		player->Draw();
-
-		// くらい判定 (緑箱) の描画 (3部位)
-		// m_isAttacking = true の間は、攻撃用補正値が反映された状態で描画される
 		player->DrawBoundingBox();
 
-		// --- 攻撃判定 (Hitbox: 赤箱) の描画 ---
 		if (m_isAttacking)
 		{
-			// 現在アクティブなパラメータを使用
 			AttackParams* params = player->GetCurrentAttackParams();
+			if (params) {
+				int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
+				int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
 
-			// m_currentFrame を「ゲームフレーム」としたため、
-			// hitboxStart (秒) を単純に 60倍してフレームに直すだけで比較可能になる
-			int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
-			int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
-
-			// 現在フレームが発生期間内なら描画
-			if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
-			{
-				player->UpdateHitbox(params->hitboxOffset, params->hitboxExtents);
-				player->SetActiveHitbox(true);
-				player->DrawHitbox();
-				player->SetActiveHitbox(false); // 描画後はいったん無効化
+				if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
+				{
+					player->UpdateHitbox(params->hitboxOffset, params->hitboxExtents);
+					player->SetActiveHitbox(true);
+					player->DrawHitbox();
+					player->SetActiveHitbox(false);
+				}
 			}
 		}
 	}
@@ -477,27 +464,27 @@ void SceneDebug::DrawImGui()
 	}
 
 	// ==================================================
-	// アニメーション再生・確認 (CollapsingHeaderで開閉可能)
+	// アニメーション再生・確認
 	// ==================================================
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text("Select Attack:");
+		ImGui::Text("Select Action:");
 
-		// Punch (上段)
-		ImGui::Text("Punch:");
-		ImGui::SameLine();
-		ImGui::RadioButton("Light##P", &s_currentAttackType, 0);
-		ImGui::SameLine();
-		ImGui::RadioButton("Medium##P", &s_currentAttackType, 1);
-		ImGui::SameLine();
-		ImGui::RadioButton("Heavy##P", &s_currentAttackType, 2);
+		// Punch
+		ImGui::Text("Punch:"); ImGui::SameLine();
+		ImGui::RadioButton("L##P", &s_currentAttackType, 0); ImGui::SameLine();
+		ImGui::RadioButton("M##P", &s_currentAttackType, 1); ImGui::SameLine();
+		ImGui::RadioButton("H##P", &s_currentAttackType, 2);
 
-		// Kick (下段)
-		ImGui::Text("Kick :");
-		ImGui::SameLine();
-		ImGui::RadioButton("Medium##K", &s_currentAttackType, 3);
-		ImGui::SameLine();
-		ImGui::RadioButton("Heavy##K", &s_currentAttackType, 4);
+		// Kick
+		ImGui::Text("Kick :"); ImGui::SameLine();
+		ImGui::RadioButton("M##K", &s_currentAttackType, 3); ImGui::SameLine();
+		ImGui::RadioButton("H##K", &s_currentAttackType, 4);
+
+		// Other
+		ImGui::Text("Other:"); ImGui::SameLine();
+		ImGui::RadioButton("Down", &s_currentAttackType, 5); ImGui::SameLine();
+		ImGui::RadioButton("WakeUp", &s_currentAttackType, 6);
 
 		if (!m_isAttacking)
 		{
@@ -510,15 +497,19 @@ void SceneDebug::DrawImGui()
 				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
 				else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
 				else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
-				else pParams = &player->GetHeavyKickParams();
+				else if (s_currentAttackType == 4) pParams = &player->GetHeavyKickParams();
+				// 5, 6 は nullptr
 
 				if (pParams) {
 					int originalFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 					float targetFrames = pParams->totalDuration * 60.0f;
 					if (targetFrames <= 1.0f) targetFrames = 1.0f;
-
 					float speed = (float)originalFrames / targetFrames;
 					player->SetAnimationSpeed(speed);
+				}
+				else {
+					// Down, WakeUp はとりあえず等倍速
+					player->SetAnimationSpeed(1.0f);
 				}
 
 				m_isAttacking = true;
@@ -534,7 +525,7 @@ void SceneDebug::DrawImGui()
 		}
 		else
 		{
-			ImGui::TextColored(ImVec4(1, 0, 0, 1), ">> ATTACKING <<");
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), ">> PLAYING <<");
 		}
 
 		ImGui::SameLine();
@@ -555,37 +546,21 @@ void SceneDebug::DrawImGui()
 	// ==================================================
 	// 攻撃パラメータ調整
 	// ==================================================
-	if (ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		AttackParams* pParams = nullptr;
-		if (s_currentAttackType == 0) {
-			pParams = &player->GetLightPunchParams();
-			ImGui::Text("Light Punch");
-		}
-		else if (s_currentAttackType == 1) {
-			pParams = &player->GetMediumPunchParams();
-			ImGui::Text("Medium Punch");
-		}
-		else if (s_currentAttackType == 2) {
-			pParams = &player->GetHeavyPunchParams();
-			ImGui::Text("Heavy Punch");
-		}
-		else if (s_currentAttackType == 3) {
-			pParams = &player->GetMediumKickParams();
-			ImGui::Text("Medium Kick");
-		}
-		else {
-			pParams = &player->GetHeavyKickParams();
-			ImGui::Text("Heavy Kick");
-		}
+	AttackParams* pParams = nullptr;
+	if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
+	else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
+	else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
+	else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
+	else if (s_currentAttackType == 4) pParams = &player->GetHeavyKickParams();
 
+	if (pParams && ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
+	{
 		AttackParams& params = *pParams;
 
 		int totalFrames = static_cast<int>(std::round(params.totalDuration / FRAME_TIME_60FPS));
 		int startFrames = static_cast<int>(std::round(params.hitboxStart / FRAME_TIME_60FPS));
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 		int hitStopFrames = static_cast<int>(std::round(params.hitStop / FRAME_TIME_60FPS));
-
 
 		if (ImGui::InputInt("Total Frames", &totalFrames)) {
 			if (totalFrames < 1) totalFrames = 1;
@@ -613,6 +588,8 @@ void SceneDebug::DrawImGui()
 			if (hitStopFrames < 0) hitStopFrames = 0;
 			params.hitStop = hitStopFrames * FRAME_TIME_60FPS;
 		}
+
+		ImGui::Checkbox("Cause Down (Knockback)", &params.isDown);
 
 		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))
 		{
@@ -643,45 +620,38 @@ void SceneDebug::DrawImGui()
 			ImGui::TreePop();
 		}
 
-		// --- アニメーション速度調整 (Speed Modifiers) ---
-		if (ImGui::TreeNode("Speed Modifiers (Variable Speed)"))
+		if (ImGui::TreeNode("Speed Modifiers"))
 		{
-			ImGui::Text("Define speed changes per frame range");
-			ImGui::Text("Example: Start=4, End=8, Speed=2.0 (Fast)");
-
-			// リスト表示
 			for (int i = 0; i < (int)params.speedModifiers.size(); ++i)
 			{
 				ImGui::PushID(i);
 				AnimSpeedModifier& mod = params.speedModifiers[i];
-
 				ImGui::Text("Modifier #%d", i);
 				ImGui::SameLine();
 				if (ImGui::Button("Delete")) {
 					params.speedModifiers.erase(params.speedModifiers.begin() + i);
 					ImGui::PopID();
-					break; // 削除したらループを抜ける
+					break;
 				}
-
-				// 編集用スライダー (フレーム単位)
 				int sFrame = (int)mod.startFrame;
 				int eFrame = (int)mod.endFrame;
 				if (ImGui::SliderInt("Start F", &sFrame, 0, totalFrames)) mod.startFrame = (float)sFrame;
 				if (ImGui::SliderInt("End F", &eFrame, 0, totalFrames)) mod.endFrame = (float)eFrame;
 				ImGui::SliderFloat("Speed x", &mod.speed, 0.1f, 5.0f);
-
 				ImGui::Separator();
 				ImGui::PopID();
 			}
-
 			if (ImGui::Button("Add Modifier"))
 			{
-				// デフォルトで最初の5フレームを等倍にする設定を追加
 				params.speedModifiers.push_back({ 0.0f, 5.0f, 1.0f });
 			}
-
 			ImGui::TreePop();
 		}
+	}
+	else if (!pParams)
+	{
+		// Down / WakeUp 用の説明
+		ImGui::Text("Selected action does not have AttackParams.");
 	}
 
 	// ==================================================

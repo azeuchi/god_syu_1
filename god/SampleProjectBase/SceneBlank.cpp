@@ -17,6 +17,8 @@
 
 // やられ状態への遷移に使用
 #include "PlayerStateDamage.h"
+// ★追加: ダウン状態への遷移に使用
+#include "PlayerStateDown.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -149,6 +151,8 @@ void SceneBlank::Init()
 		ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
 		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+		// ★追加: ダウン属性読み込み
+		ifs >> p.isDown;
 		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
 		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
 		ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
@@ -219,6 +223,10 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 
+	// ★追加: ダウン・起き上がりアニメーションのロード
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
+
 	// 初期位置設定
 	ResetRound();
 
@@ -266,6 +274,10 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
+
+	// ★追加: ダウン・起き上がりアニメーションのロード
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
 	// 初期位置設定 (ResetRoundで上書きされるが念のため)
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
@@ -622,12 +634,17 @@ void SceneBlank::Update(float tick)
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
 			{
-				BoundingBox atk = player->GetActiveHitbox();
-				if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
-					atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
-					atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない (ダメージ無効)
+				// 衝突判定は行うが、ダメージ判定は行わない
+				if (!player2->IsInvincible())
 				{
-					hit2 = true;
+					BoundingBox atk = player->GetActiveHitbox();
+					if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
+						atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
+						atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+					{
+						hit2 = true;
+					}
 				}
 			}
 
@@ -636,10 +653,21 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
+				// ★追加: ダウン属性チェック
+				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player2->ReceiveDamage(dmg);
 				player->OnHit();
-				player2->SetState(new PlayerStateDamage(stun));
+
+				// ★追加: ダウン分岐
+				if (isDown)
+				{
+					player2->SetState(new PlayerStateDown());
+				}
+				else
+				{
+					player2->SetState(new PlayerStateDamage(stun));
+				}
 
 				float ratio = player2->GetHpRatio();
 				float currentWidth = m_barMaxWidth * ratio;
@@ -667,12 +695,16 @@ void SceneBlank::Update(float tick)
 			bool hit1 = false;
 			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
 			{
-				BoundingBox atk = player2->GetActiveHitbox();
-				if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
-					atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
-					atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない
+				if (!player->IsInvincible())
 				{
-					hit1 = true;
+					BoundingBox atk = player2->GetActiveHitbox();
+					if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
+						atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
+						atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+					{
+						hit1 = true;
+					}
 				}
 			}
 
@@ -681,10 +713,21 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player2->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
+				// ★追加: ダウン属性チェック
+				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player->ReceiveDamage(dmg);
 				player2->OnHit();
-				player->SetState(new PlayerStateDamage(stun));
+
+				// ★追加: ダウン分岐
+				if (isDown)
+				{
+					player->SetState(new PlayerStateDown());
+				}
+				else
+				{
+					player->SetState(new PlayerStateDamage(stun));
+				}
 
 				float ratio = player->GetHpRatio();
 				float currentWidth = m_barMaxWidth * ratio;
@@ -782,6 +825,7 @@ void SceneBlank::Update(float tick)
 
 		if (m_skyDome)
 		{
+			// スカイドームの描画はDraw内で行うため、ここではカメラ位置の更新のみ
 			m_skyDome->Update(pCamera->GetPos());
 		}
 	}
@@ -833,6 +877,7 @@ void SceneBlank::Draw()
 	// 1. 背景の描画
 	if (m_skyDome)
 	{
+		// 修正: 元の引数ありのDrawに戻す
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 

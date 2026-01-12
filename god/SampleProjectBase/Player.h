@@ -87,6 +87,9 @@ struct AttackParams
 	// ヒットストップ時間 (秒)
 	float hitStop = 0.1f;
 
+	// ダウン属性 (trueならダウンさせる)
+	bool isDown = false;
+
 	// --- キャンセル設定 ---
 	bool cancelEnabled = false;     // キャンセルが可能か
 	float cancelStart = 0.0f;       // キャンセル受付開始時間 (秒)
@@ -123,6 +126,9 @@ public:
 	void Update(float tick);
 	void SetState(PlayerState* newState);
 
+	// 現在のステートが無敵かどうかを確認する
+	bool IsInvincible() const;
+
 	// --- 状態 (State) から呼ばれるヘルパー関数 ---
 	void SetInputType(PlayerInputType type);
 	PlayerInputType GetInputType() const;
@@ -143,6 +149,7 @@ public:
 	DirectX::XMFLOAT3 GetVelocity() const;
 	void SetVelocity(const DirectX::XMFLOAT3& vel);
 	void Jump();
+	void ForceJumpState(bool isJumping); // 強制的にジャンプフラグを立てる（ダウン吹き飛び用）
 	bool GetIsJumping() const;
 
 	// --- 当たり判定 (Hurtbox) ---

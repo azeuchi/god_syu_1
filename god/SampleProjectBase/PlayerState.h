@@ -30,4 +30,10 @@ public:
 	 * デフォルトはfalse。しゃがみステートでtrueを返す。
 	 */
 	virtual bool IsCrouch() const { return false; }
+
+	/**
+	 * @brief この状態は無敵か？ (ダウン中、起き上がり中など)
+	 * デフォルトはfalse。
+	 */
+	virtual bool IsInvincible() const { return false; }
 };

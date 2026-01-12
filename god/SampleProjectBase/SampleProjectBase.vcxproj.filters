@@ -225,6 +225,12 @@
     <ClCompile Include="MediumKick.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerStateDown.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerStateWakeUp.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -402,6 +408,12 @@
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="MediumKick.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateDown.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerStateWakeUp.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
   </ItemGroup>
