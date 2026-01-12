@@ -6,7 +6,7 @@
 void PlayerStateDown::OnEnter(Player* player)
 {
 	player->PlayAnimation("Down", true);
-	player->SetAnimationSpeed(1.2f); // アニメーション速度
+	player->SetAnimationSpeed(2.0f); // アニメーション速度
 
 	// 向きの取得 (Scale.x > 0 なら右向き)
 	// 自分が向いている方向の「逆」に吹っ飛ばす
@@ -14,7 +14,7 @@ void PlayerStateDown::OnEnter(Player* player)
 
 	// 初速の設定
 	DirectX::XMFLOAT3 vel;
-	vel.x = -dir * 2.0f; // 後ろへ
+	vel.x = -dir * 1.0f; // 後ろへ
 	vel.y = 2.5f;       // 上へ
 	vel.z = 0.0f;
 	player->SetVelocity(vel);
@@ -24,7 +24,7 @@ void PlayerStateDown::OnEnter(Player* player)
 	pos.y = 0.1f;
 	player->SetPosition(pos);
 
-	// 重力を有効にする (これでPlayer::UpdatePhysicsで自動的に動くようになります)
+	// 重力を有効にする
 	player->ForceJumpState(true);
 
 	player->SetActiveHitbox(false);
@@ -53,7 +53,7 @@ void PlayerStateDown::Update(Player* player, float tick)
 			// 着地した瞬間
 			m_hasLanded = true;
 
-			// その場で停止（滑らないように速度ゼロにする）
+			// その場で停止
 			DirectX::XMFLOAT3 zeroVel = { 0.0f, 0.0f, 0.0f };
 			player->SetVelocity(zeroVel);
 		}

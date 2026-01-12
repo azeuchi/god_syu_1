@@ -54,11 +54,10 @@ Player::Player()
 	m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.3f, 0.4f };
 
 	// 2. しゃがみ状態 (Crouch) のくらい判定
-	// 立ち状態より全体的に低く設定する
 	m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.1f };
 	m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
 	m_crouchHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 0.7f };
-	m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f }; // 横に広く、低く
+	m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f };
 	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.2f };
 	m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.35f, 0.2f };
 }
@@ -81,21 +80,17 @@ void Player::Update(float tick)
 
 	// 2. FSM（状態）の一元的な遷移チェック
 	if (m_currentState) {
-		// 現在のステートが「しゃがみ」扱いかどうかを取得してフラグを更新
-		// これにより GetHurtbox で使用する判定データが切り替わる
 		m_isCrouching = m_currentState->IsCrouch();
-
-		// ステートごとの更新処理を実行
 		m_currentState->Update(this, tick);
 	}
 
-	// 3. 物理演算の更新 (位置、重力など)
+	// 3. 物理演算の更新
 	UpdatePhysics(tick);
 
-	// 4. アニメーションの更新 (フレーム進行)
+	// 4. アニメーションの更新
 	UpdateAnimation(tick);
 
-	// 5. モデルのボーン更新 (ブレンド処理込み)
+	// 5. モデルのボーン更新
 	UpdateModelBlend();
 }
 
@@ -104,97 +99,41 @@ void Player::Update(float tick)
  */
 void Player::PollInputs()
 {
-	// 毎フレーム、入力をリセットしてから判定する
 	m_inputs = {};
 
 	switch (m_inputType)
 	{
 	case PlayerInputType::PLAYER_1:
-		// 1Pは 'A' 'D' キー, 'S'でしゃがみ
 		if (!IsKeyPress(VK_RBUTTON))
 		{
-			if (IsKeyPress('A')) {
-				m_inputs.moveLeft = true;
-			}
-			else if (IsKeyPress('D')) {
-				m_inputs.moveRight = true;
-			}
-
-			if (IsKeyPress('S')) {
-				m_inputs.moveDown = true;
-			}
-
-			// 'W' キーでジャンプ
-			if (IsKeyTrigger('W')) {
-				m_inputs.jump = true;
-			}
+			if (IsKeyPress('A')) m_inputs.moveLeft = true;
+			else if (IsKeyPress('D')) m_inputs.moveRight = true;
+			if (IsKeyPress('S')) m_inputs.moveDown = true;
+			if (IsKeyTrigger('W')) m_inputs.jump = true;
 		}
-		// U キーで弱攻撃
-		if (IsKeyTrigger('U')) {
-			m_inputs.LightPunch = true;
-		}
-		// I キーで中攻撃
-		if (IsKeyTrigger('I')) {
-			m_inputs.MediumPunch = true;
-		}
-		// O キーで大パンチ
-		if (IsKeyTrigger('O')) {
-			m_inputs.HeavyPunch = true;
-		}
-		// K キーで中キック (追加)
-		if (IsKeyTrigger('K')) {
-			m_inputs.MediumKick = true;
-		}
-		// L キーで大キック
-		if (IsKeyTrigger('L')) {
-			m_inputs.HeavyKick = true;
-		}
+		if (IsKeyTrigger('U')) m_inputs.LightPunch = true;
+		if (IsKeyTrigger('I')) m_inputs.MediumPunch = true;
+		if (IsKeyTrigger('O')) m_inputs.HeavyPunch = true;
+		if (IsKeyTrigger('K')) m_inputs.MediumKick = true;
+		if (IsKeyTrigger('L')) m_inputs.HeavyKick = true;
 		break;
 
 	case PlayerInputType::PLAYER_2:
-		// 2Pは 矢印キー
 		if (!IsKeyPress(VK_RBUTTON))
 		{
-			if (IsKeyPress(VK_LEFT)) {
-				m_inputs.moveLeft = true;
-			}
-			else if (IsKeyPress(VK_RIGHT)) {
-				m_inputs.moveRight = true;
-			}
-
-			if (IsKeyPress(VK_DOWN)) {
-				m_inputs.moveDown = true;
-			}
-
-			// 上矢印キーでジャンプ
-			if (IsKeyTrigger(VK_UP)) {
-				m_inputs.jump = true;
-			}
+			if (IsKeyPress(VK_LEFT)) m_inputs.moveLeft = true;
+			else if (IsKeyPress(VK_RIGHT)) m_inputs.moveRight = true;
+			if (IsKeyPress(VK_DOWN)) m_inputs.moveDown = true;
+			if (IsKeyTrigger(VK_UP)) m_inputs.jump = true;
 		}
-		// テンキーの '1' で弱攻撃
-		if (IsKeyTrigger(VK_NUMPAD1)) {
-			m_inputs.LightPunch = true;
-		}
-		// テンキーの '2' で中攻撃
-		if (IsKeyTrigger(VK_NUMPAD2)) {
-			m_inputs.MediumPunch = true;
-		}
-		// テンキーの '4' で大パンチ
-		if (IsKeyTrigger(VK_NUMPAD4)) {
-			m_inputs.HeavyPunch = true;
-		}
-		// テンキーの '5' で中キック (仮)
-		if (IsKeyTrigger(VK_NUMPAD5)) {
-			m_inputs.MediumKick = true;
-		}
-		// テンキーの '3' で大キック
-		if (IsKeyTrigger(VK_NUMPAD3)) {
-			m_inputs.HeavyKick = true;
-		}
+		if (IsKeyTrigger(VK_NUMPAD1)) m_inputs.LightPunch = true;
+		if (IsKeyTrigger(VK_NUMPAD2)) m_inputs.MediumPunch = true;
+		if (IsKeyTrigger(VK_NUMPAD4)) m_inputs.HeavyPunch = true;
+		if (IsKeyTrigger(VK_NUMPAD5)) m_inputs.MediumKick = true;
+		if (IsKeyTrigger(VK_NUMPAD3)) m_inputs.HeavyKick = true;
 		break;
 
 	case PlayerInputType::AI:
-		// AI入力は別途ロジックで m_inputs を書き換える想定
 		break;
 	}
 }
@@ -207,12 +146,10 @@ void Player::UpdatePhysics(float tick)
 		m_velocity.y -= 18.0f * tick;
 	}
 
-	// 速度を位置に加算
 	m_position.x += m_velocity.x * tick;
 	m_position.y += m_velocity.y * tick;
 	m_position.z += m_velocity.z * tick;
 
-	// 地面との当たり判定 (Y=0)
 	if (m_position.y <= 0.0f) {
 		m_position.y = 0.0f;
 		if (m_isJumping) {
@@ -225,30 +162,30 @@ void Player::UpdatePhysics(float tick)
 // アニメーション速度を加味して更新 (tickを反映)
 void Player::UpdateAnimation(float tick)
 {
-	// アニメーション間のブレンド率を更新
 	if (m_blendFactor < 1.0f)
 	{
 		m_blendFactor += tick / m_transitionDuration;
 		if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
 	}
 
-	// フレームを進める
 	if (!m_isAnimPaused)
 	{
-		// ベースとなる再生速度
 		float currentSpeed = m_animSpeed;
 
-		// 攻撃パラメータが設定されている場合、フレーム単位の速度変化を適用する
 		if (m_pActiveAttackParams)
 		{
-			// 現在再生中のアニメーションが攻撃技であるか確認 (安全策)
-			bool isAttackAnim = (strcmp(m_currentAnim.name, "LightPunch") == 0 ||
+			//  ダウンや起き上がりも「速度調整可能な状態」として扱う
+			bool isControlledAnim = (
+				strcmp(m_currentAnim.name, "LightPunch") == 0 ||
 				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
 				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
-				strcmp(m_currentAnim.name, "MediumKick") == 0 || // 追加
-				strcmp(m_currentAnim.name, "HeavyKick") == 0);
+				strcmp(m_currentAnim.name, "MediumKick") == 0 ||
+				strcmp(m_currentAnim.name, "HeavyKick") == 0 ||
+				strcmp(m_currentAnim.name, "Down") == 0 ||
+				strcmp(m_currentAnim.name, "WakeUp") == 0
+				);
 
-			if (!isAttackAnim)
+			if (!isControlledAnim)
 			{
 				m_pActiveAttackParams = nullptr;
 			}
@@ -257,22 +194,19 @@ void Player::UpdateAnimation(float tick)
 				// 設定されている速度モディファイアを走査
 				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
 				{
-					// 現在のフレームが区間内であれば、その速度倍率を適用する
 					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
 					{
 						currentSpeed *= mod.speed;
-						break; // 適用されるのは1つだけとする
+						break;
 					}
 				}
 			}
 		}
 
-		// m_animSpeed でスロー/倍速再生に対応 (さらに部分的な速度変化も適用)
 		m_currentAnim.frame += currentSpeed * tick * 60.0f;
 	}
 }
 
-// モデル更新時にfloatフレームをintにキャストして渡す
 void Player::UpdateModelBlend()
 {
 	m_model->UpdateWithBlend(
@@ -285,17 +219,14 @@ void Player::SetState(PlayerState* newState)
 {
 	if (newState != nullptr)
 	{
-		// 古いステートを削除してメモリリークを防ぐ
 		if (m_currentState) {
 			delete m_currentState;
 		}
-		// 新しいステートに切り替え、初期化処理(OnEnter)を呼ぶ
 		m_currentState = newState;
 		m_currentState->OnEnter(this);
 	}
 }
 
-// ステートに問い合わせて無敵かどうかを返す
 bool Player::IsInvincible() const
 {
 	if (m_currentState)
@@ -305,27 +236,23 @@ bool Player::IsInvincible() const
 	return false;
 }
 
-// アニメーション再生時は速度をリセット
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
 	m_isAnimPaused = false;
 	m_hasHit = false;
-	m_animSpeed = 1.0f; // デフォルト速度に戻す
+	m_animSpeed = 1.0f;
 
-	// 同じアニメーションならリセットしない (forceRestartがtrueなら強制リセット)
 	if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
 	{
 		return;
 	}
 
-	// ブレンド用に前回のアニメ情報を保存
 	m_previousAnim = m_currentAnim;
 	m_currentAnim.name = name;
-	m_currentAnim.frame = 0; // 開始フレームは0
-	m_blendFactor = 0.0f;    // ブレンド開始
+	m_currentAnim.frame = 0;
+	m_blendFactor = 0.0f;
 }
 
-// 速度設定
 void Player::SetAnimationSpeed(float speed)
 {
 	m_animSpeed = speed;
@@ -342,22 +269,18 @@ float Player::GetForwardMoveDot() const
 	Vector3 velocity = m_velocity;
 	Vector3 rotation = m_rotation;
 
-	// 動いていなければ0
 	if (Vector2(velocity.x, velocity.z).LengthSquared() <= 0.01f)
 	{
 		return 0.0f;
 	}
 
-	// 自分の向きベクトルを計算
 	Matrix rotMat = Matrix::CreateRotationY(rotation.y);
 	Vector3 forward = Vector3::Transform(Vector3(0.0f, 0.0f, -1.0f), rotMat);
 
-	// 移動方向ベクトル
 	Vector3 moveDir = velocity;
 	moveDir.y = 0.0f;
 	moveDir.Normalize();
 
-	// 内積を取る (1.0=前進, -1.0=後退)
 	return forward.Dot(moveDir);
 }
 
@@ -430,7 +353,6 @@ void Player::Jump()
 	}
 }
 
-// 強制的にジャンプフラグを立てる（ダウン吹き飛び用）
 void Player::ForceJumpState(bool isJumping)
 {
 	m_isJumping = isJumping;
@@ -497,15 +419,11 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 	int idx = (int)type;
 	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
 
-	// 基本値: しゃがみ中ならCrouch用、そうでなければBase用を使う
-	// これにより状態に応じて適切な当たり判定が自動的に返される
 	float offsetX = m_isCrouching ? m_crouchHurtboxOffsets[idx].x : m_baseHurtboxOffsets[idx].x;
 	float offsetY = m_isCrouching ? m_crouchHurtboxOffsets[idx].y : m_baseHurtboxOffsets[idx].y;
 	float extentX = m_isCrouching ? m_crouchHurtboxExtents[idx].x : m_baseHurtboxExtents[idx].x;
 	float extentY = m_isCrouching ? m_crouchHurtboxExtents[idx].y : m_baseHurtboxExtents[idx].y;
 
-	// 攻撃中かつパラメータがあれば、補正値を足す
-	// (攻撃モーションで体が前に出る場合などに判定を拡張するため)
 	if (m_isAttacking && m_pActiveAttackParams != nullptr)
 	{
 		const AttackParams& params = *m_pActiveAttackParams;
@@ -547,7 +465,6 @@ void Player::DrawBoundingBox()
 {
 	using namespace DirectX;
 
-	// 衝突時は黄色、通常は緑色で描画
 	if (m_isColliding) Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 	else Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
 
@@ -568,7 +485,6 @@ bool Player::CheckCollision(const Player* other) const
 {
 	if (!other) return false;
 
-	// 自分の3部位 vs 相手の3部位 で判定を行う
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 	{
 		BoundingBox myBox = GetHurtbox((HurtboxType)i);
@@ -584,7 +500,6 @@ bool Player::CheckCollision(const Player* other) const
 void Player::SetIsColliding(bool isColliding) { m_isColliding = isColliding; }
 bool Player::GetIsColliding() const { return m_isColliding; }
 
-// --- 当たり判定 (後方互換用: 旧コードとの互換性維持) ---
 void Player::SetBoundingBoxExtents(const DirectX::XMFLOAT2& extents) {
 	m_baseHurtboxExtents[(int)HurtboxType::BODY] = extents;
 }
@@ -647,7 +562,6 @@ DirectX::BoundingBox Player::GetActiveHitbox() const
 	return m_hitbox;
 }
 
-// 攻撃判定(赤箱)のデバッグ描画
 void Player::DrawHitbox()
 {
 	if (!m_isAttacking) return;

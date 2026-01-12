@@ -5,7 +5,8 @@
 void PlayerStateWakeUp::OnEnter(Player* player)
 {
 	player->PlayAnimation("WakeUp", true);
-	player->SetAnimPause(false);
+	player->SetAnimationSpeed(1.5f); // アニメーション速度
+	//player->SetAnimPause(false);
 
 	// 速度はゼロ
 	player->SetVelocity({ 0.0f, 0.0f, 0.0f });
