@@ -195,6 +195,7 @@
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerState.cpp" />
     <ClCompile Include="PlayerStateAir.cpp" />
     <ClCompile Include="PlayerStateCrouch.cpp" />
     <ClCompile Include="PlayerStateDamage.cpp" />

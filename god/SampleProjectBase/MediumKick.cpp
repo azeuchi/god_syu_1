@@ -46,33 +46,10 @@ void MediumKick::Update(Player* player, float tick)
 		player->SetActiveHitbox(false);
 	}
 
-	// キャンセル処理
-	if (params.cancelEnabled)
+	// キャンセル処理 (親クラスの関数を使用)
+	if (CheckCancel(player, m_stateTimer, params))
 	{
-		if (m_stateTimer >= params.cancelStart && m_stateTimer <= params.cancelEnd)
-		{
-			const PlayerInputs& inputs = player->GetInputs();
-
-			if (params.cancelToLight && inputs.LightPunch)
-			{
-				player->SetCurrentAttackParams(&player->GetLightPunchParams());
-				player->SetState(new LightPunch());
-				return;
-			}
-			if (params.cancelToMedium && inputs.MediumPunch)
-			{
-				player->SetCurrentAttackParams(&player->GetMediumPunchParams());
-				player->SetState(new MediumPunch());
-				return;
-			}
-			if (params.cancelToHeavy && inputs.HeavyPunch)
-			{
-				player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
-				player->SetState(new HeavyPunch());
-				return;
-			}
-			
-		}
+		return;
 	}
 
 	// 終了処理

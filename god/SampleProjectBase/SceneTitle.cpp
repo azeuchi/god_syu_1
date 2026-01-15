@@ -36,13 +36,13 @@ void SceneTitle::Init()
 
 	// モデルの生成と読み込み
 	m_pTitleModel = new Model();
-	if (m_pTitleModel->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
+	if (m_pTitleModel->Load("Assets/Model/knight/Idle.fbx", 0.017f, true, false))
 	{
-		m_pTitleModel->LoadAnimation("Assets/Model/knight/Idle.fbx", "Idle", true);
-		m_pTitleModel->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-		m_pTitleModel->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-		m_pTitleModel->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-		m_pTitleModel->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
+	m_pTitleModel->LoadAnimation("Assets/Model/knight/Idle.fbx", "Idle", true);
+	m_pTitleModel->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
+	m_pTitleModel->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+	m_pTitleModel->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
+	m_pTitleModel->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	}
 	m_currentAnimName = "Idle";
 	m_currentFrame = 0.0f;

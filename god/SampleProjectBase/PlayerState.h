@@ -1,6 +1,8 @@
 #pragma once
 
 class Player;
+// AttackParamsを引数で使うため前方宣言
+struct AttackParams;
 
 /**
  * @brief プレイヤーの状態のインターフェース（設計図）
@@ -36,4 +38,12 @@ public:
 	 * デフォルトはfalse。
 	 */
 	virtual bool IsInvincible() const { return false; }
+
+protected:
+	/**
+	 * @brief キャンセル処理の共通化
+	 * パラメータのキャンセル設定を見て、入力があれば次の技へ遷移する
+	 * @return 遷移した場合は true を返す
+	 */
+	bool CheckCancel(Player* player, float stateTimer, const AttackParams& params);
 };

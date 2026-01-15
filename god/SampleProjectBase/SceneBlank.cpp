@@ -17,7 +17,7 @@
 
 // やられ状態への遷移に使用
 #include "PlayerStateDamage.h"
-// ★追加: ダウン状態への遷移に使用
+// ダウン状態への遷移に使用
 #include "PlayerStateDown.h"
 
 using namespace DirectX;
@@ -151,7 +151,6 @@ void SceneBlank::Init()
 		ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
 		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
-		// ★追加: ダウン属性読み込み
 		ifs >> p.isDown;
 		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
 		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
@@ -207,7 +206,7 @@ void SceneBlank::Init()
 	player->SetMoveSpeed(moveSpeed);
 	player->SetScale(scale);
 
-	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
+	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
@@ -222,8 +221,6 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
-
-	// ★追加: ダウン・起き上がりアニメーションのロード
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
@@ -260,7 +257,7 @@ void SceneBlank::Init()
 			player->GetHurtboxCrouchExtents((HurtboxType)i));
 	}
 
-	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false))
+	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}

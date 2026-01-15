@@ -187,16 +187,11 @@ void SceneRoot::Update(float tick)
 
 		// ゲーム本編の時
 	case SCENE_GAME:
-		// Pキーでデバッグ画面へ
-		if (IsKeyTrigger('P'))
-		{
-			Transition(SCENE_DEBUG);
-		}
-
-		if (IsKeyTrigger('Y'))
-		{
-			Transition(SCENE_RESULT);
-		}
+		// Nキーでデバッグ画面
+			if (IsKeyTrigger('N'))
+			{
+				Transition(SCENE_DEBUG);
+			}	
 
 		// ゲームセットになったらリザルトへ (静的フラグをチェック)
 		if (SceneBlank::s_isGameSet)
@@ -209,8 +204,8 @@ void SceneRoot::Update(float tick)
 
 		// デバッグ画面の時
 	case SCENE_DEBUG:
-		// Pキーでゲーム画面に戻る
-		if (IsKeyTrigger('P'))
+		// Nキーでゲーム画面に戻る
+		if (IsKeyTrigger('N'))
 		{
 			Transition(SCENE_GAME);
 		}

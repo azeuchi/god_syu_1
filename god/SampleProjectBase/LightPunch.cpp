@@ -45,36 +45,10 @@ void LightPunch::Update(Player* player, float tick)
 		player->SetActiveHitbox(false);
 	}
 
-	// キャンセル処理
-	if (params.cancelEnabled)
+	// キャンセル処理 (親クラスの関数を使用)
+	if (CheckCancel(player, m_stateTimer, params))
 	{
-		// 受付期間内かチェック
-		if (m_stateTimer >= params.cancelStart && m_stateTimer <= params.cancelEnd)
-		{
-			const PlayerInputs& inputs = player->GetInputs();
-
-			// 弱パンチへのキャンセル
-			if (params.cancelToLight && inputs.LightPunch)
-			{
-				player->SetCurrentAttackParams(&player->GetLightPunchParams());
-				player->SetState(new LightPunch());
-				return; // 即座にリターンしてこのステートを終了
-			}
-			// 中パンチへのキャンセル
-			if (params.cancelToMedium && inputs.MediumPunch)
-			{
-				player->SetCurrentAttackParams(&player->GetMediumPunchParams());
-				player->SetState(new MediumPunch());
-				return;
-			}
-			// 大キックへのキャンセル
-			if (params.cancelToHeavy && inputs.HeavyKick)
-			{
-				player->SetCurrentAttackParams(&player->GetHeavyKickParams());
-				player->SetState(new HeavyKick());
-				return;
-			}
-		}
+		return;
 	}
 
 	// 終了処理
