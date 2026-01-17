@@ -50,8 +50,13 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.totalDuration << std::endl;
 				ofs << params.hitboxStart << std::endl;
 				ofs << params.hitboxEnd << std::endl;
-				ofs << params.hitboxOffset.x << " " << params.hitboxOffset.y << std::endl;
-				ofs << params.hitboxExtents.x << " " << params.hitboxExtents.y << std::endl;
+
+				// 判定ボックス保存(個数 -> ループ)
+				ofs << params.hitboxes.size() << std::endl;
+				for (const auto& bd : params.hitboxes) {
+					ofs << bd.offset.x << " " << bd.offset.y << std::endl;
+					ofs << bd.extents.x << " " << bd.extents.y << std::endl;
+				}
 
 				// ゲームバランス
 				ofs << params.damage << std::endl;
@@ -86,14 +91,14 @@ void SceneDebug::SavePlayerSettings()
 				};
 
 			// ==================================================
-			// 1. 基本設定の保存
+			// 基本設定の保存
 			// ==================================================
 			ofs << player->GetMoveSpeed() << std::endl;
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
 
 			// ==================================================
-			// 2. 立ち(Base)のくらい判定保存
+			// 立ち(Base)のくらい判定保存
 			// ==================================================
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
@@ -102,7 +107,7 @@ void SceneDebug::SavePlayerSettings()
 			}
 
 			// ==================================================
-			// 3. しゃがみ(Crouch)のくらい判定保存
+			// しゃがみ(Crouch)のくらい判定保存
 			// ==================================================
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
@@ -111,7 +116,7 @@ void SceneDebug::SavePlayerSettings()
 			}
 
 			// ==================================================
-			// 4. 各技パラメータの保存
+			// 各技パラメータの保存
 			// ==================================================
 			WriteParams(player->GetLightPunchParams());
 			WriteParams(player->GetMediumPunchParams());
@@ -147,7 +152,7 @@ void SceneDebug::Init()
 	// --- プレイヤー生成 ---
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	// デバッグ中はAIモード(入力を受け付けない)にして、ImGuiから制御する
+	
 	player->SetInputType(PlayerInputType::AI);
 
 	// --- 設定ファイルからパラメータ読み込み ---
@@ -157,18 +162,18 @@ void SceneDebug::Init()
 	std::ifstream ifs(SETTINGS_FILE_DEBUG);
 	if (ifs.is_open())
 	{
-		// 1. 基本設定
+		//  基本設定
 		ifs >> moveSpeed;
 		ifs >> scale.x >> scale.y >> scale.z;
 
-		// 2. 立ち(Base)くらい判定
+		// 立ち(Base)くらい判定
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
 			player->SetHurtboxBase((HurtboxType)i, off, ext);
 		}
 
-		// 3. しゃがみ(Crouch)くらい判定
+		// しゃがみ(Crouch)くらい判定
 		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 			DirectX::XMFLOAT2 ext, off;
 			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
@@ -180,8 +185,20 @@ void SceneDebug::Init()
 			if (ifs.eof()) return;
 			ifs >> p.totalDuration;
 			ifs >> p.hitboxStart >> p.hitboxEnd;
-			ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
-			ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
+
+			// 判定ボックス読み込み 
+			size_t hitboxCount = 0;
+			ifs >> hitboxCount;
+			p.hitboxes.clear();
+			for (size_t k = 0; k < hitboxCount; ++k)
+			{
+				BoxData bd;
+				ifs >> bd.offset.x >> bd.offset.y >> bd.extents.x >> bd.extents.y;
+				p.hitboxes.push_back(bd);
+			}
+
+			
+
 			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 			ifs >> p.isDown;
 			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
@@ -204,7 +221,7 @@ void SceneDebug::Init()
 			}
 			};
 
-		// 4. 各技読み込み
+		// 各技読み込み
 		LoadOneParam(player->GetLightPunchParams());
 		LoadOneParam(player->GetMediumPunchParams());
 		LoadOneParam(player->GetHeavyPunchParams());
@@ -212,11 +229,15 @@ void SceneDebug::Init()
 		LoadOneParam(player->GetHeavyKickParams());
 
 		ifs.close();
+		// 読み込み成功時は上書き
+		player->SetMoveSpeed(moveSpeed);
+		player->SetScale(scale);
 	}
-
-	// 読み込んだ値をプレイヤーに適用
-	player->SetMoveSpeed(moveSpeed);
-	player->SetScale(scale);
+	else
+	{
+		// 失敗時は何もしない
+		DebugLog::log(DebugLog::WARNING_LOG, "設定ファイルなし。初期値を使用。");
+	}
 
 	// --- モデル・アニメーションロード ---
 	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
@@ -226,8 +247,6 @@ void SceneDebug::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-
-	// ダウンと起き上がり用アニメーションを追加
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
@@ -304,7 +323,6 @@ void SceneDebug::Update(float tick)
 			speed = (float)totalAnimFrames / targetFrames;
 		}
 		else {
-			// ダウンや起き上がりは等倍速（または手動指定）で再生
 			speed = 1.0f;
 		}
 	}
@@ -434,7 +452,7 @@ void SceneDebug::Draw()
 
 				if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
 				{
-					player->UpdateHitbox(params->hitboxOffset, params->hitboxExtents);
+					player->UpdateAttackBoxes();
 					player->SetActiveHitbox(true);
 					player->DrawHitbox();
 					player->SetActiveHitbox(false);
@@ -576,9 +594,30 @@ void SceneDebug::DrawImGui()
 			params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 		}
 
-		ImGui::Text("Hitbox (Red Box)");
-		ImGui::SliderFloat2("Offset", &params.hitboxOffset.x, -2.0f, 2.0f);
-		ImGui::SliderFloat2("Extents", &params.hitboxExtents.x, 0.1f, 2.0f);
+		if (ImGui::TreeNode("Hitboxes (Red Boxes)"))
+		{
+			for (int i = 0; i < (int)params.hitboxes.size(); ++i)
+			{
+				ImGui::PushID(i);
+				BoxData& bd = params.hitboxes[i];
+				ImGui::Text("Hitbox #%d", i);
+				ImGui::SameLine();
+				if (ImGui::Button("Delete")) {
+					params.hitboxes.erase(params.hitboxes.begin() + i);
+					ImGui::PopID();
+					break;
+				}
+				ImGui::SliderFloat2("Offset", &bd.offset.x, -2.0f, 2.0f);
+				ImGui::SliderFloat2("Extents", &bd.extents.x, 0.1f, 2.0f);
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			if (ImGui::Button("Add Hitbox"))
+			{
+				params.hitboxes.push_back({ {1.0f, 1.2f}, {0.3f, 0.3f} });
+			}
+			ImGui::TreePop();
+		}
 
 		ImGui::Text("Game Data");
 		ImGui::InputInt("Damage", &params.damage);

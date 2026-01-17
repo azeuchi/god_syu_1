@@ -65,7 +65,7 @@ void SceneBlank::Init()
 	s_isGameSet = false;
 
 	// ==================================================
-	// 1. シェーダーの読み込み
+	// シェーダーの読み込み
 	// ==================================================
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
@@ -87,7 +87,7 @@ void SceneBlank::Init()
 	}
 
 	// ==================================================
-	// 2. 背景（スカイドーム）の読み込み
+	// 背景（スカイドーム）の読み込み
 	// ==================================================
 	CreateObj<Model>("SkyModel");
 	Model* skyModel = GetObj<Model>("SkyModel");
@@ -101,7 +101,7 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// 3. UI（HPバー・ラウンド画像）の初期化
+	// UI（HPバー・ラウンド画像）の初期化
 	// ==================================================
 	m_barMaxWidth = 500.0f;
 
@@ -133,13 +133,13 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 4. プレイヤーの生成と設定ロード
+	//  プレイヤーの生成と設定ロード
 	// ==================================================
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// デフォルト値
+	// デフォルト値 
 	float moveSpeed = 2.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
@@ -148,8 +148,18 @@ void SceneBlank::Init()
 		if (ifs.eof()) return;
 		ifs >> p.totalDuration;
 		ifs >> p.hitboxStart >> p.hitboxEnd;
-		ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
-		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
+
+		// 判定ボックス読み込み (複数対応)
+		size_t hitboxCount = 0;
+		ifs >> hitboxCount;
+		p.hitboxes.clear();
+		for (size_t k = 0; k < hitboxCount; ++k)
+		{
+			BoxData bd;
+			ifs >> bd.offset.x >> bd.offset.y >> bd.extents.x >> bd.extents.y;
+			p.hitboxes.push_back(bd);
+		}
+
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
 		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
@@ -200,11 +210,15 @@ void SceneBlank::Init()
 		LoadOneParam(player->GetHeavyKickParams(), ifs);
 
 		ifs.close();
+		// ファイル読み込み成功時はその値で上書き
+		player->SetMoveSpeed(moveSpeed);
+		player->SetScale(scale);
 	}
-
-	// プレイヤー1への設定適用
-	player->SetMoveSpeed(moveSpeed);
-	player->SetScale(scale);
+	else
+	{
+		// 読み込み失敗時はPlayerクラスの初期値が使われるので何もしない
+		DebugLog::log(DebugLog::WARNING_LOG, "設定ファイルが見つかりません。デフォルト値を使用します。");
+	}
 
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -230,14 +244,14 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 5. プレイヤー2の生成 (P1の設定を反転して流用)
+	// 5. プレイヤー2の生成 
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
 	player2->SetInputType(PlayerInputType::PLAYER_2);
-	player2->SetMoveSpeed(moveSpeed);
+	player2->SetMoveSpeed(player->GetMoveSpeed());
 
-	DirectX::XMFLOAT3 scaleP2 = scale;
+	DirectX::XMFLOAT3 scaleP2 = player->GetScale();
 	scaleP2.x *= -1.0f; // X軸反転
 	player2->SetScale(scaleP2);
 
@@ -276,7 +290,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
-	// 初期位置設定 (ResetRoundで上書きされるが念のため)
+	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 
@@ -460,21 +474,19 @@ void SceneBlank::Update(float tick)
 			}
 		}
 
-		// 演出中もアイドルアニメーションは再生したいので、Updateは呼ぶ
-		// ただしInputType::AIなので移動などはしない
+	
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
-		// ★演出中でもカメラ位置情報をスカイドームに渡して更新する
+		// 演出中でもカメラ位置情報をスカイドームに渡して更新する
 		CameraBase* pCamera = GetObj<CameraBase>("Camera");
 		if (m_skyDome && pCamera)
 		{
 			m_skyDome->Update(pCamera->GetPos());
 		}
 
-		// カメラ制御も動かしてよいが、初期位置のまま固定しておく
-		return; // ここでリターンして以降のゲームロジック（衝突判定など）をスキップ
-	}
+		
+		return; 
 
 
 	// ==========================================================
@@ -498,7 +510,7 @@ void SceneBlank::Update(float tick)
 			else
 			{
 				// 待機時間を過ぎたらフェード開始
-				// 0.0f から 1.0f へ変化（進行度 progress）
+				// 0.0f から 1.0f へ変化
 				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
 				if (progress > 1.0f) progress = 1.0f;
 
@@ -510,18 +522,16 @@ void SceneBlank::Update(float tick)
 			}
 		}
 
-		// やられモーション等の更新のため、プレイヤーのUpdateは呼ぶが、
-		// 操作は受け付けないように InputType を AI に変更しておく(ResetRoundで戻す)
+	
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
 		// カメラ更新は続ける
-		// (後述のカメラ制御コードへ続く)
-
+	
 		// 待機時間(待機+フェード時間)が経過し、完全に暗くなったらリセット
 		if (m_roundEndTimer >= ROUND_WAIT_TIME)
 		{
-			// どちらかが規定ラウンド数勝っていたらリザルトへ (静的フラグを立てる)
+			// どちらかが規定ラウンド数勝っていたらリザルトへ
 			if (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN)
 			{
 				s_isGameSet = true;
@@ -536,7 +546,7 @@ void SceneBlank::Update(float tick)
 	else
 	{
 		// ==========================================================
-		// 2. 通常のゲーム進行 (内容は変更なし)
+		// 2. 通常のゲーム進行
 		// ==========================================================
 		float playerTick = tick;
 		if (m_hitStopTimer > 0.0f)
@@ -547,6 +557,15 @@ void SceneBlank::Update(float tick)
 
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
+
+		// 判定ボックスの更新
+		if (player) {
+			player->UpdateAttackBoxes();
+		}
+		if (player2) {
+			player2->UpdateAttackBoxes();
+		}
+
 
 		// 向きの制御、移動制限、押し出し処理などはラウンド中のみ有効
 
@@ -631,16 +650,23 @@ void SceneBlank::Update(float tick)
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
 			{
-				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない (ダメージ無効)
-				// 衝突判定は行うが、ダメージ判定は行わない
+			
 				if (!player2->IsInvincible())
 				{
-					BoundingBox atk = player->GetActiveHitbox();
-					if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
-						atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
-						atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+					// P1の複数のHitboxと P2の複数のHurtbox(標準+追加)を総当たりでチェック
+					const auto& hitboxes = player->GetActiveHitboxes();
+
+					for (const auto& atk : hitboxes)
 					{
-						hit2 = true;
+						if (hit2) break; // すでにヒット確定なら抜ける
+
+						// 標準のHurtboxとの判定
+						if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
+							atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
+							atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+						{
+							hit2 = true;
+						}
 					}
 				}
 			}
@@ -650,7 +676,7 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ★追加: ダウン属性チェック
+				// ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player2->ReceiveDamage(dmg);
@@ -690,7 +716,7 @@ void SceneBlank::Update(float tick)
 				}
 
 
-				// ★追加: ダウン分岐
+				//  ダウン分岐
 				if (isDown)
 				{
 					player2->SetState(new PlayerStateDown());
@@ -726,15 +752,21 @@ void SceneBlank::Update(float tick)
 			bool hit1 = false;
 			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
 			{
-				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない
+				// 相手が無敵（ダウン中など）ならヒットさせない
 				if (!player->IsInvincible())
 				{
-					BoundingBox atk = player2->GetActiveHitbox();
-					if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
-						atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
-						atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+					const auto& hitboxes = player2->GetActiveHitboxes();
+
+					for (const auto& atk : hitboxes)
 					{
-						hit1 = true;
+						if (hit1) break;
+
+						if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
+							atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
+							atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+						{
+							hit1 = true;
+						}
 					}
 				}
 			}
@@ -744,13 +776,13 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player2->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ★追加: ダウン属性チェック
+				// ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player->ReceiveDamage(dmg);
 				player2->OnHit();
 
-				// ノックバック処理 (画面端での押し返し対応)
+				// ノックバック処理 
 				float kb = (params != nullptr) ? params->knockback : 0.0f;
 				// 攻撃側の向きに合わせて相手を後ろにずらす
 				float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
@@ -776,7 +808,7 @@ void SceneBlank::Update(float tick)
 				}
 
 
-				// ★追加: ダウン分岐
+				//  ダウン分岐
 				if (isDown)
 				{
 					player->SetState(new PlayerStateDown());
@@ -809,7 +841,7 @@ void SceneBlank::Update(float tick)
 		}
 	}
 
-	// ヒットシェイク計算 (ラウンド終了後も振動は残ってOK)
+	// ヒットシェイク計算 
 	if (m_shakeTimerP1 > 0.0f) {
 		m_shakeTimerP1 -= tick;
 		float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
@@ -831,7 +863,7 @@ void SceneBlank::Update(float tick)
 	}
 
 
-	// カメラ制御 (ラウンド終了後もキャラを映し続ける)
+	// カメラ制御
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -931,14 +963,14 @@ void SceneBlank::Draw()
 		GetObj<Shader>("PS_TexColor"),
 	};
 
-	// 1. 背景の描画
+	// 背景の描画
 	if (m_skyDome)
 	{
-		// 修正: 元の引数ありのDrawに戻す
+		// 元の引数ありのDrawに戻す
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 
-	// 2. プレイヤー1の描画
+	// プレイヤー1の描画
 	Player* player = GetObj<Player>("Player");
 	if (player) {
 		XMFLOAT3 pos = player->GetPosition();
@@ -966,8 +998,8 @@ void SceneBlank::Draw()
 #endif
 	}
 
-	// 3. プレイヤー2の描画
-	Player* player2 = GetObj<Player>("Player2"); // ここでplayer2を取得
+	//  プレイヤー2の描画
+	Player* player2 = GetObj<Player>("Player2"); // ここでplayer2を取得 
 	if (player2) {
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
@@ -995,7 +1027,7 @@ void SceneBlank::Draw()
 	}
 
 	// ------------------------------------------------
-	// 4. UIの描画 (SceneTitleと同じ描画ステート設定を適用)
+	// 4. UIの描画 
 	// ------------------------------------------------
 
 	// 深度設定: UI用 (Depth ON, Func ALWAYS)
@@ -1020,7 +1052,7 @@ void SceneBlank::Draw()
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
-	// ★修正点: UI画像を描画する前にピクセルシェーダーを解除する
+	
 	GetContext()->PSSetShader(nullptr, nullptr, 0);
 
 	// --- ラウンド演出の描画登録 ---

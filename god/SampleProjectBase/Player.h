@@ -10,7 +10,6 @@
 class PlayerState;
 class Shader;
 
-// プレイヤーの入力タイプを明確化
 enum class PlayerInputType
 {
 	PLAYER_1, // 1P
@@ -18,7 +17,7 @@ enum class PlayerInputType
 	AI        // AI
 };
 
-// 抽象化された入力状態を保持する構造体
+//ステート
 struct PlayerInputs
 {
 	bool moveLeft = false;
@@ -26,7 +25,6 @@ struct PlayerInputs
 	bool moveDown = false;
 	bool jump = false;
 
-	// 名前を変更
 	bool LightPunch = false;
 	bool MediumPunch = false;
 	bool HeavyPunch = false;
@@ -40,7 +38,6 @@ struct AnimationState
 	float frame = 0.0f;
 };
 
-// くらい判定 (Hurtbox) の部位定義
 enum class HurtboxType
 {
 	HEAD,
@@ -49,26 +46,30 @@ enum class HurtboxType
 	COUNT
 };
 
-// アニメーションの特定区間の速度を変更する設定
 struct AnimSpeedModifier
 {
-	float startFrame = 0.0f; // 開始フレーム
-	float endFrame = 0.0f;   // 終了フレーム
-	float speed = 1.0f;      // 速度倍率 (0.5=半分, 2.0=倍速)
+	float startFrame = 0.0f;
+	float endFrame = 0.0f;
+	float speed = 1.0f;
 };
 
-// 技の性能を管理する構造体
+struct BoxData
+{
+	DirectX::XMFLOAT2 offset = { 0.0f, 0.0f };
+	DirectX::XMFLOAT2 extents = { 0.5f, 0.5f };
+};
+
 struct AttackParams
 {
 	// --- タイミング (秒) ---
-	float totalDuration = 0.5f; // 全体動作時間
-	float hitboxStart = 0.1f;   // 攻撃判定発生
-	float hitboxEnd = 0.2f;     // 攻撃判定終了
+	float totalDuration = 0.5f;
+	float hitboxStart = 0.1f;
+	float hitboxEnd = 0.2f;
 
-	// --- 攻撃判定 (Hitbox: 赤枠) の形状 ---
-	DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
-	DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
+	// 複数の攻撃判定 (赤枠) のリスト
+	std::vector<BoxData> hitboxes;
 
+	
 	// --- 攻撃中のくらい判定補正 (緑枠の変化) ---
 	DirectX::XMFLOAT2 headOffsetVal = { 0.0f, 0.0f };
 	DirectX::XMFLOAT2 headSizeVal = { 0.0f, 0.0f };
@@ -80,33 +81,25 @@ struct AttackParams
 	DirectX::XMFLOAT2 legsSizeVal = { 0.0f, 0.0f };
 
 	// --- ゲームプレイ用パラメータ ---
-	int damage = 10;       // ダメージ量
-	int hitFrame = 5;      // ヒット時の有利フレーム
-	int blockFrame = -2;   // ガード時の有利フレーム
+	int damage = 10;
+	int hitFrame = 5;
+	int blockFrame = -2;
 
-	// ヒットストップ時間 (秒)
 	float hitStop = 0.1f;
-
-	// ノックバック距離 (ヒット時に相手を押し下げる距離)
 	float knockback = 0.5f;
-
-	// ダウン属性 (trueならダウンさせる)
 	bool isDown = false;
 
 	// --- キャンセル設定 ---
-	bool cancelEnabled = false;     // キャンセルが可能か
-	float cancelStart = 0.0f;       // キャンセル受付開始時間 (秒)
-	float cancelEnd = 0.0f;         // キャンセル受付終了時間 (秒)
+	bool cancelEnabled = false;
+	float cancelStart = 0.0f;
+	float cancelEnd = 0.0f;
 
-	// どの技にキャンセルできるか (ルート設定)
-	bool cancelToLight = false;      // 弱パンチへ
-	bool cancelToMedium = false;     // 中パンチへ
-	bool cancelToHeavyPunch = false; // 大パンチへ
-	bool cancelToMediumKick = false; // 中キックへ
-	bool cancelToHeavy = false;      // 大キックへ
+	bool cancelToLight = false;
+	bool cancelToMedium = false;
+	bool cancelToHeavyPunch = false;
+	bool cancelToMediumKick = false;
+	bool cancelToHeavy = false;
 
-	// --- アニメーション速度制御 ---
-	// 特定フレーム区間の速度を変えるためのリスト
 	std::vector<AnimSpeedModifier> speedModifiers;
 };
 
@@ -122,17 +115,13 @@ public:
 	void Draw();
 	Model* GetModel();
 
-	// 現在のアニメーションフレームを強制的に指定する
 	void SetCurrentFrame(float frame);
 
-	// --- 状態管理 (ステートパターン) ---
 	void Update(float tick);
 	void SetState(PlayerState* newState);
 
-	// 現在のステートが無敵かどうかを確認する
 	bool IsInvincible() const;
 
-	// --- 状態 (State) から呼ばれるヘルパー関数 ---
 	void SetInputType(PlayerInputType type);
 	PlayerInputType GetInputType() const;
 
@@ -144,7 +133,6 @@ public:
 
 	float GetForwardMoveDot() const;
 
-	// --- 操作用 ---
 	void SetPosition(const DirectX::XMFLOAT3& pos);
 	DirectX::XMFLOAT3 GetPosition() const;
 	void SetRotation(const DirectX::XMFLOAT3& rot);
@@ -152,7 +140,7 @@ public:
 	DirectX::XMFLOAT3 GetVelocity() const;
 	void SetVelocity(const DirectX::XMFLOAT3& vel);
 	void Jump();
-	void ForceJumpState(bool isJumping); // 強制的にジャンプフラグを立てる（ダウン吹き飛び用）
+	void ForceJumpState(bool isJumping);
 	bool GetIsJumping() const;
 
 	// --- 当たり判定 (Hurtbox) ---
@@ -180,10 +168,14 @@ public:
 	DirectX::BoundingBox GetBoundingBox() const;
 
 	// --- 攻撃判定 (Hitbox) 用 ---
-	DirectX::BoundingBox GetActiveHitbox() const;
+	const std::vector<DirectX::BoundingBox>& GetActiveHitboxes() const;
+
 	bool IsAttacking() const;
 	void SetActiveHitbox(bool isActive);
-	void UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
+
+	// パラメータに基づいてボックスを更新する関数
+	void UpdateAttackBoxes();
+
 	void DrawHitbox();
 
 	void SetIsColliding(bool isColliding);
@@ -193,22 +185,18 @@ public:
 	void SetScale(const DirectX::XMFLOAT3& scale);
 	DirectX::XMFLOAT3 GetScale() const;
 
-	// --- アニメーション ---
 	void UpdateAnimation(float tick);
 	void UpdateModelBlend();
 
-	// --- ImGui 調整用にパラメータを取得する関数 ---
 	AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
 	AttackParams& GetMediumPunchParams() { return m_mediumPunchParams; }
 	AttackParams& GetHeavyPunchParams() { return m_heavyPunchParams; }
 	AttackParams& GetMediumKickParams() { return m_mediumKickParams; }
 	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
-	// 現在アクティブな技のパラメータを取得・設定する
 	void SetCurrentAttackParams(AttackParams* params);
 	AttackParams* GetCurrentAttackParams() const;
 
-	// --- デバッグ用 ---
 	void Debug_SetAnimation(const char* name, bool forceRestart = true) {
 		PlayAnimation(name, forceRestart);
 		m_blendFactor = 1.0f;
@@ -220,18 +208,18 @@ public:
 		m_currentAnim.frame = (float)frame;
 	}
 
-	// --- HP関連の関数 ---
 	void ReceiveDamage(int damage);
 	float GetHpRatio() const;
 
-	// ラウンド開始時のリセット
 	void Reset();
 
-	// --- 攻撃ヒット管理 ---
 	bool HasHit() const { return m_hasHit; }
 	void OnHit() { m_hasHit = true; }
 
 private:
+	// 初期パラメータ設定用関数
+	void InitDefaultParameters();
+
 	void UpdatePhysics(float tick);
 	void PollInputs();
 
@@ -252,7 +240,9 @@ private:
 	bool m_isColliding = false;
 	bool m_isCrouching = false;
 
-	DirectX::BoundingBox m_hitbox;
+	// 複数の攻撃判定を保持
+	std::vector<DirectX::BoundingBox> m_activeHitboxes;
+
 	bool m_isAttacking = false;
 
 	PlayerState* m_currentState;

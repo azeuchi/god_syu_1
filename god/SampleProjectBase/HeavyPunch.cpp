@@ -37,7 +37,6 @@ void HeavyPunch::Update(Player* player, float tick)
 	// 攻撃判定の処理
 	if (m_stateTimer >= params.hitboxStart && m_stateTimer < params.hitboxEnd)
 	{
-		player->UpdateHitbox(params.hitboxOffset, params.hitboxExtents);
 		player->SetActiveHitbox(true);
 	}
 	else
@@ -45,17 +44,16 @@ void HeavyPunch::Update(Player* player, float tick)
 		player->SetActiveHitbox(false);
 	}
 
-	// キャンセル処理 (親クラスの関数を使用)
-	if (CheckCancel(player, m_stateTimer, params))
+	// 終了判定
+	if (m_stateTimer >= params.totalDuration)
 	{
+		player->SetState(new PlayerStateIdle());
 		return;
 	}
 
-	// 終了処理
-	if (m_stateTimer >= params.totalDuration)
+	// キャンセル処理
+	if (CheckCancel(player, m_stateTimer, params))
 	{
-		player->SetAnimationSpeed(1.0f);
-		player->SetState(new PlayerStateIdle());
 		return;
 	}
 }

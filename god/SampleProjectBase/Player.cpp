@@ -43,23 +43,8 @@ Player::Player()
 	m_previousAnim = { "Idle", 0 };
 	SetState(new PlayerStateIdle());
 
-	// --- 当たり判定(Hurtbox)の初期設定 ---
-
-	// 1. 立ち状態 (Base) のくらい判定
-	m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.6f };
-	m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
-	m_baseHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 1.0f };
-	m_baseHurtboxExtents[(int)HurtboxType::BODY] = { 0.3f, 0.4f };
-	m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.4f };
-	m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.3f, 0.4f };
-
-	// 2. しゃがみ状態 (Crouch) のくらい判定
-	m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.0f, 1.1f };
-	m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.2f, 0.2f };
-	m_crouchHurtboxOffsets[(int)HurtboxType::BODY] = { 0.0f, 0.7f };
-	m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.35f, 0.3f };
-	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.0f, 0.2f };
-	m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.35f, 0.2f };
+	// デフォルトパラメータの初期化
+	InitDefaultParameters();
 }
 
 Player::~Player()
@@ -70,33 +55,160 @@ Player::~Player()
 	}
 }
 
-/**
- * @brief FSM, 物理, アニメーションをすべて更新する
- */
+void Player::InitDefaultParameters()
+{
+	// --- Global Settings ---
+	m_moveSpeed = 2.102f;
+	m_scale = { 1.0f, 1.0f, 1.0f };
+
+	// Standing Hurtboxes
+	// Head
+	m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.33f, 0.33f };
+	m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.024f, 1.923f };
+	// Body
+	m_baseHurtboxExtents[(int)HurtboxType::BODY] = { 0.598f, 0.522f };
+	m_baseHurtboxOffsets[(int)HurtboxType::BODY] = { 0.011f, 1.198f };
+	// Legs
+	m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.482f, 0.497f };
+	m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { -0.007f, 0.159f };
+
+	// Crouch Hurtboxes
+	// Head
+	m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.281f, 0.176f };
+	m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.272f, 1.425f };
+	// Body
+	m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.6f, 0.401f };
+	m_crouchHurtboxOffsets[(int)HurtboxType::BODY] = { 0.112f, 0.846f };
+	// Legs
+	m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.544f, 0.364f };
+	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.116f, 0.308f };
+
+	// --- Light Punch ---
+	{
+		AttackParams& p = m_lightPunchParams;
+		p.totalDuration = 0.166667f;
+		p.hitboxStart = 0.0666667f;
+		p.hitboxEnd = 0.15f;
+	
+		p.hitboxes.clear();
+		p.hitboxes.push_back({ {0.76f, 1.7f}, {0.454f, 0.157f} });
+
+		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.223f;
+		p.isDown = false;
+		p.headOffsetVal = { 0.024f, -0.08f }; p.headSizeVal = { 0.0f, -0.113f };
+		p.bodyOffsetVal = { 0.304f, -0.054f }; p.bodySizeVal = { 0.208f, 0.08f };
+		p.legsOffsetVal = { 0.096f, 0.0f }; p.legsSizeVal = { 0.096f, -0.024f };
+		p.cancelEnabled = true; p.cancelStart = 0.0666667f; p.cancelEnd = 0.166667f;
+		p.cancelToLight = true; p.cancelToMedium = true; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = false;
+		p.speedModifiers.clear();
+	}
+
+	// --- Medium Punch ---
+	{
+		AttackParams& p = m_mediumPunchParams;
+		p.totalDuration = 0.333333f;
+		p.hitboxStart = 0.1f;
+		p.hitboxEnd = 0.333333f;
+		p.hitboxes.clear();
+		p.hitboxes.push_back({ {0.735f, 1.642f}, {0.509f, 0.174f} });
+
+		p.damage = 400; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.05f; p.knockback = 0.0f;
+		p.isDown = false;
+		p.headOffsetVal = { 0.221f, -0.029f }; p.headSizeVal = { -0.118f, -0.162f };
+		p.bodyOffsetVal = { 0.486f, 0.0f }; p.bodySizeVal = { 0.177f, 0.0f };
+		p.legsOffsetVal = { 0.103f, 0.0f }; p.legsSizeVal = { 0.0f, 0.0f };
+		p.cancelEnabled = true; p.cancelStart = 0.1f; p.cancelEnd = 0.333333f;
+		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = true; p.cancelToMediumKick = false; p.cancelToHeavy = true;
+
+		p.speedModifiers.clear();
+		p.speedModifiers.push_back({ 0.0f, 6.0f, 0.369f });
+		p.speedModifiers.push_back({ 7.0f, 12.0f, 2.533f });
+	}
+
+	// --- Heavy Punch ---
+	{
+		AttackParams& p = m_heavyPunchParams;
+		p.totalDuration = 0.5f;
+		p.hitboxStart = 0.133333f;
+		p.hitboxEnd = 0.5f;
+		p.hitboxes.clear();
+		p.hitboxes.push_back({ {0.852f, 1.435f}, {0.687f, 0.202f} });
+
+		p.damage = 700; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.0f;
+		p.isDown = false;
+		p.headOffsetVal = { 0.206f, 0.0f }; p.headSizeVal = { -0.014f, -0.088f };
+		p.bodyOffsetVal = { 0.515f, -0.059f }; p.bodySizeVal = { 0.294f, 0.0f };
+		p.legsOffsetVal = { 0.206f, 0.0f }; p.legsSizeVal = { 0.059f, 0.0f };
+		p.cancelEnabled = true; p.cancelStart = 0.133333f; p.cancelEnd = 0.416667f;
+		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = true;
+
+		p.speedModifiers.clear();
+		p.speedModifiers.push_back({ 0.0f, 10.0f, 0.344f });
+		p.speedModifiers.push_back({ 11.0f, 20.0f, 2.057f });
+		p.speedModifiers.push_back({ 22.0f, 30.0f, 0.486f });
+	}
+
+	// --- Medium Kick ---
+	{
+		AttackParams& p = m_mediumKickParams;
+		p.totalDuration = 0.416667f;
+		p.hitboxStart = 0.1f;
+		p.hitboxEnd = 0.416667f;
+		p.hitboxes.clear();
+		p.hitboxes.push_back({ {1.5f, 1.56f}, {0.351f, 0.24f} });
+
+		p.damage = 400; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.05f; p.knockback = 0.0f;
+		p.isDown = false;
+		p.headOffsetVal = { 0.088f, 0.0f }; p.headSizeVal = { -0.044f, 0.0f };
+		p.bodyOffsetVal = { 0.794f, 0.0f }; p.bodySizeVal = { 0.382f, 0.0f };
+		p.legsOffsetVal = { 0.53f, 0.0f }; p.legsSizeVal = { -0.088f, 0.0f };
+		p.cancelEnabled = false;
+
+		p.speedModifiers.clear();
+		p.speedModifiers.push_back({ 0.0f, 4.0f, 0.362f });
+		p.speedModifiers.push_back({ 5.0f, 9.0f, 0.503f });
+		p.speedModifiers.push_back({ 10.0f, 20.0f, 0.295f });
+	}
+
+	// --- Heavy Kick ---
+	{
+		AttackParams& p = m_heavyKickParams;
+		p.totalDuration = 0.5f;
+		p.hitboxStart = 0.133333f;
+		p.hitboxEnd = 0.5f;
+		p.hitboxes.clear();
+		p.hitboxes.push_back({ {1.324f, 1.759f}, {0.551f, 0.23f} });
+
+		p.damage = 700; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.0f;
+		p.isDown = false;
+		p.headOffsetVal = { 0.088f, 0.0f }; p.headSizeVal = { 0.029f, 0.0f };
+		p.bodyOffsetVal = { 0.735f, 0.25f }; p.bodySizeVal = { 0.485f, -0.147f };
+		p.legsOffsetVal = { 0.221f, 0.308f }; p.legsSizeVal = { -0.088f, 0.088f };
+		p.cancelEnabled = false;
+
+		p.speedModifiers.clear();
+		p.speedModifiers.push_back({ 0.0f, 6.0f, 0.463f });
+		p.speedModifiers.push_back({ 7.0f, 16.0f, 1.006f });
+		p.speedModifiers.push_back({ 17.0f, 30.0f, 0.345f });
+	}
+}
+
 void Player::Update(float tick)
 {
-	// 1. 入力をポーリングして m_inputs を更新
 	PollInputs();
 
-	// 2. FSM（状態）の一元的な遷移チェック
 	if (m_currentState) {
 		m_isCrouching = m_currentState->IsCrouch();
 		m_currentState->Update(this, tick);
 	}
 
-	// 3. 物理演算の更新
 	UpdatePhysics(tick);
 
-	// 4. アニメーションの更新
 	UpdateAnimation(tick);
 
-	// 5. モデルのボーン更新
 	UpdateModelBlend();
 }
 
-/**
- * @brief 入力タイプに応じて m_inputs を更新する
- */
 void Player::PollInputs()
 {
 	m_inputs = {};
@@ -141,7 +253,6 @@ void Player::PollInputs()
 
 void Player::UpdatePhysics(float tick)
 {
-	// 重力処理
 	if (m_isJumping) {
 		m_velocity.y -= 18.0f * tick;
 	}
@@ -159,7 +270,6 @@ void Player::UpdatePhysics(float tick)
 	}
 }
 
-// アニメーション速度を加味して更新 (tickを反映)
 void Player::UpdateAnimation(float tick)
 {
 	if (m_blendFactor < 1.0f)
@@ -174,7 +284,6 @@ void Player::UpdateAnimation(float tick)
 
 		if (m_pActiveAttackParams)
 		{
-			//  ダウンや起き上がりも「速度調整可能な状態」として扱う
 			bool isControlledAnim = (
 				strcmp(m_currentAnim.name, "LightPunch") == 0 ||
 				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
@@ -191,7 +300,6 @@ void Player::UpdateAnimation(float tick)
 			}
 			else
 			{
-				// 設定されている速度モディファイアを走査
 				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
 				{
 					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
@@ -363,7 +471,6 @@ bool Player::GetIsJumping() const
 	return m_isJumping;
 }
 
-// --- 基本(立ち)設定 ---
 void Player::SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
 {
 	if (type >= HurtboxType::COUNT) return;
@@ -383,7 +490,6 @@ DirectX::XMFLOAT2 Player::GetHurtboxBaseExtents(HurtboxType type) const
 	return m_baseHurtboxExtents[(int)type];
 }
 
-// --- しゃがみ設定 ---
 void Player::SetHurtboxCrouch(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
 {
 	if (type >= HurtboxType::COUNT) return;
@@ -411,7 +517,6 @@ bool Player::GetIsCrouching() const
 	return m_isCrouching;
 }
 
-// --- 判定取得 ---
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
 	if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
@@ -459,7 +564,6 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 
 	return DirectX::BoundingBox(center, extents);
 }
-
 
 void Player::DrawBoundingBox()
 {
@@ -524,6 +628,11 @@ DirectX::XMFLOAT3 Player::GetScale() const { return m_scale; }
 void Player::SetActiveHitbox(bool isActive)
 {
 	m_isAttacking = isActive;
+	// 非アクティブになったらリストをクリア
+	if (!isActive)
+	{
+		m_activeHitboxes.clear();
+	}
 }
 
 bool Player::IsAttacking() const
@@ -540,26 +649,33 @@ AttackParams* Player::GetCurrentAttackParams() const
 	return m_pActiveAttackParams;
 }
 
-void Player::UpdateHitbox(const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents)
+void Player::UpdateAttackBoxes()
 {
-	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
+	if (!m_pActiveAttackParams) return;
 
-	DirectX::XMFLOAT3 center = {
-		m_position.x + (offset.x * direction),
-		m_position.y + offset.y,
-		m_position.z
-	};
-	DirectX::XMFLOAT3 boxExtents = {
-		extents.x,
-		extents.y,
-		0.1f
-	};
-	m_hitbox = DirectX::BoundingBox(center, boxExtents);
+	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
+	m_activeHitboxes.clear();
+
+	// 攻撃判定(Hitbox)の更新
+	for (const auto& boxData : m_pActiveAttackParams->hitboxes)
+	{
+		DirectX::XMFLOAT3 center = {
+			m_position.x + (boxData.offset.x * direction),
+			m_position.y + boxData.offset.y,
+			m_position.z
+		};
+		DirectX::XMFLOAT3 boxExtents = {
+			boxData.extents.x,
+			boxData.extents.y,
+			0.1f
+		};
+		m_activeHitboxes.push_back(DirectX::BoundingBox(center, boxExtents));
+	}
 }
 
-DirectX::BoundingBox Player::GetActiveHitbox() const
+const std::vector<DirectX::BoundingBox>& Player::GetActiveHitboxes() const
 {
-	return m_hitbox;
+	return m_activeHitboxes;
 }
 
 void Player::DrawHitbox()
@@ -567,14 +683,17 @@ void Player::DrawHitbox()
 	if (!m_isAttacking) return;
 
 	using namespace DirectX;
-	XMFLOAT3 corners[8];
-	m_hitbox.GetCorners(corners);
-
 	Geometory::SetColor(XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
 
-	static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
-	for (int i = 0; i < 4; ++i) {
-		Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
+	for (const auto& box : m_activeHitboxes)
+	{
+		XMFLOAT3 corners[8];
+		box.GetCorners(corners);
+
+		static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+		for (int i = 0; i < 4; ++i) {
+			Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
+		}
 	}
 }
 
@@ -596,5 +715,6 @@ void Player::Reset()
 	m_isAttacking = false;
 	m_hasHit = false;
 	m_velocity = { 0.0f, 0.0f, 0.0f };
+	m_activeHitboxes.clear();
 	SetState(new PlayerStateIdle());
 }
