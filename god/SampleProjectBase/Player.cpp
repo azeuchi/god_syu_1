@@ -411,7 +411,7 @@ bool Player::GetIsCrouching() const
 	return m_isCrouching;
 }
 
-// --- 判定取得 ---
+// --- 判定取得 (キーフレーム補間対応) ---
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
 	if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
@@ -424,27 +424,80 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 	float extentX = m_isCrouching ? m_crouchHurtboxExtents[idx].x : m_baseHurtboxExtents[idx].x;
 	float extentY = m_isCrouching ? m_crouchHurtboxExtents[idx].y : m_baseHurtboxExtents[idx].y;
 
+	// 攻撃中の補正をキーフレームから計算
 	if (m_isAttacking && m_pActiveAttackParams != nullptr)
 	{
 		const AttackParams& params = *m_pActiveAttackParams;
+		const std::vector<HurtboxKey>* keys = nullptr;
 
-		if (type == HurtboxType::HEAD) {
-			offsetX += params.headOffsetVal.x;
-			offsetY += params.headOffsetVal.y;
-			extentX += params.headSizeVal.x;
-			extentY += params.headSizeVal.y;
-		}
-		else if (type == HurtboxType::BODY) {
-			offsetX += params.bodyOffsetVal.x;
-			offsetY += params.bodyOffsetVal.y;
-			extentX += params.bodySizeVal.x;
-			extentY += params.bodySizeVal.y;
-		}
-		else if (type == HurtboxType::LEGS) {
-			offsetX += params.legsOffsetVal.x;
-			offsetY += params.legsOffsetVal.y;
-			extentX += params.legsSizeVal.x;
-			extentY += params.legsSizeVal.y;
+		if (type == HurtboxType::HEAD) keys = &params.headKeys;
+		else if (type == HurtboxType::BODY) keys = &params.bodyKeys;
+		else if (type == HurtboxType::LEGS) keys = &params.legsKeys;
+
+		if (keys && !keys->empty())
+		{
+			// 現在のフレーム
+			float currentFrame = m_currentAnim.frame;
+
+			// 補間計算用の変数
+			DirectX::XMFLOAT2 lerpOffset = { 0.0f, 0.0f };
+			DirectX::XMFLOAT2 lerpSize = { 0.0f, 0.0f };
+
+			// キーフレームが1つだけなら固定値
+			if (keys->size() == 1)
+			{
+				lerpOffset = (*keys)[0].offsetVal;
+				lerpSize = (*keys)[0].sizeVal;
+			}
+			else
+			{
+				// 前後のキーフレームを探す
+				const HurtboxKey* pPrev = &(*keys)[0];
+				const HurtboxKey* pNext = &(*keys)[keys->size() - 1];
+
+				// もし現在のフレームが最初のキーより前なら、最初のキーを使う
+				if (currentFrame <= pPrev->frame) {
+					lerpOffset = pPrev->offsetVal;
+					lerpSize = pPrev->sizeVal;
+				}
+				// もし現在のフレームが最後のキーより後なら、最後のキーを使う
+				else if (currentFrame >= pNext->frame) {
+					lerpOffset = pNext->offsetVal;
+					lerpSize = pNext->sizeVal;
+				}
+				else
+				{
+					// 間にある場合、区間を探して線形補間
+					for (size_t i = 0; i < keys->size() - 1; ++i)
+					{
+						if (currentFrame >= (*keys)[i].frame && currentFrame < (*keys)[i + 1].frame)
+						{
+							pPrev = &(*keys)[i];
+							pNext = &(*keys)[i + 1];
+							break;
+						}
+					}
+
+					// 進行度 t (0.0 ~ 1.0) を計算
+					float range = pNext->frame - pPrev->frame;
+					float t = 0.0f;
+					if (range > 0.0001f) {
+						t = (currentFrame - pPrev->frame) / range;
+					}
+
+					// Lerp
+					lerpOffset.x = pPrev->offsetVal.x + (pNext->offsetVal.x - pPrev->offsetVal.x) * t;
+					lerpOffset.y = pPrev->offsetVal.y + (pNext->offsetVal.y - pPrev->offsetVal.y) * t;
+					lerpSize.x = pPrev->sizeVal.x + (pNext->sizeVal.x - pPrev->sizeVal.x) * t;
+					lerpSize.y = pPrev->sizeVal.y + (pNext->sizeVal.y - pPrev->sizeVal.y) * t;
+				}
+			}
+
+			// 計算した補正値を加算
+			offsetX += lerpOffset.x;
+			offsetY += lerpOffset.y;
+			extentX += lerpSize.x;
+			extentY += lerpSize.y;
 		}
 	}
 

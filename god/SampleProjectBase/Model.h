@@ -79,6 +79,26 @@ public:
 	struct CBBoneCombMatrix {
 		XMFLOAT4X4 BoneCombMtx[400];
 	};
+
+private:
+	// モデルデータのキャッシュ用構造体
+	struct ModelCache {
+		std::shared_ptr<Assimp::Importer> importer;
+		const aiScene* scene;
+		Meshes meshes;
+		Materials materials;
+		std::unordered_map<std::string, BONE> bones;
+	};
+
+	// アニメーションデータのキャッシュ用構造体
+	struct AnimCache {
+		std::shared_ptr<const aiScene> scene;
+	};
+
+	// キャッシュの実体 (全Modelインスタンスで共有)
+	static std::unordered_map<std::string, ModelCache> s_modelCache;
+	static std::unordered_map<std::string, AnimCache> s_animCache;
+
 public:
 	Model();
 	~Model();
@@ -128,7 +148,8 @@ private:
 
 
 private:
-	Assimp::Importer* importer = nullptr;
+	// Assimp::Importerをshared_ptrに変更してキャッシュと共有可能にする
+	std::shared_ptr<Assimp::Importer> m_importer;
 	const aiScene* m_pScene = nullptr;
 	static std::shared_ptr<VertexShader> m_defVS;
 	static std::shared_ptr<PixelShader> m_defPS;
@@ -136,7 +157,9 @@ private:
 
 	std::unordered_map<std::string, BONE> m_Bone;
 	ID3D11Buffer* m_BoneCombMtxCBuffer = nullptr;
-	std::unordered_map<std::string, const aiScene*> m_Animation;
+
+	// アニメーションシーンの管理もshared_ptrに変更
+	std::unordered_map<std::string, std::shared_ptr<const aiScene>> m_Animation;
 
 private:
 	Meshes m_meshes;

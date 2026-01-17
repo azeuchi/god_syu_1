@@ -4,6 +4,7 @@
 
 #include <assimp/postprocess.h>
 #include <unordered_set>
+#include <string>
 
 // Matrix::Identity の定義
 const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
@@ -29,6 +30,10 @@ const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
 std::shared_ptr<VertexShader> Model::m_defVS = nullptr;
 std::shared_ptr<PixelShader> Model::m_defPS = nullptr;
 
+// 静的メンバ変数の実体定義
+std::unordered_map<std::string, Model::ModelCache> Model::s_modelCache;
+std::unordered_map<std::string, Model::AnimCache> Model::s_animCache;
+
 Model::Model()
 	: m_pVS(nullptr)
 	, m_pPS(nullptr)
@@ -39,14 +44,14 @@ Model::Model()
 	}
 	m_pVS = m_defVS.get();
 	m_pPS = m_defPS.get();
-	importer = new Assimp::Importer();
+
+	// キャッシュを利用するためここではnewしない
+	m_importer = nullptr;
 }
+
 Model::~Model() {
-	delete importer;
-	for (auto& anim : m_Animation)
-	{
-		aiReleaseImport(anim.second);
-	}
+	// importerはshared_ptrになったのでdelete不要
+	// m_Animationもshared_ptrになったのでaiReleaseImport不要
 	m_Animation.clear();
 }
 
@@ -79,9 +84,39 @@ uint32_t Model::GetMeshNum() const
 
 bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 {
-	DebugLog::log(DebugLog::INFO_LOG, "モデル読み込み開始");
-	DebugLog::log(DebugLog::INFO_LOG, "path ", file);
 	m_scaleBase = scaleBase;
+
+	// キャッシュキーの作成 (設定が異なれば別データとして扱うためフラグも含める)
+	std::string key = std::string(file) + "_" + std::to_string(flip) + "_" + std::to_string(simpleMode);
+
+	// --- キャッシュ確認 ---
+	auto it = s_modelCache.find(key);
+	if (it != s_modelCache.end())
+	{
+		DebugLog::log(DebugLog::INFO_LOG, "モデルキャッシュヒット: ", file);
+
+		// キャッシュからデータをコピー
+		m_importer = it->second.importer;
+		m_pScene = it->second.scene;
+		m_meshes = it->second.meshes;
+		m_materials = it->second.materials;
+		m_Bone = it->second.bones; // ボーン情報の構造をコピー
+
+		// 定数バッファの作成だけはインスタンスごとに行う
+		CreateConstantBufferWrite(
+			GetDevice(),
+			sizeof(CBBoneCombMatrix),
+			&m_BoneCombMtxCBuffer);
+
+		return true;
+	}
+
+	// --- キャッシュがない場合は新規ロード ---
+	DebugLog::log(DebugLog::INFO_LOG, "モデル読み込み開始 (新規)");
+	DebugLog::log(DebugLog::INFO_LOG, "path ", file);
+
+	// Importerの作成
+	m_importer = std::make_shared<Assimp::Importer>();
 
 	int flag = 0;
 	if (simpleMode)
@@ -99,12 +134,14 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 		if (flip) flag |= aiProcess_ConvertToLeftHanded;
 	}
 
-	m_pScene = importer->ReadFile(file, flag);
-	if (!m_pScene) {
-		Error(importer->GetErrorString());
+	// メンバ変数ではなくローカル変数で受け取り、成功したらメンバに設定
+	const aiScene* scene = m_importer->ReadFile(file, flag);
+	if (!scene) {
+		Error(m_importer->GetErrorString());
 		DebugLog::log(DebugLog::INFO_LOG, "Assimpモデルロード失敗", file);
 		return false;
 	}
+	m_pScene = scene;
 	assert(m_pScene);
 
 	DebugLog::log(DebugLog::INFO_LOG, "ボーン情報配列準備");
@@ -245,13 +282,31 @@ bool Model::Load(const char* file, float scaleBase, bool flip, bool simpleMode)
 	}
 
 	DebugLog::log(DebugLog::INFO_LOG, "Loaded Material Count = ", (int)m_materials.size());
-	DebugLog::log(DebugLog::INFO_LOG, "モデル読み込み完了");
+	DebugLog::log(DebugLog::INFO_LOG, "モデル読み込み完了 (キャッシュ保存)");
+
+	// 読み込んだデータをキャッシュに保存
+	ModelCache cache;
+	cache.importer = m_importer;
+	cache.scene = m_pScene;
+	cache.meshes = m_meshes;
+	cache.materials = m_materials;
+	cache.bones = m_Bone;
+	s_modelCache[key] = cache;
+
 	return true;
 }
 
 
 void Model::LoadAnimation(const char* FileName, const char* Name, bool flip)
 {
+	// キャッシュ確認
+	std::string key = FileName;
+	if (s_animCache.find(key) != s_animCache.end())
+	{
+		m_Animation[Name] = s_animCache[key].scene;
+		return;
+	}
+
 	int flag = 0;
 	if (flip) flag |= aiProcess_ConvertToLeftHanded;
 
@@ -270,7 +325,15 @@ void Model::LoadAnimation(const char* FileName, const char* Name, bool flip)
 		return;
 	}
 
-	m_Animation[Name] = pAnimScene;
+	// データをshared_ptrで管理し、削除時にaiReleaseImportを呼ぶようにする
+	std::shared_ptr<const aiScene> scenePtr(pAnimScene, [](const aiScene* p) {
+		aiReleaseImport(p);
+		});
+
+	// キャッシュとローカルマップに保存
+	s_animCache[key].scene = scenePtr;
+	m_Animation[Name] = scenePtr;
+
 	DebugLog::log(DebugLog::INFO_LOG, "Animation loaded successfully: ", Name);
 }
 
@@ -377,7 +440,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	blendedLocalPose.resize(m_Bone.size());
 
 	// 1. 新旧それぞれのローカル行列（親に対する姿勢）を取得
-	
+
 	std::vector<Matrix> newLocalPose, oldLocalPose;
 	SampleAnimationKeys(newAnimName, newFrame, newLocalPose);
 	SampleAnimationKeys(oldAnimName, oldFrame, oldLocalPose);
@@ -386,7 +449,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	size_t boneCount = m_Bone.size();
 	for (size_t i = 0; i < boneCount; ++i)
 	{
-	
+
 		if (blendFactor >= 1.0f)
 		{
 			blendedLocalPose[i] = newLocalPose[i];
@@ -449,17 +512,18 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 // アニメーションデータから、各ボーンのローカル行列（親に対する変形）のみを抽出する関数
 void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices)
 {
-	aiAnimation* animation = nullptr;
+	const aiScene* animation = nullptr;
 	// 指定されたアニメーションが存在するかチェック
 	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
 	{
-		if (m_Animation.at(animName)->HasAnimations())
-			animation = m_Animation.at(animName)->mAnimations[0];
+		auto& scenePtr = m_Animation.at(animName);
+		if (scenePtr->HasAnimations())
+			animation = scenePtr.get();
 	}
 	// なければシーンのデフォルトアニメーションを使用
 	else if (m_pScene && m_pScene->HasAnimations())
 	{
-		animation = m_pScene->mAnimations[0];
+		animation = m_pScene; // これは const aiScene* なのでOK
 	}
 
 	// 初期化：すべてのボーンを単位行列にする（アニメーションキーがないボーン対策）
@@ -471,10 +535,13 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 
 	if (!animation) return;
 
+	// アニメーションは通常 0番目を使用
+	aiAnimation* anim = animation->mAnimations[0];
+
 	// アニメーションチャンネル（ボーンごとの動き）を解析
-	for (unsigned int c = 0; c < animation->mNumChannels; c++)
+	for (unsigned int c = 0; c < anim->mNumChannels; c++)
 	{
-		aiNodeAnim* nodeAnim = animation->mChannels[c];
+		aiNodeAnim* nodeAnim = anim->mChannels[c];
 		// ボーンリストにないノードは処理不要なのでスキップ
 		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0) continue;
 
@@ -666,11 +733,11 @@ int Model::GetAnimationTotalFrame(const char* animName)
 {
 	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
 	{
-		const aiScene* scene = m_Animation.at(animName);
-		if (scene->HasAnimations())
+		const auto& scenePtr = m_Animation.at(animName);
+		if (scenePtr->HasAnimations())
 		{
 			// Duration は「ティック数」ですが、通常はフレーム数として扱えます
-			return (int)scene->mAnimations[0]->mDuration;
+			return (int)scenePtr->mAnimations[0]->mDuration;
 		}
 	}
 	// 見つからない場合は適当に長い値を返しておく（0除算防止）
