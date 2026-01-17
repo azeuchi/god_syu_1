@@ -58,6 +58,7 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.hitFrame << std::endl;
 				ofs << params.blockFrame << std::endl;
 				ofs << params.hitStop << std::endl;
+				ofs << params.knockback << std::endl;
 
 				// ダウン設定
 				ofs << params.isDown << std::endl;
@@ -181,7 +182,7 @@ void SceneDebug::Init()
 			ifs >> p.hitboxStart >> p.hitboxEnd;
 			ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
 			ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
-			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 			ifs >> p.isDown;
 			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
 			ifs >> p.headSizeVal.x >> p.headSizeVal.y;
@@ -218,15 +219,13 @@ void SceneDebug::Init()
 	player->SetScale(scale);
 
 	// --- モデル・アニメーションロード ---
-	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
+	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-
-	// ダウンと起き上がり用アニメーションを追加
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
@@ -588,6 +587,8 @@ void SceneDebug::DrawImGui()
 			if (hitStopFrames < 0) hitStopFrames = 0;
 			params.hitStop = hitStopFrames * FRAME_TIME_60FPS;
 		}
+
+		ImGui::SliderFloat("Knockback", &params.knockback, 0.0f, 5.0f);
 
 		ImGui::Checkbox("Cause Down (Knockback)", &params.isDown);
 

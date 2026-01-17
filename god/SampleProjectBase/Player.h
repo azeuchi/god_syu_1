@@ -87,6 +87,9 @@ struct AttackParams
 	// ヒットストップ時間 (秒)
 	float hitStop = 0.1f;
 
+	// ノックバック距離 (ヒット時に相手を押し下げる距離)
+	float knockback = 0.5f;
+
 	// ダウン属性 (trueならダウンさせる)
 	bool isDown = false;
 

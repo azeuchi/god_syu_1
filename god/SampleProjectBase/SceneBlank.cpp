@@ -14,10 +14,10 @@
 #include "Image2D.h"
 #include <fstream> 
 #include <algorithm> 
+#include <cmath>
 
 // やられ状態への遷移に使用
 #include "PlayerStateDamage.h"
-// ダウン状態への遷移に使用
 #include "PlayerStateDown.h"
 
 using namespace DirectX;
@@ -150,7 +150,7 @@ void SceneBlank::Init()
 		ifs >> p.hitboxStart >> p.hitboxEnd;
 		ifs >> p.hitboxOffset.x >> p.hitboxOffset.y;
 		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
-		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop;
+		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
 		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
 		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
@@ -221,6 +221,7 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
+
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
@@ -272,7 +273,6 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 
-	// ★追加: ダウン・起き上がりアニメーションのロード
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 
@@ -656,6 +656,40 @@ void SceneBlank::Update(float tick)
 				player2->ReceiveDamage(dmg);
 				player->OnHit();
 
+				// ノックバック処理 (画面端での押し返し対応)
+				float kb = (params != nullptr) ? params->knockback : 0.0f;
+				// 攻撃側の向きに合わせて相手を後ろにずらす
+				float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+
+				// 移動前の座標
+				DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
+				float originalX = p2Pos.x;
+
+				// 本来移動したい先
+				float targetX = originalX + (dir * kb);
+
+				// 壁でクランプ（制限）
+				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+				p2Pos.x = clampedX;
+				player2->SetPosition(p2Pos);
+
+				// 実際に移動できた距離
+				float movedDist = fabsf(clampedX - originalX);
+				// 下がりきれなかった分（余剰距離）
+				float pushBackDist = kb - movedDist;
+
+				// 余りがある＝壁に当たったので、その分攻撃側を下げる
+				if (pushBackDist > 0.0f)
+				{
+					DirectX::XMFLOAT3 p1Pos = player->GetPosition();
+					// 攻撃側を後ろ（dirの逆）へ下げる
+					p1Pos.x -= dir * pushBackDist;
+					// 念のためこちらもクランプ
+					p1Pos.x = std::clamp(p1Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+					player->SetPosition(p1Pos);
+				}
+
+
 				// ★追加: ダウン分岐
 				if (isDown)
 				{
@@ -715,6 +749,32 @@ void SceneBlank::Update(float tick)
 
 				player->ReceiveDamage(dmg);
 				player2->OnHit();
+
+				// ノックバック処理 (画面端での押し返し対応)
+				float kb = (params != nullptr) ? params->knockback : 0.0f;
+				// 攻撃側の向きに合わせて相手を後ろにずらす
+				float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+
+				DirectX::XMFLOAT3 p1Pos = player->GetPosition();
+				float originalX = p1Pos.x;
+
+				float targetX = originalX + (dir * kb);
+
+				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+				p1Pos.x = clampedX;
+				player->SetPosition(p1Pos);
+
+				float movedDist = fabsf(clampedX - originalX);
+				float pushBackDist = kb - movedDist;
+
+				if (pushBackDist > 0.0f)
+				{
+					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
+					p2Pos.x -= dir * pushBackDist;
+					p2Pos.x = std::clamp(p2Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+					player2->SetPosition(p2Pos);
+				}
+
 
 				// ★追加: ダウン分岐
 				if (isDown)
