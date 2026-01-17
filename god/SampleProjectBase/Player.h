@@ -57,14 +57,6 @@ struct AnimSpeedModifier
 	float speed = 1.0f;      // 速度倍率 (0.5=半分, 2.0=倍速)
 };
 
-// くらい判定の変化キーフレーム
-struct HurtboxKey
-{
-	float frame = 0.0f; // 切り替わるフレームタイミング
-	DirectX::XMFLOAT2 offsetVal = { 0.0f, 0.0f }; // 基準位置からのオフセット
-	DirectX::XMFLOAT2 sizeVal = { 0.0f, 0.0f };   // 基準サイズからの拡縮
-};
-
 // 技の性能を管理する構造体
 struct AttackParams
 {
@@ -77,11 +69,15 @@ struct AttackParams
 	DirectX::XMFLOAT2 hitboxOffset = { 1.0f, 1.2f };
 	DirectX::XMFLOAT2 hitboxExtents = { 0.3f, 0.3f };
 
-	// --- 攻撃中のくらい判定補正 (キーフレーム補間) ---
-	// 各部位ごとにキーフレームリストを持つ
-	std::vector<HurtboxKey> headKeys;
-	std::vector<HurtboxKey> bodyKeys;
-	std::vector<HurtboxKey> legsKeys;
+	// --- 攻撃中のくらい判定補正 (緑枠の変化) ---
+	DirectX::XMFLOAT2 headOffsetVal = { 0.0f, 0.0f };
+	DirectX::XMFLOAT2 headSizeVal = { 0.0f, 0.0f };
+
+	DirectX::XMFLOAT2 bodyOffsetVal = { 0.0f, 0.0f };
+	DirectX::XMFLOAT2 bodySizeVal = { 0.0f, 0.0f };
+
+	DirectX::XMFLOAT2 legsOffsetVal = { 0.0f, 0.0f };
+	DirectX::XMFLOAT2 legsSizeVal = { 0.0f, 0.0f };
 
 	// --- ゲームプレイ用パラメータ ---
 	int damage = 10;       // ダメージ量

@@ -18,7 +18,6 @@
 
 // やられ状態への遷移に使用
 #include "PlayerStateDamage.h"
-// ダウン状態への遷移に使用
 #include "PlayerStateDown.h"
 
 using namespace DirectX;
@@ -66,7 +65,7 @@ void SceneBlank::Init()
 	s_isGameSet = false;
 
 	// ==================================================
-	// シェーダーの読み込み
+	// 1. シェーダーの読み込み
 	// ==================================================
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
@@ -88,7 +87,7 @@ void SceneBlank::Init()
 	}
 
 	// ==================================================
-	// 背景（スカイドーム）の読み込み
+	// 2. 背景（スカイドーム）の読み込み
 	// ==================================================
 	CreateObj<Model>("SkyModel");
 	Model* skyModel = GetObj<Model>("SkyModel");
@@ -102,7 +101,7 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// UI（HPバー・ラウンド画像）の初期化
+	// 3. UI（HPバー・ラウンド画像）の初期化
 	// ==================================================
 	m_barMaxWidth = 500.0f;
 
@@ -134,7 +133,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// プレイヤーの生成と設定ロード
+	// 4. プレイヤーの生成と設定ロード
 	// ==================================================
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
@@ -153,23 +152,12 @@ void SceneBlank::Init()
 		ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
-
-		// キーフレーム読み込み用ヘルパー
-		auto LoadKeys = [&](std::vector<HurtboxKey>& keys) {
-			size_t count = 0;
-			if (!ifs.eof()) ifs >> count;
-			keys.clear();
-			for (size_t k = 0; k < count; ++k) {
-				HurtboxKey key;
-				ifs >> key.frame >> key.offsetVal.x >> key.offsetVal.y >> key.sizeVal.x >> key.sizeVal.y;
-				keys.push_back(key);
-			}
-		};
-
-		LoadKeys(p.headKeys);
-		LoadKeys(p.bodyKeys);
-		LoadKeys(p.legsKeys);
-
+		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
+		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
+		ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
+		ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
+		ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
+		ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
 		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -242,7 +230,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// プレイヤー2の生成 (P1の設定を反転して流用)
+	// 5. プレイヤー2の生成 (P1の設定を反転して流用)
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -433,7 +421,7 @@ void SceneBlank::Update(float tick)
 	Player* player2 = GetObj<Player>("Player2");
 
 	// ==========================================================
-	// ラウンド開始演出 (フェーズ管理)
+	// 0. ラウンド開始演出 (フェーズ管理)
 	// ==========================================================
 	if (m_currentPhase != RoundPhase::PLAYING)
 	{
@@ -477,7 +465,7 @@ void SceneBlank::Update(float tick)
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
-		// 演出中でもカメラ位置情報をスカイドームに渡して更新する
+		// ★演出中でもカメラ位置情報をスカイドームに渡して更新する
 		CameraBase* pCamera = GetObj<CameraBase>("Camera");
 		if (m_skyDome && pCamera)
 		{
@@ -490,7 +478,7 @@ void SceneBlank::Update(float tick)
 
 
 	// ==========================================================
-	// ラウンド終了後の待機処理
+	// 1. ラウンド終了後の待機処理
 	// ==========================================================
 	if (m_isRoundOver)
 	{
@@ -548,7 +536,7 @@ void SceneBlank::Update(float tick)
 	else
 	{
 		// ==========================================================
-		// 通常のゲーム進行
+		// 2. 通常のゲーム進行 (内容は変更なし)
 		// ==========================================================
 		float playerTick = tick;
 		if (m_hitStopTimer > 0.0f)
@@ -643,7 +631,7 @@ void SceneBlank::Update(float tick)
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
 			{
-				// 修正: 相手が無敵（ダウン中など）ならヒットさせない (ダメージ無効)
+				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない (ダメージ無効)
 				// 衝突判定は行うが、ダメージ判定は行わない
 				if (!player2->IsInvincible())
 				{
@@ -662,7 +650,7 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ダウン属性チェック
+				// ★追加: ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player2->ReceiveDamage(dmg);
@@ -672,14 +660,14 @@ void SceneBlank::Update(float tick)
 				float kb = (params != nullptr) ? params->knockback : 0.0f;
 				// 攻撃側の向きに合わせて相手を後ろにずらす
 				float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-				
+
 				// 移動前の座標
 				DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
 				float originalX = p2Pos.x;
-				
+
 				// 本来移動したい先
 				float targetX = originalX + (dir * kb);
-				
+
 				// 壁でクランプ（制限）
 				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 				p2Pos.x = clampedX;
@@ -702,7 +690,7 @@ void SceneBlank::Update(float tick)
 				}
 
 
-				// ダウン分岐
+				// ★追加: ダウン分岐
 				if (isDown)
 				{
 					player2->SetState(new PlayerStateDown());
@@ -738,7 +726,7 @@ void SceneBlank::Update(float tick)
 			bool hit1 = false;
 			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
 			{
-				// 修正: 相手が無敵（ダウン中など）ならヒットさせない
+				// ★修正: 相手が無敵（ダウン中など）ならヒットさせない
 				if (!player->IsInvincible())
 				{
 					BoundingBox atk = player2->GetActiveHitbox();
@@ -756,7 +744,7 @@ void SceneBlank::Update(float tick)
 				AttackParams* params = player2->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ダウン属性チェック
+				// ★追加: ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player->ReceiveDamage(dmg);
@@ -766,12 +754,12 @@ void SceneBlank::Update(float tick)
 				float kb = (params != nullptr) ? params->knockback : 0.0f;
 				// 攻撃側の向きに合わせて相手を後ろにずらす
 				float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-				
+
 				DirectX::XMFLOAT3 p1Pos = player->GetPosition();
 				float originalX = p1Pos.x;
-				
+
 				float targetX = originalX + (dir * kb);
-				
+
 				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 				p1Pos.x = clampedX;
 				player->SetPosition(p1Pos);
@@ -788,7 +776,7 @@ void SceneBlank::Update(float tick)
 				}
 
 
-				// ダウン分岐
+				// ★追加: ダウン分岐
 				if (isDown)
 				{
 					player->SetState(new PlayerStateDown());
@@ -1032,7 +1020,7 @@ void SceneBlank::Draw()
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
-	// 修正点: UI画像を描画する前にピクセルシェーダーを解除する
+	// ★修正点: UI画像を描画する前にピクセルシェーダーを解除する
 	GetContext()->PSSetShader(nullptr, nullptr, 0);
 
 	// --- ラウンド演出の描画登録 ---

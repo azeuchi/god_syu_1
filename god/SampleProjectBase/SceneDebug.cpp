@@ -12,7 +12,6 @@
 #include <system/imgui/imgui.h>
 #include <fstream> 
 #include <cmath> 
-#include <algorithm> // sort用
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -45,14 +44,6 @@ void SceneDebug::SavePlayerSettings()
 		std::ofstream ofs(SETTINGS_FILE_DEBUG);
 		if (ofs.is_open())
 		{
-			// ヘルパーラムダ: キーフレームリストを書き出す
-			auto WriteKeys = [&](const std::vector<HurtboxKey>& keys) {
-				ofs << keys.size() << std::endl;
-				for (const auto& key : keys) {
-					ofs << key.frame << " " << key.offsetVal.x << " " << key.offsetVal.y << " " << key.sizeVal.x << " " << key.sizeVal.y << std::endl;
-				}
-				};
-
 			// ヘルパーラムダ: AttackParamsを1つ書き出す関数
 			auto WriteParams = [&](const AttackParams& params) {
 				// タイミング・判定
@@ -72,10 +63,13 @@ void SceneDebug::SavePlayerSettings()
 				// ダウン設定
 				ofs << params.isDown << std::endl;
 
-				// くらい判定補正 (キーフレーム方式)
-				WriteKeys(params.headKeys);
-				WriteKeys(params.bodyKeys);
-				WriteKeys(params.legsKeys);
+				// くらい判定補正
+				ofs << params.headOffsetVal.x << " " << params.headOffsetVal.y << std::endl;
+				ofs << params.headSizeVal.x << " " << params.headSizeVal.y << std::endl;
+				ofs << params.bodyOffsetVal.x << " " << params.bodyOffsetVal.y << std::endl;
+				ofs << params.bodySizeVal.x << " " << params.bodySizeVal.y << std::endl;
+				ofs << params.legsOffsetVal.x << " " << params.legsOffsetVal.y << std::endl;
+				ofs << params.legsSizeVal.x << " " << params.legsSizeVal.y << std::endl;
 
 				// キャンセル設定
 				ofs << params.cancelEnabled << std::endl;
@@ -181,18 +175,6 @@ void SceneDebug::Init()
 			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 		}
 
-		// キーフレーム読み込み用ヘルパー
-		auto LoadKeys = [&](std::vector<HurtboxKey>& keys) {
-			size_t count = 0;
-			if (!ifs.eof()) ifs >> count;
-			keys.clear();
-			for (size_t k = 0; k < count; ++k) {
-				HurtboxKey key;
-				ifs >> key.frame >> key.offsetVal.x >> key.offsetVal.y >> key.sizeVal.x >> key.sizeVal.y;
-				keys.push_back(key);
-			}
-			};
-
 		// パラメータ読み込み用ラムダ
 		auto LoadOneParam = [&](AttackParams& p) {
 			if (ifs.eof()) return;
@@ -202,13 +184,12 @@ void SceneDebug::Init()
 			ifs >> p.hitboxExtents.x >> p.hitboxExtents.y;
 			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 			ifs >> p.isDown;
-
-			// 旧データ互換性: キーフレームがない場合(古いファイル)は読み飛ばしが発生する可能性があるため注意
-			// 今回は構造を変えるため、新しい形式のみ対応
-			LoadKeys(p.headKeys);
-			LoadKeys(p.bodyKeys);
-			LoadKeys(p.legsKeys);
-
+			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
+			ifs >> p.headSizeVal.x >> p.headSizeVal.y;
+			ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
+			ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
+			ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
+			ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
 			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -238,7 +219,7 @@ void SceneDebug::Init()
 	player->SetScale(scale);
 
 	// --- モデル・アニメーションロード ---
-	player->Load("Assets/Model/knight/Idle.fbx", 0.02f, true, false);
+	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
@@ -582,41 +563,6 @@ void SceneDebug::DrawImGui()
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 		int hitStopFrames = static_cast<int>(std::round(params.hitStop / FRAME_TIME_60FPS));
 
-		// グラフ表示（タイムライン）
-		ImDrawList* draw_list = ImGui::GetWindowDrawList();
-		ImVec2 p = ImGui::GetCursorScreenPos();
-		float width = ImGui::GetContentRegionAvail().x;
-		float height = 30.0f;
-		float frameWidth = width / (float)totalFrames;
-
-		// 背景（グレー）
-		draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), IM_COL32(100, 100, 100, 255));
-
-		// 攻撃発生区間（赤）
-		float startX = p.x + startFrames * frameWidth;
-		float endX = p.x + endFrames * frameWidth;
-		draw_list->AddRectFilled(ImVec2(startX, p.y), ImVec2(endX, p.y + height), IM_COL32(200, 50, 50, 255));
-
-		// 現在再生中のフレーム位置（白線）
-		float currX = p.x + m_currentFrame * frameWidth;
-		draw_list->AddLine(ImVec2(currX, p.y), ImVec2(currX, p.y + height), IM_COL32(255, 255, 255, 255), 2.0f);
-
-		// キャンセル可能区間（緑ライン 下部）
-		if (params.cancelEnabled) {
-			int cancelStartF = static_cast<int>(std::round(params.cancelStart / FRAME_TIME_60FPS));
-			int cancelEndF = static_cast<int>(std::round(params.cancelEnd / FRAME_TIME_60FPS));
-			float cStartX = p.x + cancelStartF * frameWidth;
-			float cEndX = p.x + cancelEndF * frameWidth;
-			draw_list->AddRectFilled(ImVec2(cStartX, p.y + height - 5), ImVec2(cEndX, p.y + height), IM_COL32(50, 200, 50, 255));
-		}
-
-		// 枠線
-		draw_list->AddRect(p, ImVec2(p.x + width, p.y + height), IM_COL32(255, 255, 255, 255));
-
-		// ダミーのスペースを入れて次のコントロールへ
-		ImGui::Dummy(ImVec2(width, height + 5));
-
-
 		if (ImGui::InputInt("Total Frames", &totalFrames)) {
 			if (totalFrames < 1) totalFrames = 1;
 			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
@@ -648,57 +594,14 @@ void SceneDebug::DrawImGui()
 
 		ImGui::Checkbox("Cause Down (Knockback)", &params.isDown);
 
-		if (ImGui::TreeNode("Hurtbox Modifiers (Keyframes)"))
+		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))
 		{
-			auto DrawKeyEditor = [&](const char* label, std::vector<HurtboxKey>& keys) {
-				if (ImGui::TreeNode(label)) {
-					// キーの追加
-					if (ImGui::Button("Add Keyframe")) {
-						HurtboxKey k;
-						k.frame = (float)m_currentFrame; // 現在の位置に追加
-						if (!keys.empty()) {
-							k.offsetVal = keys.back().offsetVal;
-							k.sizeVal = keys.back().sizeVal;
-						}
-						keys.push_back(k);
-						// フレーム順にソート
-						std::sort(keys.begin(), keys.end(), [](const HurtboxKey& a, const HurtboxKey& b) {
-							return a.frame < b.frame;
-							});
-					}
-
-					// 各キーの編集
-					for (int i = 0; i < (int)keys.size(); ++i) {
-						ImGui::PushID(i);
-						HurtboxKey& k = keys[i];
-						ImGui::Text("Key #%d", i);
-						ImGui::SameLine();
-						if (ImGui::Button("Delete")) {
-							keys.erase(keys.begin() + i);
-							ImGui::PopID();
-							break;
-						}
-
-						int kFrame = (int)k.frame;
-						if (ImGui::SliderInt("Frame", &kFrame, 0, totalFrames)) k.frame = (float)kFrame;
-						ImGui::SliderFloat2("Offset", &k.offsetVal.x, -1.0f, 1.0f);
-						ImGui::SliderFloat2("Size+", &k.sizeVal.x, -1.0f, 1.0f);
-						ImGui::Separator();
-						ImGui::PopID();
-					}
-					// ソートしておく
-					std::sort(keys.begin(), keys.end(), [](const HurtboxKey& a, const HurtboxKey& b) {
-						return a.frame < b.frame;
-						});
-
-					ImGui::TreePop();
-				}
-				};
-
-			DrawKeyEditor("Head Keys", params.headKeys);
-			DrawKeyEditor("Body Keys", params.bodyKeys);
-			DrawKeyEditor("Legs Keys", params.legsKeys);
-
+			ImGui::SliderFloat2("Head Off", &params.headOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Head Sz+", &params.headSizeVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Body Off", &params.bodyOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Body Sz+", &params.bodySizeVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Legs Off", &params.legsOffsetVal.x, -1.0f, 1.0f);
+			ImGui::SliderFloat2("Legs Sz+", &params.legsSizeVal.x, -1.0f, 1.0f);
 			ImGui::TreePop();
 		}
 
