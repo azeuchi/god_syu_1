@@ -474,7 +474,7 @@ void SceneBlank::Update(float tick)
 			}
 		}
 
-	
+
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
@@ -485,8 +485,9 @@ void SceneBlank::Update(float tick)
 			m_skyDome->Update(pCamera->GetPos());
 		}
 
-		
-		return; 
+		// PLAYING以外ならここで終了
+		return;
+	}
 
 
 	// ==========================================================
@@ -522,12 +523,12 @@ void SceneBlank::Update(float tick)
 			}
 		}
 
-	
+
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
 		// カメラ更新は続ける
-	
+
 		// 待機時間(待機+フェード時間)が経過し、完全に暗くなったらリセット
 		if (m_roundEndTimer >= ROUND_WAIT_TIME)
 		{
@@ -650,7 +651,7 @@ void SceneBlank::Update(float tick)
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
 			{
-			
+
 				if (!player2->IsInvincible())
 				{
 					// P1の複数のHitboxと P2の複数のHurtbox(標準+追加)を総当たりでチェック
@@ -919,7 +920,6 @@ void SceneBlank::Update(float tick)
 		}
 	}
 }
-
 void SceneBlank::Draw()
 {
 	// ==========================================================
@@ -1052,7 +1052,7 @@ void SceneBlank::Draw()
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
 
-	
+
 	GetContext()->PSSetShader(nullptr, nullptr, 0);
 
 	// --- ラウンド演出の描画登録 ---
