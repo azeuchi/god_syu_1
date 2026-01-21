@@ -126,12 +126,11 @@ void Sprite::SetUVPos(DirectX::XMFLOAT2 pos)
 }
 void Sprite::SetUVScale(DirectX::XMFLOAT2 scale)
 {
-	m_data.param[1].x = scale.x;
-	m_data.param[1].y = scale.y;
+	/*m_data.param[1].x = scale.x;
+	m_data.param[1].y = scale.y;*/
 
-	// おそらくz,wの間違いで以下が正しい
-	//m_data.param[1].z = scale.x;
-	//m_data.param[1].w = scale.y;
+	m_data.param[1].z = scale.x;
+	m_data.param[1].w = scale.y;
 }
 void Sprite::SetColor(DirectX::XMFLOAT4 color)
 {

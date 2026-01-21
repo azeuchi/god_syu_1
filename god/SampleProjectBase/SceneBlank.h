@@ -4,6 +4,7 @@
 #include "SkyDome.h"
 #include <DirectXMath.h> // XMFLOAT2用
 #include <d3d11.h>       // DirectX用
+#include "HitEffect.h"
 
 /**
  * @brief メインのゲームシーン
@@ -32,6 +33,12 @@ private:
 
 	// フェード用画像
 	Image2D* m_fadeBlack;
+
+	//エフェクト管理用リスト
+	std::vector<HitEffect*> m_hitEffects;
+
+	//エフェクト発生用ヘルパー関数
+	void SpawnHitEffect(Player* target);
 
 	// ラウンド開始演出用画像
 	Image2D* m_imgRound1 = nullptr;

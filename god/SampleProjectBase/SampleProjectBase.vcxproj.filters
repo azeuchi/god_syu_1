@@ -28,9 +28,6 @@
     <Filter Include="ヘッダー ファイル\DirectX">
       <UniqueIdentifier>{76d7d9cf-96c4-4ff5-a5f6-7dfd24ef09cb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ヘッダー ファイル\System">
-      <UniqueIdentifier>{23598e8f-8b92-47d1-ac2c-8d127274e433}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ヘッダー ファイル\App\Scene">
       <UniqueIdentifier>{23d36a75-29b1-435f-a0f7-3718e6f8c461}</UniqueIdentifier>
     </Filter>
@@ -234,6 +231,9 @@
     <ClCompile Include="PlayerState.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
+    <ClCompile Include="HitEffect.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h">
@@ -254,29 +254,8 @@
     <ClInclude Include="DirectX.h">
       <Filter>ヘッダー ファイル\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="Geometory.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraBase.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneBase.hpp">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Sprite.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
     <ClInclude Include="SceneRoot.h">
       <Filter>ヘッダー ファイル\App</Filter>
-    </ClInclude>
-    <ClInclude Include="LightBase.h">
-      <Filter>ヘッダー ファイル\System</Filter>
     </ClInclude>
     <ClInclude Include="MoveLight.h">
       <Filter>ヘッダー ファイル\App</Filter>
@@ -296,12 +275,6 @@
     <ClInclude Include="SpotLight.h">
       <Filter>ヘッダー ファイル\App</Filter>
     </ClInclude>
-    <ClInclude Include="DebugLog.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Ball.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
     <ClInclude Include="SceneBlank.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
     </ClInclude>
@@ -310,9 +283,6 @@
     </ClInclude>
     <ClInclude Include="SceneVisual.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Box.h">
-      <Filter>ヘッダー ファイル\System</Filter>
     </ClInclude>
     <ClInclude Include="system\commontypes.h">
       <Filter>ソース ファイル\System</Filter>
@@ -371,20 +341,8 @@
     <ClInclude Include="MediumPunch.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
-    <ClInclude Include="Image2D.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
     <ClInclude Include="SceneDebug.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="SimpleUI.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="UISprite.h">
-      <Filter>ヘッダー ファイル\System</Filter>
-    </ClInclude>
-    <ClInclude Include="SkyDome.h">
-      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateDamage.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
@@ -418,6 +376,51 @@
     </ClInclude>
     <ClInclude Include="PlayerStateWakeUp.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="HitEffect.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Image2D.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Ball.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Box.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugLog.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraBase.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometory.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="LightBase.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneBase.hpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleUI.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="UISprite.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SkyDome.h">
+      <Filter>ソース ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

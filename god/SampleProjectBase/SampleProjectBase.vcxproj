@@ -183,6 +183,7 @@
     <ClCompile Include="DirectX.cpp" />
     <ClCompile Include="HeavyKick.cpp" />
     <ClCompile Include="HeavyPunch.cpp" />
+    <ClCompile Include="HitEffect.cpp" />
     <ClCompile Include="Image2D.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LightBase.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="HeavyKick.h" />
     <ClInclude Include="HeavyPunch.h" />
+    <ClInclude Include="HitEffect.h" />
     <ClInclude Include="Image2D.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="LightBase.h" />
