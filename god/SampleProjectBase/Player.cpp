@@ -19,6 +19,71 @@
 #include "PlayerStateCrouch.h"
 
 #include <DirectXMath.h>
+#include <algorithm>
+
+namespace {
+	// アニメーションボックスの補間計算を行うヘルパー関数
+	BoxData CalculateInterpolatedBox(const AnimatedBox& animBox, float currentFrame)
+	{
+		// キーフレームがなければデフォルト（ゼロ）を返す
+		if (animBox.keyframes.empty())
+		{
+			return BoxData();
+		}
+
+		// キーフレームが1つだけなら、常にその値を使う
+		if (animBox.keyframes.size() == 1)
+		{
+			return animBox.keyframes[0].data;
+		}
+
+		// 現在フレームが最初のキーフレームより前なら、最初の値を使う
+		if (currentFrame <= animBox.keyframes.front().frame)
+		{
+			return animBox.keyframes.front().data;
+		}
+		// 現在フレームが最後のキーフレームより後なら、最後の値を使う
+		if (currentFrame >= animBox.keyframes.back().frame)
+		{
+			return animBox.keyframes.back().data;
+		}
+
+		// 間の時間を補間する
+		for (size_t i = 0; i < animBox.keyframes.size() - 1; ++i)
+		{
+			const auto& k1 = animBox.keyframes[i];
+			const auto& k2 = animBox.keyframes[i + 1];
+
+			if (currentFrame >= k1.frame && currentFrame < k2.frame)
+			{
+				float range = k2.frame - k1.frame;
+				float t = 0.0f;
+				if (range > 0.0001f)
+				{
+					t = (currentFrame - k1.frame) / range;
+				}
+
+				BoxData result;
+				using namespace DirectX;
+				XMVECTOR vOff1 = XMLoadFloat2(&k1.data.offset);
+				XMVECTOR vOff2 = XMLoadFloat2(&k2.data.offset);
+				XMVECTOR vExt1 = XMLoadFloat2(&k1.data.extents);
+				XMVECTOR vExt2 = XMLoadFloat2(&k2.data.extents);
+
+				// 線形補間 (Lerp)
+				XMVECTOR vOff = XMVectorLerp(vOff1, vOff2, t);
+				XMVECTOR vExt = XMVectorLerp(vExt1, vExt2, t);
+
+				XMStoreFloat2(&result.offset, vOff);
+				XMStoreFloat2(&result.extents, vExt);
+
+				return result;
+			}
+		}
+
+		return animBox.keyframes.back().data;
+	}
+}
 
 
 Player::Player()
@@ -61,7 +126,7 @@ void Player::InitDefaultParameters()
 	m_moveSpeed = 2.102f;
 	m_scale = { 1.0f, 1.0f, 1.0f };
 
-	// Standing Hurtboxes
+	// 立ち状態の基本Hurtbox (Head, Body, Legs)
 	// Head
 	m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.33f, 0.33f };
 	m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.024f, 1.923f };
@@ -72,7 +137,7 @@ void Player::InitDefaultParameters()
 	m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.482f, 0.497f };
 	m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { -0.007f, 0.159f };
 
-	// Crouch Hurtboxes
+	// しゃがみ状態の基本Hurtbox
 	// Head
 	m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.281f, 0.176f };
 	m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.272f, 1.425f };
@@ -83,21 +148,39 @@ void Player::InitDefaultParameters()
 	m_crouchHurtboxExtents[(int)HurtboxType::LEGS] = { 0.544f, 0.364f };
 	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.116f, 0.308f };
 
+
+	// ★ヘルパー：各攻撃技の初期設定として、基本の3つのHurtbox (Head, Body, Legs) を追加する
+	// これにより、攻撃モーション中もデフォルトで頭・体・足の判定が存在する状態になる
+	auto InitDefaultHurtboxes = [&](std::vector<AnimatedBox>& boxes) {
+		boxes.clear();
+		boxes.resize(3); // 3つ確保
+		// Head (Index 0)
+		boxes[0].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[0], m_baseHurtboxExtents[0]} });
+		// Body (Index 1)
+		boxes[1].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[1], m_baseHurtboxExtents[1]} });
+		// Legs (Index 2)
+		boxes[2].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[2], m_baseHurtboxExtents[2]} });
+		};
+
+
 	// --- Light Punch ---
 	{
 		AttackParams& p = m_lightPunchParams;
 		p.totalDuration = 0.166667f;
 		p.hitboxStart = 0.0666667f;
 		p.hitboxEnd = 0.15f;
-	
+
 		p.hitboxes.clear();
-		p.hitboxes.push_back({ {0.76f, 1.7f}, {0.454f, 0.157f} });
+		AnimatedBox ab;
+		ab.keyframes.push_back({ 0.0f, { {0.76f, 1.7f}, {0.454f, 0.157f} } });
+		p.hitboxes.push_back(ab);
 
 		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.223f;
 		p.isDown = false;
-		p.headOffsetVal = { 0.024f, -0.08f }; p.headSizeVal = { 0.0f, -0.113f };
-		p.bodyOffsetVal = { 0.304f, -0.054f }; p.bodySizeVal = { 0.208f, 0.08f };
-		p.legsOffsetVal = { 0.096f, 0.0f }; p.legsSizeVal = { 0.096f, -0.024f };
+
+		// Hurtboxを初期化（頭・体・足を追加）
+		InitDefaultHurtboxes(p.hurtboxes);
+
 		p.cancelEnabled = true; p.cancelStart = 0.0666667f; p.cancelEnd = 0.166667f;
 		p.cancelToLight = true; p.cancelToMedium = true; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = false;
 		p.speedModifiers.clear();
@@ -110,13 +193,15 @@ void Player::InitDefaultParameters()
 		p.hitboxStart = 0.1f;
 		p.hitboxEnd = 0.333333f;
 		p.hitboxes.clear();
-		p.hitboxes.push_back({ {0.735f, 1.642f}, {0.509f, 0.174f} });
+		AnimatedBox ab;
+		ab.keyframes.push_back({ 0.0f, { {0.735f, 1.642f}, {0.509f, 0.174f} } });
+		p.hitboxes.push_back(ab);
 
 		p.damage = 400; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.05f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.headOffsetVal = { 0.221f, -0.029f }; p.headSizeVal = { -0.118f, -0.162f };
-		p.bodyOffsetVal = { 0.486f, 0.0f }; p.bodySizeVal = { 0.177f, 0.0f };
-		p.legsOffsetVal = { 0.103f, 0.0f }; p.legsSizeVal = { 0.0f, 0.0f };
+
+		InitDefaultHurtboxes(p.hurtboxes);
+
 		p.cancelEnabled = true; p.cancelStart = 0.1f; p.cancelEnd = 0.333333f;
 		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = true; p.cancelToMediumKick = false; p.cancelToHeavy = true;
 
@@ -132,13 +217,15 @@ void Player::InitDefaultParameters()
 		p.hitboxStart = 0.133333f;
 		p.hitboxEnd = 0.5f;
 		p.hitboxes.clear();
-		p.hitboxes.push_back({ {0.852f, 1.435f}, {0.687f, 0.202f} });
+		AnimatedBox ab;
+		ab.keyframes.push_back({ 0.0f, { {0.852f, 1.435f}, {0.687f, 0.202f} } });
+		p.hitboxes.push_back(ab);
 
 		p.damage = 700; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.headOffsetVal = { 0.206f, 0.0f }; p.headSizeVal = { -0.014f, -0.088f };
-		p.bodyOffsetVal = { 0.515f, -0.059f }; p.bodySizeVal = { 0.294f, 0.0f };
-		p.legsOffsetVal = { 0.206f, 0.0f }; p.legsSizeVal = { 0.059f, 0.0f };
+
+		InitDefaultHurtboxes(p.hurtboxes);
+
 		p.cancelEnabled = true; p.cancelStart = 0.133333f; p.cancelEnd = 0.416667f;
 		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = true;
 
@@ -155,13 +242,15 @@ void Player::InitDefaultParameters()
 		p.hitboxStart = 0.1f;
 		p.hitboxEnd = 0.416667f;
 		p.hitboxes.clear();
-		p.hitboxes.push_back({ {1.5f, 1.56f}, {0.351f, 0.24f} });
+		AnimatedBox ab;
+		ab.keyframes.push_back({ 0.0f, { {1.5f, 1.56f}, {0.351f, 0.24f} } });
+		p.hitboxes.push_back(ab);
 
 		p.damage = 400; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.05f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.headOffsetVal = { 0.088f, 0.0f }; p.headSizeVal = { -0.044f, 0.0f };
-		p.bodyOffsetVal = { 0.794f, 0.0f }; p.bodySizeVal = { 0.382f, 0.0f };
-		p.legsOffsetVal = { 0.53f, 0.0f }; p.legsSizeVal = { -0.088f, 0.0f };
+
+		InitDefaultHurtboxes(p.hurtboxes);
+
 		p.cancelEnabled = false;
 
 		p.speedModifiers.clear();
@@ -177,13 +266,15 @@ void Player::InitDefaultParameters()
 		p.hitboxStart = 0.133333f;
 		p.hitboxEnd = 0.5f;
 		p.hitboxes.clear();
-		p.hitboxes.push_back({ {1.324f, 1.759f}, {0.551f, 0.23f} });
+		AnimatedBox ab;
+		ab.keyframes.push_back({ 0.0f, { {1.324f, 1.759f}, {0.551f, 0.23f} } });
+		p.hitboxes.push_back(ab);
 
 		p.damage = 700; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.headOffsetVal = { 0.088f, 0.0f }; p.headSizeVal = { 0.029f, 0.0f };
-		p.bodyOffsetVal = { 0.735f, 0.25f }; p.bodySizeVal = { 0.485f, -0.147f };
-		p.legsOffsetVal = { 0.221f, 0.308f }; p.legsSizeVal = { -0.088f, 0.088f };
+
+		InitDefaultHurtboxes(p.hurtboxes);
+
 		p.cancelEnabled = false;
 
 		p.speedModifiers.clear();
@@ -529,30 +620,6 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 	float extentX = m_isCrouching ? m_crouchHurtboxExtents[idx].x : m_baseHurtboxExtents[idx].x;
 	float extentY = m_isCrouching ? m_crouchHurtboxExtents[idx].y : m_baseHurtboxExtents[idx].y;
 
-	if (m_isAttacking && m_pActiveAttackParams != nullptr)
-	{
-		const AttackParams& params = *m_pActiveAttackParams;
-
-		if (type == HurtboxType::HEAD) {
-			offsetX += params.headOffsetVal.x;
-			offsetY += params.headOffsetVal.y;
-			extentX += params.headSizeVal.x;
-			extentY += params.headSizeVal.y;
-		}
-		else if (type == HurtboxType::BODY) {
-			offsetX += params.bodyOffsetVal.x;
-			offsetY += params.bodyOffsetVal.y;
-			extentX += params.bodySizeVal.x;
-			extentY += params.bodySizeVal.y;
-		}
-		else if (type == HurtboxType::LEGS) {
-			offsetX += params.legsOffsetVal.x;
-			offsetY += params.legsOffsetVal.y;
-			extentX += params.legsSizeVal.x;
-			extentY += params.legsSizeVal.y;
-		}
-	}
-
 	DirectX::XMFLOAT3 center = {
 		m_position.x + (offsetX * direction),
 		m_position.y + offsetY,
@@ -572,15 +639,32 @@ void Player::DrawBoundingBox()
 	if (m_isColliding) Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 	else Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
 
-	for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
+	// 攻撃中の特別なくらい判定がある場合はそれを描画
+	if (m_isAttacking && !m_activeHurtboxes.empty())
 	{
-		BoundingBox box = GetHurtbox((HurtboxType)i);
-		XMFLOAT3 corners[8];
-		box.GetCorners(corners);
+		Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.5f, 1.0f)); // 少し色を変える
+		for (const auto& box : m_activeHurtboxes)
+		{
+			XMFLOAT3 corners[8];
+			box.GetCorners(corners);
+			static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+			for (int e = 0; e < 4; ++e) {
+				Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
+		{
+			BoundingBox box = GetHurtbox((HurtboxType)i);
+			XMFLOAT3 corners[8];
+			box.GetCorners(corners);
 
-		static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
-		for (int e = 0; e < 4; ++e) {
-			Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
+			static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+			for (int e = 0; e < 4; ++e) {
+				Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
+			}
 		}
 	}
 }
@@ -589,16 +673,11 @@ bool Player::CheckCollision(const Player* other) const
 {
 	if (!other) return false;
 
-	for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
-	{
-		BoundingBox myBox = GetHurtbox((HurtboxType)i);
-		for (int j = 0; j < (int)HurtboxType::COUNT; ++j)
-		{
-			BoundingBox otherBox = other->GetHurtbox((HurtboxType)j);
-			if (myBox.Intersects(otherBox)) return true;
-		}
-	}
-	return false;
+	// 単純な押し合い判定には、BODYのHurtbox（または攻撃中のHurtboxの代表）を使う
+	// ここでは簡単のため、標準のBODY Hurtbox同士の判定とする
+	BoundingBox myBox = GetHurtbox(HurtboxType::BODY);
+	BoundingBox otherBox = other->GetHurtbox(HurtboxType::BODY);
+	return myBox.Intersects(otherBox);
 }
 
 void Player::SetIsColliding(bool isColliding) { m_isColliding = isColliding; }
@@ -632,6 +711,7 @@ void Player::SetActiveHitbox(bool isActive)
 	if (!isActive)
 	{
 		m_activeHitboxes.clear();
+		m_activeHurtboxes.clear();
 	}
 }
 
@@ -655,27 +735,55 @@ void Player::UpdateAttackBoxes()
 
 	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
 	m_activeHitboxes.clear();
+	m_activeHurtboxes.clear();
 
-	// 攻撃判定(Hitbox)の更新
-	for (const auto& boxData : m_pActiveAttackParams->hitboxes)
+	float currentFrame = m_currentAnim.frame;
+
+	// 攻撃判定(Hitbox)の更新 (補間あり)
+	for (const auto& animBox : m_pActiveAttackParams->hitboxes)
 	{
+		BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
+
 		DirectX::XMFLOAT3 center = {
-			m_position.x + (boxData.offset.x * direction),
-			m_position.y + boxData.offset.y,
+			m_position.x + (currentBox.offset.x * direction),
+			m_position.y + currentBox.offset.y,
 			m_position.z
 		};
 		DirectX::XMFLOAT3 boxExtents = {
-			boxData.extents.x,
-			boxData.extents.y,
+			currentBox.extents.x,
+			currentBox.extents.y,
 			0.1f
 		};
 		m_activeHitboxes.push_back(DirectX::BoundingBox(center, boxExtents));
+	}
+
+	// 攻撃中のくらい判定(Hurtbox)の更新 (補間あり)
+	for (const auto& animBox : m_pActiveAttackParams->hurtboxes)
+	{
+		BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
+
+		DirectX::XMFLOAT3 center = {
+			m_position.x + (currentBox.offset.x * direction),
+			m_position.y + currentBox.offset.y,
+			m_position.z
+		};
+		DirectX::XMFLOAT3 boxExtents = {
+			currentBox.extents.x,
+			currentBox.extents.y,
+			0.1f
+		};
+		m_activeHurtboxes.push_back(DirectX::BoundingBox(center, boxExtents));
 	}
 }
 
 const std::vector<DirectX::BoundingBox>& Player::GetActiveHitboxes() const
 {
 	return m_activeHitboxes;
+}
+
+const std::vector<DirectX::BoundingBox>& Player::GetActiveHurtboxes() const
+{
+	return m_activeHurtboxes;
 }
 
 void Player::DrawHitbox()
@@ -716,5 +824,6 @@ void Player::Reset()
 	m_hasHit = false;
 	m_velocity = { 0.0f, 0.0f, 0.0f };
 	m_activeHitboxes.clear();
+	m_activeHurtboxes.clear();
 	SetState(new PlayerStateIdle());
 }

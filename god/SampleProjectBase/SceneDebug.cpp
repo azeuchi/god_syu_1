@@ -12,6 +12,7 @@
 #include <system/imgui/imgui.h>
 #include <fstream> 
 #include <cmath> 
+#include <string>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -51,12 +52,23 @@ void SceneDebug::SavePlayerSettings()
 				ofs << params.hitboxStart << std::endl;
 				ofs << params.hitboxEnd << std::endl;
 
-				// 判定ボックス保存(個数 -> ループ)
-				ofs << params.hitboxes.size() << std::endl;
-				for (const auto& bd : params.hitboxes) {
-					ofs << bd.offset.x << " " << bd.offset.y << std::endl;
-					ofs << bd.extents.x << " " << bd.extents.y << std::endl;
-				}
+				// 判定ボックス保存(AnimatedBox対応)
+				auto WriteAnimatedBoxes = [&](const std::vector<AnimatedBox>& boxes) {
+					ofs << boxes.size() << std::endl;
+					for (const auto& abox : boxes) {
+						ofs << abox.keyframes.size() << std::endl;
+						for (const auto& key : abox.keyframes) {
+							ofs << key.frame << std::endl;
+							ofs << key.data.offset.x << " " << key.data.offset.y << std::endl;
+							ofs << key.data.extents.x << " " << key.data.extents.y << std::endl;
+						}
+					}
+					};
+
+				// Hitboxes
+				WriteAnimatedBoxes(params.hitboxes);
+				// Hurtboxes
+				WriteAnimatedBoxes(params.hurtboxes);
 
 				// ゲームバランス
 				ofs << params.damage << std::endl;
@@ -67,14 +79,6 @@ void SceneDebug::SavePlayerSettings()
 
 				// ダウン設定
 				ofs << params.isDown << std::endl;
-
-				// くらい判定補正
-				ofs << params.headOffsetVal.x << " " << params.headOffsetVal.y << std::endl;
-				ofs << params.headSizeVal.x << " " << params.headSizeVal.y << std::endl;
-				ofs << params.bodyOffsetVal.x << " " << params.bodyOffsetVal.y << std::endl;
-				ofs << params.bodySizeVal.x << " " << params.bodySizeVal.y << std::endl;
-				ofs << params.legsOffsetVal.x << " " << params.legsOffsetVal.y << std::endl;
-				ofs << params.legsSizeVal.x << " " << params.legsSizeVal.y << std::endl;
 
 				// キャンセル設定
 				ofs << params.cancelEnabled << std::endl;
@@ -152,7 +156,7 @@ void SceneDebug::Init()
 	// --- プレイヤー生成 ---
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	
+
 	player->SetInputType(PlayerInputType::AI);
 
 	// --- 設定ファイルからパラメータ読み込み ---
@@ -186,27 +190,36 @@ void SceneDebug::Init()
 			ifs >> p.totalDuration;
 			ifs >> p.hitboxStart >> p.hitboxEnd;
 
-			// 判定ボックス読み込み 
-			size_t hitboxCount = 0;
-			ifs >> hitboxCount;
-			p.hitboxes.clear();
-			for (size_t k = 0; k < hitboxCount; ++k)
-			{
-				BoxData bd;
-				ifs >> bd.offset.x >> bd.offset.y >> bd.extents.x >> bd.extents.y;
-				p.hitboxes.push_back(bd);
-			}
+			// 判定ボックス読み込み (AnimatedBox対応)
+			auto LoadAnimatedBoxes = [&](std::vector<AnimatedBox>& targetList) {
+				size_t boxCount = 0;
+				ifs >> boxCount;
+				targetList.clear();
+				for (size_t i = 0; i < boxCount; ++i)
+				{
+					AnimatedBox abox;
+					size_t keyframeCount = 0;
+					ifs >> keyframeCount;
+					for (size_t k = 0; k < keyframeCount; ++k)
+					{
+						BoxKeyframe key;
+						ifs >> key.frame;
+						ifs >> key.data.offset.x >> key.data.offset.y >> key.data.extents.x >> key.data.extents.y;
+						abox.keyframes.push_back(key);
+					}
+					targetList.push_back(abox);
+				}
+				};
 
-			
+			LoadAnimatedBoxes(p.hitboxes);
+			LoadAnimatedBoxes(p.hurtboxes);
+
 
 			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 			ifs >> p.isDown;
-			ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
-			ifs >> p.headSizeVal.x >> p.headSizeVal.y;
-			ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
-			ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
-			ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
-			ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
+
+			// 不要になった古いHurtboxパラメータを読み飛ばし
+
 			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -288,32 +301,22 @@ void SceneDebug::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
-	player->SetActiveHitbox(m_isAttacking);
 	// --- パラメータの同期 ---
+	// 常に現在の技のパラメータをセットしておく（編集中も反映させるため）
 	AttackParams* params = nullptr;
-	if (s_currentAttackType == 0) {
-		params = &player->GetLightPunchParams();
-	}
-	else if (s_currentAttackType == 1) {
-		params = &player->GetMediumPunchParams();
-	}
-	else if (s_currentAttackType == 2) {
-		params = &player->GetHeavyPunchParams();
-	}
-	else if (s_currentAttackType == 3) {
-		params = &player->GetMediumKickParams();
-	}
-	else if (s_currentAttackType == 4) {
-		params = &player->GetHeavyKickParams();
-	}
-	// 5(Down), 6(WakeUp) は params = nullptr のまま
+	if (s_currentAttackType == 0) params = &player->GetLightPunchParams();
+	else if (s_currentAttackType == 1) params = &player->GetMediumPunchParams();
+	else if (s_currentAttackType == 2) params = &player->GetHeavyPunchParams();
+	else if (s_currentAttackType == 3) params = &player->GetMediumKickParams();
+	else if (s_currentAttackType == 4) params = &player->GetHeavyKickParams();
 
 	player->SetCurrentAttackParams(params);
 
 	// --- 速度計算用ロジック ---
 	float speed = 1.0f;
-	if (m_isAttacking) {
-		const char* animName = GetCurrentAnimName();
+	const char* animName = GetCurrentAnimName();
+
+	if (m_isAttacking || s_currentAttackType <= 4) { // 攻撃技選択中
 		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 
 		// パラメータがある場合はそれに基づいて速度計算
@@ -322,20 +325,15 @@ void SceneDebug::Update(float tick)
 			if (targetFrames <= 1.0f) targetFrames = 1.0f;
 			speed = (float)totalAnimFrames / targetFrames;
 		}
-		else {
-			speed = 1.0f;
-		}
 	}
 
+	// ★ここで計算した速度をプレイヤーに適用する！ (これが必要でした)
+	player->SetAnimationSpeed(speed);
+
 	// --- アニメーション制御 ---
-	if (m_isPaused)
+	if (!m_isPaused && m_isAttacking)
 	{
-		int modelFrame = static_cast<int>(m_currentFrame * speed);
-		player->Debug_SetFrame(modelFrame);
-		m_animTimer = 0.0f;
-	}
-	else
-	{
+		// 再生中のみ時間を進める
 		m_animTimer += tick;
 		if (m_animTimer >= FRAME_TIME_60FPS)
 		{
@@ -346,19 +344,30 @@ void SceneDebug::Update(float tick)
 			}
 		}
 
-		if (m_isAttacking)
-		{
-			float currentModelFrame = (float)player->Debug_GetFrame();
-			if (speed > 0.0f) {
-				m_currentFrame = static_cast<int>(currentModelFrame / speed);
-			}
-			else {
-				m_currentFrame = (int)currentModelFrame;
-			}
+		// 現在のモデルフレームからデバッグ用フレーム値を逆算
+		float currentModelFrame = (float)player->Debug_GetFrame();
+		if (speed > 0.0f) {
+			m_currentFrame = static_cast<int>(currentModelFrame / speed);
+		}
+		else {
+			m_currentFrame = (int)currentModelFrame;
 		}
 	}
+	else
+	{
+		// 停止中または非再生中
+		// スライダーで設定された m_currentFrame を強制適用する
+		// これにより、一時停止中にスライダーを動かしてもアニメーションが動く
+		int modelFrame = static_cast<int>(m_currentFrame * speed);
 
+		// 技名が変わっているかもしれないのでセット
+		player->Debug_SetAnimation(animName, false);
+		player->Debug_SetFrame(modelFrame);
+	}
+
+	// ブレンドとボックスの更新（常に呼ぶ）
 	player->UpdateModelBlend();
+	player->UpdateAttackBoxes();
 
 	// --- 攻撃終了判定 ---
 	if (m_isAttacking)
@@ -368,17 +377,17 @@ void SceneDebug::Update(float tick)
 			totalGameFrames = static_cast<int>(std::round(params->totalDuration * 60.0f));
 		}
 		else {
-			// パラメータがない場合（ダウンなど）はモデルのアニメーション長さを基準にする
 			totalGameFrames = player->GetModel()->GetAnimationTotalFrame(GetCurrentAnimName());
 		}
 
 		if (m_currentFrame >= totalGameFrames)
 		{
+			// ループしないように戻す
 			player->Debug_SetAnimation("Idle", true);
 			m_isAttacking = false;
 			m_isPaused = false;
 			m_currentFrame = 0;
-			player->SetCurrentAttackParams(nullptr);
+			// paramsはnullにしない（編集継続のため）
 		}
 	}
 
@@ -441,23 +450,28 @@ void SceneDebug::Draw()
 		player->SetPixelShader(shader[1]);
 
 		player->Draw();
+
+		// 編集中の技があれば、強制的に攻撃中扱いにしてボックスを描画する
+		bool isEditingAttack = (s_currentAttackType <= 4); // 0~4は攻撃
+
+		if (isEditingAttack) {
+			player->SetActiveHitbox(true);
+			// Updateで計算済みだが描画直前にも確実に
+			player->UpdateAttackBoxes();
+		}
+
+		// Hurtboxなどの描画
 		player->DrawBoundingBox();
 
-		if (m_isAttacking)
+		// Hitboxの描画
+		if (isEditingAttack)
 		{
-			AttackParams* params = player->GetCurrentAttackParams();
-			if (params) {
-				int startFrame = static_cast<int>(std::round(params->hitboxStart * 60.0f));
-				int endFrame = static_cast<int>(std::round(params->hitboxEnd * 60.0f));
+			player->DrawHitbox();
+		}
 
-				if (m_currentFrame >= startFrame && m_currentFrame < endFrame)
-				{
-					player->UpdateAttackBoxes();
-					player->SetActiveHitbox(true);
-					player->DrawHitbox();
-					player->SetActiveHitbox(false);
-				}
-			}
+		// フラグを戻す（再生中でなければ）
+		if (!m_isAttacking) {
+			player->SetActiveHitbox(false);
 		}
 	}
 
@@ -511,26 +525,6 @@ void SceneDebug::DrawImGui()
 				const char* animName = GetCurrentAnimName();
 				player->Debug_SetAnimation(animName, true);
 
-				AttackParams* pParams = nullptr;
-				if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
-				else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
-				else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
-				else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
-				else if (s_currentAttackType == 4) pParams = &player->GetHeavyKickParams();
-				// 5, 6 は nullptr
-
-				if (pParams) {
-					int originalFrames = player->GetModel()->GetAnimationTotalFrame(animName);
-					float targetFrames = pParams->totalDuration * 60.0f;
-					if (targetFrames <= 1.0f) targetFrames = 1.0f;
-					float speed = (float)originalFrames / targetFrames;
-					player->SetAnimationSpeed(speed);
-				}
-				else {
-					// Down, WakeUp はとりあえず等倍速
-					player->SetAnimationSpeed(1.0f);
-				}
-
 				m_isAttacking = true;
 				m_isPaused = startPaused;
 				m_currentFrame = 0;
@@ -545,16 +539,25 @@ void SceneDebug::DrawImGui()
 		else
 		{
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), ">> PLAYING <<");
+			ImGui::SameLine();
+			if (ImGui::Button("Stop")) {
+				m_isAttacking = false;
+				player->Debug_SetAnimation("Idle", true);
+			}
 		}
 
 		ImGui::SameLine();
 		ImGui::Checkbox("Pause", &m_isPaused);
 
-		if (m_isPaused)
+		if (m_isPaused || !m_isAttacking)
 		{
 			ImGui::SameLine();
-			if (ImGui::Button("+1 Frame")) m_currentFrame++;
+			if (ImGui::Button("+1")) m_currentFrame++;
+			ImGui::SameLine();
+			if (ImGui::Button("-1")) m_currentFrame--;
+
 			ImGui::InputInt("Frame", &m_currentFrame);
+			if (m_currentFrame < 0) m_currentFrame = 0;
 		}
 		else
 		{
@@ -585,6 +588,8 @@ void SceneDebug::DrawImGui()
 			if (totalFrames < 1) totalFrames = 1;
 			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
 		}
+
+		ImGui::Text("Hit Active Range (Ref):");
 		if (ImGui::InputInt("Start Frame", &startFrames)) {
 			if (startFrames < 0) startFrames = 0;
 			params.hitboxStart = startFrames * FRAME_TIME_60FPS;
@@ -594,31 +599,100 @@ void SceneDebug::DrawImGui()
 			params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 		}
 
-		if (ImGui::TreeNode("Hitboxes (Red Boxes)"))
-		{
-			for (int i = 0; i < (int)params.hitboxes.size(); ++i)
+		// ----------------------------------------------------
+		// ボックスリスト編集用ヘルパー
+		// ----------------------------------------------------
+		auto EditAnimatedBoxList = [&](const char* label, std::vector<AnimatedBox>& boxList, bool isHurtbox) {
+			if (ImGui::TreeNode(label))
 			{
-				ImGui::PushID(i);
-				BoxData& bd = params.hitboxes[i];
-				ImGui::Text("Hitbox #%d", i);
-				ImGui::SameLine();
-				if (ImGui::Button("Delete")) {
-					params.hitboxes.erase(params.hitboxes.begin() + i);
-					ImGui::PopID();
-					break;
-				}
-				ImGui::SliderFloat2("Offset", &bd.offset.x, -2.0f, 2.0f);
-				ImGui::SliderFloat2("Extents", &bd.extents.x, 0.1f, 2.0f);
-				ImGui::Separator();
-				ImGui::PopID();
-			}
-			if (ImGui::Button("Add Hitbox"))
-			{
-				params.hitboxes.push_back({ {1.0f, 1.2f}, {0.3f, 0.3f} });
-			}
-			ImGui::TreePop();
-		}
+				for (int i = 0; i < (int)boxList.size(); ++i)
+				{
+					ImGui::PushID(i);
+					if (isHurtbox) {
+						// 最初の3つは名前を付ける (Head, Body, Legs)
+						const char* names[] = { "Head", "Body", "Legs" };
+						const char* name = (i < 3) ? names[i] : "Extra";
+						ImGui::Text("Box #%d (%s)", i, name);
+					}
+					else {
+						ImGui::Text("Hitbox #%d", i);
+					}
 
+					ImGui::SameLine();
+					if (ImGui::Button("Del Group")) {
+						boxList.erase(boxList.begin() + i);
+						ImGui::PopID();
+						break;
+					}
+
+					AnimatedBox& abox = boxList[i];
+					if (ImGui::TreeNode("Keyframes"))
+					{
+						for (int k = 0; k < (int)abox.keyframes.size(); ++k)
+						{
+							ImGui::PushID(k);
+							BoxKeyframe& key = abox.keyframes[k];
+
+							ImGui::Text("Key #%d", k);
+							ImGui::SameLine();
+							if (ImGui::Button("Del Key")) {
+								abox.keyframes.erase(abox.keyframes.begin() + k);
+								ImGui::PopID();
+								break;
+							}
+
+							int frame = (int)key.frame;
+							if (ImGui::InputInt("Frame", &frame)) key.frame = (float)frame;
+
+							ImGui::SliderFloat2("Offset", &key.data.offset.x, -2.0f, 2.0f);
+							ImGui::SliderFloat2("Extents", &key.data.extents.x, 0.1f, 2.0f);
+
+							ImGui::Separator();
+							ImGui::PopID();
+						}
+
+						if (ImGui::Button("Add Keyframe"))
+						{
+							BoxKeyframe newKey;
+							newKey.frame = (float)m_currentFrame; // 現在のフレームで追加
+							// 直前のキーがあればコピー、なければデフォルト
+							if (!abox.keyframes.empty()) newKey.data = abox.keyframes.back().data;
+							else {
+								newKey.data.offset = { 0.8f, 1.5f };
+								newKey.data.extents = { 0.3f, 0.3f };
+							}
+							abox.keyframes.push_back(newKey);
+						}
+						ImGui::TreePop();
+					}
+					ImGui::Separator();
+					ImGui::PopID();
+				}
+
+				if (ImGui::Button(isHurtbox ? "Add Hurtbox" : "Add Hitbox"))
+				{
+					AnimatedBox newBox;
+					// 新規追加時のデフォルトキーフレーム
+					newBox.keyframes.push_back({ 0.0f, {{0.5f, 1.5f}, {0.3f, 0.3f}} });
+					boxList.push_back(newBox);
+				}
+
+				ImGui::TreePop();
+			}
+			};
+
+		// Hitboxes (Red)
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.5f, 0.5f, 1.0f));
+		EditAnimatedBoxList("Hitboxes (Red)", params.hitboxes, false);
+		ImGui::PopStyleColor();
+
+		// Hurtboxes (Green/Blue)
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.0f, 0.5f, 1.0f));
+		EditAnimatedBoxList("Hurtboxes (Green)", params.hurtboxes, true);
+		ImGui::PopStyleColor();
+
+
+		ImGui::Separator();
 		ImGui::Text("Game Data");
 		ImGui::InputInt("Damage", &params.damage);
 		ImGui::InputInt("Hit Adv", &params.hitFrame);
@@ -630,19 +704,7 @@ void SceneDebug::DrawImGui()
 		}
 
 		ImGui::SliderFloat("Knockback", &params.knockback, 0.0f, 5.0f);
-
-		ImGui::Checkbox("Cause Down (Knockback)", &params.isDown);
-
-		if (ImGui::TreeNode("Hurtbox Modifiers (Attack)"))
-		{
-			ImGui::SliderFloat2("Head Off", &params.headOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Head Sz+", &params.headSizeVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Body Off", &params.bodyOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Body Sz+", &params.bodySizeVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Legs Off", &params.legsOffsetVal.x, -1.0f, 1.0f);
-			ImGui::SliderFloat2("Legs Sz+", &params.legsSizeVal.x, -1.0f, 1.0f);
-			ImGui::TreePop();
-		}
+		ImGui::Checkbox("Cause Down", &params.isDown);
 
 		if (ImGui::TreeNode("Cancel Settings"))
 		{

@@ -147,25 +147,39 @@ void SceneBlank::Init()
 		ifs >> p.totalDuration;
 		ifs >> p.hitboxStart >> p.hitboxEnd;
 
-		// 判定ボックス読み込み (複数対応)
-		size_t hitboxCount = 0;
-		ifs >> hitboxCount;
-		p.hitboxes.clear();
-		for (size_t k = 0; k < hitboxCount; ++k)
-		{
-			BoxData bd;
-			ifs >> bd.offset.x >> bd.offset.y >> bd.extents.x >> bd.extents.y;
-			p.hitboxes.push_back(bd);
-		}
+		// 判定ボックス読み込み (AnimatedBox対応)
+		auto LoadAnimatedBoxes = [&](std::vector<AnimatedBox>& targetList) {
+			size_t boxCount = 0;
+			ifs >> boxCount;
+			targetList.clear();
+			for (size_t i = 0; i < boxCount; ++i)
+			{
+				AnimatedBox abox;
+				size_t keyframeCount = 0;
+				ifs >> keyframeCount;
+				for (size_t k = 0; k < keyframeCount; ++k)
+				{
+					BoxKeyframe key;
+					ifs >> key.frame;
+					ifs >> key.data.offset.x >> key.data.offset.y >> key.data.extents.x >> key.data.extents.y;
+					abox.keyframes.push_back(key);
+				}
+				targetList.push_back(abox);
+			}
+			};
+
+		// 攻撃判定 (Hitbox)
+		LoadAnimatedBoxes(p.hitboxes);
+		// くらい判定 (Hurtbox)
+		LoadAnimatedBoxes(p.hurtboxes);
 
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
-		ifs >> p.headOffsetVal.x >> p.headOffsetVal.y;
-		ifs >> p.headSizeVal.x >> p.headSizeVal.y;
-		ifs >> p.bodyOffsetVal.x >> p.bodyOffsetVal.y;
-		ifs >> p.bodySizeVal.x >> p.bodySizeVal.y;
-		ifs >> p.legsOffsetVal.x >> p.legsOffsetVal.y;
-		ifs >> p.legsSizeVal.x >> p.legsSizeVal.y;
+
+		// 古いフォーマットの読み飛ばしまたは新規パラメータの読み込み
+		// 以前はここにheadOffsetValなどがあったが、AnimatedBoxで置き換えるため
+		// ファイルフォーマットが変わる前提とする。
+
 		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -656,6 +670,20 @@ void SceneBlank::Update(float tick)
 				player2->SetPosition(pos2);
 			}
 
+			// ヘルパー: 相手のくらい判定リストを取得する
+			// 攻撃中かつアクティブなHurtboxがあればそれを使い、なければ標準のものを使う
+			auto GetTargetHurtboxes = [](const Player* target) -> std::vector<DirectX::BoundingBox> {
+				if (target->IsAttacking() && !target->GetActiveHurtboxes().empty()) {
+					return target->GetActiveHurtboxes();
+				}
+				std::vector<DirectX::BoundingBox> boxes;
+				boxes.push_back(target->GetHurtbox(HurtboxType::HEAD));
+				boxes.push_back(target->GetHurtbox(HurtboxType::BODY));
+				boxes.push_back(target->GetHurtbox(HurtboxType::LEGS));
+				return boxes;
+				};
+
+
 			// --- 攻撃判定 (P1 -> P2) ---
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
@@ -663,19 +691,21 @@ void SceneBlank::Update(float tick)
 
 				if (!player2->IsInvincible())
 				{
-					// P1の複数のHitboxと P2の複数のHurtbox(標準+追加)を総当たりでチェック
+					// P1の複数のHitboxと P2のHurtbox(標準orカスタム)を総当たりでチェック
 					const auto& hitboxes = player->GetActiveHitboxes();
+					auto hurtboxes = GetTargetHurtboxes(player2);
 
 					for (const auto& atk : hitboxes)
 					{
 						if (hit2) break; // すでにヒット確定なら抜ける
 
-						// 標準のHurtboxとの判定
-						if (atk.Intersects(player2->GetHurtbox(HurtboxType::HEAD)) ||
-							atk.Intersects(player2->GetHurtbox(HurtboxType::BODY)) ||
-							atk.Intersects(player2->GetHurtbox(HurtboxType::LEGS)))
+						for (const auto& hurt : hurtboxes)
 						{
-							hit2 = true;
+							if (atk.Intersects(hurt))
+							{
+								hit2 = true;
+								break;
+							}
 						}
 					}
 				}
@@ -684,7 +714,7 @@ void SceneBlank::Update(float tick)
 
 			if (hit2)
 			{
-				
+
 				//DirectX::XMFLOAT3 pos = player2->GetPosition();
 
 				// エフェクト発生
@@ -772,16 +802,19 @@ void SceneBlank::Update(float tick)
 				if (!player->IsInvincible())
 				{
 					const auto& hitboxes = player2->GetActiveHitboxes();
+					auto hurtboxes = GetTargetHurtboxes(player);
 
 					for (const auto& atk : hitboxes)
 					{
 						if (hit1) break;
 
-						if (atk.Intersects(player->GetHurtbox(HurtboxType::HEAD)) ||
-							atk.Intersects(player->GetHurtbox(HurtboxType::BODY)) ||
-							atk.Intersects(player->GetHurtbox(HurtboxType::LEGS)))
+						for (const auto& hurt : hurtboxes)
 						{
-							hit1 = true;
+							if (atk.Intersects(hurt))
+							{
+								hit1 = true;
+								break;
+							}
 						}
 					}
 				}
@@ -1156,4 +1189,3 @@ void SceneBlank::SpawnHitEffect(Player* target)
 		}
 	}
 }
-

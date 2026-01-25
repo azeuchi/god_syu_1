@@ -59,6 +59,17 @@ struct BoxData
 	DirectX::XMFLOAT2 extents = { 0.5f, 0.5f };
 };
 
+struct BoxKeyframe
+{
+	float frame = 0.0f;
+	BoxData data;
+};
+
+struct AnimatedBox
+{
+	std::vector<BoxKeyframe> keyframes;
+};
+
 struct AttackParams
 {
 	// --- タイミング (秒) ---
@@ -67,18 +78,10 @@ struct AttackParams
 	float hitboxEnd = 0.2f;
 
 	// 複数の攻撃判定 (赤枠) のリスト
-	std::vector<BoxData> hitboxes;
+	std::vector<AnimatedBox> hitboxes;
 
-	
-	// --- 攻撃中のくらい判定補正 (緑枠の変化) ---
-	DirectX::XMFLOAT2 headOffsetVal = { 0.0f, 0.0f };
-	DirectX::XMFLOAT2 headSizeVal = { 0.0f, 0.0f };
-
-	DirectX::XMFLOAT2 bodyOffsetVal = { 0.0f, 0.0f };
-	DirectX::XMFLOAT2 bodySizeVal = { 0.0f, 0.0f };
-
-	DirectX::XMFLOAT2 legsOffsetVal = { 0.0f, 0.0f };
-	DirectX::XMFLOAT2 legsSizeVal = { 0.0f, 0.0f };
+	// 攻撃中のくらい判定 (緑枠) のリスト
+	std::vector<AnimatedBox> hurtboxes;
 
 	// --- ゲームプレイ用パラメータ ---
 	int damage = 10;
@@ -169,6 +172,7 @@ public:
 
 	// --- 攻撃判定 (Hitbox) 用 ---
 	const std::vector<DirectX::BoundingBox>& GetActiveHitboxes() const;
+	const std::vector<DirectX::BoundingBox>& GetActiveHurtboxes() const;
 
 	bool IsAttacking() const;
 	void SetActiveHitbox(bool isActive);
@@ -242,6 +246,7 @@ private:
 
 	// 複数の攻撃判定を保持
 	std::vector<DirectX::BoundingBox> m_activeHitboxes;
+	std::vector<DirectX::BoundingBox> m_activeHurtboxes;
 
 	bool m_isAttacking = false;
 
