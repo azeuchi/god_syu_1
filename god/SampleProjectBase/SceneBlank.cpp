@@ -17,7 +17,7 @@
 #include <cmath>
 #include "PlayerStateDamage.h"
 #include "PlayerStateDown.h"
-#include "Projectile.h" // 追加
+#include "Projectile.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -1223,8 +1223,16 @@ void SceneBlank::Draw()
 	}
 
 	// ------------------------------------------------
-	// 飛び道具 (Projectile) の描画
+	// 3. 飛び道具 & エフェクト描画 (透過あり)
 	// ------------------------------------------------
+
+	// ブレンド設定: AlphaToCoverage ON (半透明用)
+	if (m_pBlendState)
+	{
+		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
+	}
+
+	// 飛び道具 (Projectile)
 	if (player && player->GetProjectile())
 	{
 		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
@@ -1233,6 +1241,16 @@ void SceneBlank::Draw()
 	{
 		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
 	}
+
+	//カメラ行列の準備
+	DirectX::XMFLOAT4X4 view = pCamera->GetView();
+	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
+
+	for (auto effect : m_hitEffects)
+	{
+		effect->Draw(view, proj);
+	}
+
 
 	// ------------------------------------------------
 	// 4. UIの描画 
@@ -1243,25 +1261,14 @@ void SceneBlank::Draw()
 	{
 		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
 	}
-
-	// ブレンド設定: AlphaToCoverage ON
-	if (m_pBlendState)
-	{
-		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
-	}
+	// BlendStateは上で設定済みなのでそのまま継続利用
 
 	if (m_pDepthState)
 	{
-		GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
-	}
-
-	//カメラ行列の準備
-	DirectX::XMFLOAT4X4 view = pCamera->GetView();
-	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
-
-	for (auto effect : m_hitEffects)
-	{
-		effect->Draw(view, proj);
+		// UI設定を元に戻すわけではないが、コードの流れ上ここで再設定している場合は注意
+		// GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
+		// (元のコードではここでm_pDepthStateを設定していたが、UI描画前なのでm_pDepthStateUIが正しい)
+		// UI描画ブロックに入っているのでUI用のステートが優先されるべき
 	}
 
 	Sprite::SetUVScale({ 1.0f, 1.0f });
