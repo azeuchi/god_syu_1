@@ -181,6 +181,7 @@
     <ClCompile Include="CameraWater.cpp" />
     <ClCompile Include="CameraWipe.cpp" />
     <ClCompile Include="DirectX.cpp" />
+    <ClCompile Include="Hadouken.cpp" />
     <ClCompile Include="HeavyKick.cpp" />
     <ClCompile Include="HeavyPunch.cpp" />
     <ClCompile Include="HitEffect.cpp" />
@@ -208,6 +209,7 @@
     <ClCompile Include="PlayerStateWalk.cpp" />
     <ClCompile Include="PlayerStateWalkBack.cpp" />
     <ClCompile Include="PointLight.cpp" />
+    <ClCompile Include="Projectile.cpp" />
     <ClCompile Include="SceneAnimation.cpp" />
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneBlank.cpp" />
@@ -242,6 +244,7 @@
     <ClInclude Include="DebugLog.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="DirectX.h" />
+    <ClInclude Include="Hadouken.h" />
     <ClInclude Include="HeavyKick.h" />
     <ClInclude Include="HeavyPunch.h" />
     <ClInclude Include="HitEffect.h" />
@@ -269,6 +272,7 @@
     <ClInclude Include="PlayerStateWalk.h" />
     <ClInclude Include="PlayerStateWalkBack.h" />
     <ClInclude Include="PointLight.h" />
+    <ClInclude Include="Projectile.h" />
     <ClInclude Include="SceneAnimation.h" />
     <ClInclude Include="SceneBase.hpp" />
     <ClInclude Include="SceneBlank.h" />

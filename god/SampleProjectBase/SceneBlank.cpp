@@ -3,20 +3,21 @@
 #include "Geometory.h"
 #include "DebugLog.h"
 #include "Model.h"
-#include "CameraBase.h" 
+#include "CameraBase.h"
 #include "LightBase.h"
 #include "Shader.h"
-#include "Player.h" 
+#include "Player.h"
 #include "SimpleUI.h"
 #include "Texture.h"
-#include "Input.h" 
+#include "Input.h"
 #include "UISprite.h"
 #include "Image2D.h"
-#include <fstream> 
-#include <algorithm> 
+#include <fstream>
+#include <algorithm>
 #include <cmath>
 #include "PlayerStateDamage.h"
 #include "PlayerStateDown.h"
+#include "Projectile.h" // 追加
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -192,6 +193,11 @@ void SceneBlank::Init()
 			ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
 			p.speedModifiers.push_back(mod);
 		}
+
+		// 飛び道具設定読み込み
+		if (!ifs.eof()) {
+			ifs >> p.projectileSpeed >> p.projectileSize;
+		}
 		};
 
 	std::ifstream ifs(SETTINGS_FILE);
@@ -220,6 +226,9 @@ void SceneBlank::Init()
 		LoadOneParam(player->GetHeavyPunchParams(), ifs);
 		LoadOneParam(player->GetMediumKickParams(), ifs);
 		LoadOneParam(player->GetHeavyKickParams(), ifs);
+		LoadOneParam(player->GetHadoukenLParams(), ifs);
+		LoadOneParam(player->GetHadoukenMParams(), ifs);
+		LoadOneParam(player->GetHadoukenHParams(), ifs);
 
 		ifs.close();
 		// ファイル読み込み成功時はその値で上書き
@@ -250,6 +259,7 @@ void SceneBlank::Init()
 
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
 
 	// 初期位置設定
 	ResetRound();
@@ -273,6 +283,9 @@ void SceneBlank::Init()
 	player2->GetHeavyPunchParams() = player->GetHeavyPunchParams();
 	player2->GetMediumKickParams() = player->GetMediumKickParams();
 	player2->GetHeavyKickParams() = player->GetHeavyKickParams();
+	player2->GetHadoukenLParams() = player->GetHadoukenLParams();
+	player2->GetHadoukenMParams() = player->GetHadoukenMParams();
+	player2->GetHadoukenHParams() = player->GetHadoukenHParams();
 
 	// 当たり判定情報のコピー
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
@@ -301,6 +314,7 @@ void SceneBlank::Init()
 
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
 
 	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
@@ -793,6 +807,71 @@ void SceneBlank::Update(float tick)
 				}
 			}
 
+			// --- 飛び道具判定 (P1 -> P2) ---
+			Projectile* p1Proj = player->GetProjectile();
+			if (p1Proj && p1Proj->IsActive() && !m_isRoundOver)
+			{
+				// P2のHurtbox(標準orカスタム)に対して判定
+				auto hurtboxes = GetTargetHurtboxes(player2);
+				bool projHit = false;
+				for (const auto& hurt : hurtboxes)
+				{
+					if (p1Proj->GetHitbox().Intersects(hurt))
+					{
+						projHit = true;
+						break;
+					}
+				}
+
+				if (projHit)
+				{
+					p1Proj->Deactivate(); // 弾消滅
+					SpawnHitEffect(player2);
+					player2->ReceiveDamage(p1Proj->GetDamage());
+
+					// ノックバック処理 (画面端での押し返し対応)
+					float kb = 0.5f; // 固定ノックバック値
+					float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
+					float originalX = p2Pos.x;
+					float targetX = originalX + (dir * kb);
+					float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+					p2Pos.x = clampedX;
+					player2->SetPosition(p2Pos);
+
+					float movedDist = fabsf(clampedX - originalX);
+					float pushBackDist = kb - movedDist;
+
+					if (pushBackDist > 0.0f)
+					{
+						DirectX::XMFLOAT3 p1Pos = player->GetPosition();
+						p1Pos.x -= dir * pushBackDist;
+						p1Pos.x = std::clamp(p1Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+						player->SetPosition(p1Pos);
+					}
+
+					player2->SetState(new PlayerStateDamage(15)); // 少し長めの硬直
+
+					float ratio = player2->GetHpRatio();
+					float currentWidth = m_barMaxWidth * ratio;
+					float reduceWidth = m_barMaxWidth - currentWidth;
+					m_enemyhpBar->SetSize(currentWidth, 80.0f);
+					m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
+					m_hitStopTimer = 0.1f;
+					m_shakeTimerP2 = 0.1f;
+
+					if (player2->GetHpRatio() <= 0.0f)
+					{
+						m_winCountP1++;
+						m_isRoundOver = true;
+						player->SetInputType(PlayerInputType::AI);
+						player2->SetInputType(PlayerInputType::AI);
+						DebugLog::log(DebugLog::INFO_LOG, "P1 WIN ROUND!");
+					}
+				}
+			}
+
+
 			// --- 攻撃判定 (P2 -> P1) ---
 			// 既にラウンドが終わっていたら判定しない
 			bool hit1 = false;
@@ -887,6 +966,69 @@ void SceneBlank::Update(float tick)
 					player->SetInputType(PlayerInputType::AI);
 					player2->SetInputType(PlayerInputType::AI);
 					DebugLog::log(DebugLog::INFO_LOG, "P2 WIN ROUND!");
+				}
+			}
+
+			// --- 飛び道具判定 (P2 -> P1) ---
+			Projectile* p2Proj = player2->GetProjectile();
+			if (p2Proj && p2Proj->IsActive() && !m_isRoundOver)
+			{
+				auto hurtboxes = GetTargetHurtboxes(player);
+				bool projHit = false;
+				for (const auto& hurt : hurtboxes)
+				{
+					if (p2Proj->GetHitbox().Intersects(hurt))
+					{
+						projHit = true;
+						break;
+					}
+				}
+
+				if (projHit)
+				{
+					p2Proj->Deactivate();
+					SpawnHitEffect(player);
+					player->ReceiveDamage(p2Proj->GetDamage());
+
+					// ノックバック処理
+					float kb = 0.5f;
+					float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+					DirectX::XMFLOAT3 p1Pos = player->GetPosition();
+					float originalX = p1Pos.x;
+					float targetX = originalX + (dir * kb);
+					float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+					p1Pos.x = clampedX;
+					player->SetPosition(p1Pos);
+
+					float movedDist = fabsf(clampedX - originalX);
+					float pushBackDist = kb - movedDist;
+
+					if (pushBackDist > 0.0f)
+					{
+						DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
+						p2Pos.x -= dir * pushBackDist;
+						p2Pos.x = std::clamp(p2Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
+						player2->SetPosition(p2Pos);
+					}
+
+					player->SetState(new PlayerStateDamage(15));
+
+					float ratio = player->GetHpRatio();
+					float currentWidth = m_barMaxWidth * ratio;
+					float reduceWidth = m_barMaxWidth - currentWidth;
+					m_hpBar->SetSize(currentWidth, 80.0f);
+					m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
+					m_hitStopTimer = 0.1f;
+					m_shakeTimerP1 = 0.1f;
+
+					if (player->GetHpRatio() <= 0.0f)
+					{
+						m_winCountP2++;
+						m_isRoundOver = true;
+						player->SetInputType(PlayerInputType::AI);
+						player2->SetInputType(PlayerInputType::AI);
+						DebugLog::log(DebugLog::INFO_LOG, "P2 WIN ROUND!");
+					}
 				}
 			}
 		}
@@ -1078,6 +1220,18 @@ void SceneBlank::Draw()
 		player2->DrawBoundingBox();
 		player2->DrawHitbox();
 #endif
+	}
+
+	// ------------------------------------------------
+	// 飛び道具 (Projectile) の描画
+	// ------------------------------------------------
+	if (player && player->GetProjectile())
+	{
+		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
+	}
+	if (player2 && player2->GetProjectile())
+	{
+		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
 	}
 
 	// ------------------------------------------------

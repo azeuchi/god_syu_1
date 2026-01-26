@@ -5,16 +5,29 @@
 #include "LightPunch.h"
 #include "MediumPunch.h"
 #include "HeavyPunch.h"
-#include "MediumKick.h" // 追加
+#include "MediumKick.h"
 #include "HeavyKick.h" 
 #include "PlayerStateJump.h"
 #include "PlayerStateCrouch.h"
+#include "Hadouken.h"
 
 void PlayerStateGround::Update(Player* player, float tick)
 {
 	// --- 共通の遷移チェック (攻撃・ジャンプ・しゃがみ) ---
 
 	const PlayerInputs& inputs = player->GetInputs();
+
+	// 波動拳コマンドチェック
+	if (player->CanFireProjectile() && player->CheckHadoukenCommand())
+	{
+		int strength = 0;
+		if (inputs.HeavyPunch) strength = 2;
+		else if (inputs.MediumPunch) strength = 1;
+		else strength = 0;
+
+		player->SetState(new Hadouken(strength));
+		return;
+	}
 
 	// 攻撃1 (Light Punch)
 	if (inputs.LightPunch)

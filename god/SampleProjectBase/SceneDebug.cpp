@@ -23,7 +23,7 @@ const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
-// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK, 5:Down, 6:WakeUp
+// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK, 5:Down, 6:WakeUp, 7:HadouL, 8:HadouM, 9:HadouH
 static int s_currentAttackType = 0;
 
 static const char* GetCurrentAnimName()
@@ -34,7 +34,8 @@ static const char* GetCurrentAnimName()
 	if (s_currentAttackType == 3) return "MediumKick";
 	if (s_currentAttackType == 4) return "HeavyKick";
 	if (s_currentAttackType == 5) return "Down";
-	return "WakeUp";
+	if (s_currentAttackType == 6) return "WakeUp";
+	return "Hadouken";
 }
 
 void SceneDebug::SavePlayerSettings()
@@ -92,6 +93,10 @@ void SceneDebug::SavePlayerSettings()
 				for (const auto& mod : params.speedModifiers) {
 					ofs << mod.startFrame << " " << mod.endFrame << " " << mod.speed << std::endl;
 				}
+
+				// 飛び道具設定
+				ofs << params.projectileSpeed << std::endl;
+				ofs << params.projectileSize << std::endl;
 				};
 
 			// ==================================================
@@ -127,6 +132,9 @@ void SceneDebug::SavePlayerSettings()
 			WriteParams(player->GetHeavyPunchParams());
 			WriteParams(player->GetMediumKickParams());
 			WriteParams(player->GetHeavyKickParams());
+			WriteParams(player->GetHadoukenLParams());
+			WriteParams(player->GetHadoukenMParams());
+			WriteParams(player->GetHadoukenHParams());
 
 			ofs.close();
 		}
@@ -218,8 +226,6 @@ void SceneDebug::Init()
 			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 			ifs >> p.isDown;
 
-			// 不要になった古いHurtboxパラメータを読み飛ばし
-
 			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -232,6 +238,10 @@ void SceneDebug::Init()
 				ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
 				p.speedModifiers.push_back(mod);
 			}
+
+			if (!ifs.eof()) {
+				ifs >> p.projectileSpeed >> p.projectileSize;
+			}
 			};
 
 		// 各技読み込み
@@ -240,6 +250,9 @@ void SceneDebug::Init()
 		LoadOneParam(player->GetHeavyPunchParams());
 		LoadOneParam(player->GetMediumKickParams());
 		LoadOneParam(player->GetHeavyKickParams());
+		LoadOneParam(player->GetHadoukenLParams());
+		LoadOneParam(player->GetHadoukenMParams());
+		LoadOneParam(player->GetHadoukenHParams());
 
 		ifs.close();
 		// 読み込み成功時は上書き
@@ -262,6 +275,7 @@ void SceneDebug::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
 
 	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
@@ -286,9 +300,6 @@ void SceneDebug::Uninit()
 	}
 }
 
-/**
- * @brief 更新処理
- */
 void SceneDebug::Update(float tick)
 {
 	if (tick > 0.0f) { m_fps = 1.0f / tick; }
@@ -302,13 +313,15 @@ void SceneDebug::Update(float tick)
 	if (!player) return;
 
 	// --- パラメータの同期 ---
-	// 常に現在の技のパラメータをセットしておく（編集中も反映させるため）
 	AttackParams* params = nullptr;
 	if (s_currentAttackType == 0) params = &player->GetLightPunchParams();
 	else if (s_currentAttackType == 1) params = &player->GetMediumPunchParams();
 	else if (s_currentAttackType == 2) params = &player->GetHeavyPunchParams();
 	else if (s_currentAttackType == 3) params = &player->GetMediumKickParams();
 	else if (s_currentAttackType == 4) params = &player->GetHeavyKickParams();
+	else if (s_currentAttackType == 7) params = &player->GetHadoukenLParams();
+	else if (s_currentAttackType == 8) params = &player->GetHadoukenMParams();
+	else if (s_currentAttackType == 9) params = &player->GetHadoukenHParams();
 
 	player->SetCurrentAttackParams(params);
 
@@ -316,10 +329,9 @@ void SceneDebug::Update(float tick)
 	float speed = 1.0f;
 	const char* animName = GetCurrentAnimName();
 
-	if (m_isAttacking || s_currentAttackType <= 4) { // 攻撃技選択中
+	if (m_isAttacking || s_currentAttackType <= 4 || s_currentAttackType >= 7) {
 		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 
-		// パラメータがある場合はそれに基づいて速度計算
 		if (params) {
 			float targetFrames = params->totalDuration * 60.0f;
 			if (targetFrames <= 1.0f) targetFrames = 1.0f;
@@ -327,13 +339,11 @@ void SceneDebug::Update(float tick)
 		}
 	}
 
-	// ★ここで計算した速度をプレイヤーに適用する！ (これが必要でした)
 	player->SetAnimationSpeed(speed);
 
 	// --- アニメーション制御 ---
 	if (!m_isPaused && m_isAttacking)
 	{
-		// 再生中のみ時間を進める
 		m_animTimer += tick;
 		if (m_animTimer >= FRAME_TIME_60FPS)
 		{
@@ -344,7 +354,6 @@ void SceneDebug::Update(float tick)
 			}
 		}
 
-		// 現在のモデルフレームからデバッグ用フレーム値を逆算
 		float currentModelFrame = (float)player->Debug_GetFrame();
 		if (speed > 0.0f) {
 			m_currentFrame = static_cast<int>(currentModelFrame / speed);
@@ -355,17 +364,11 @@ void SceneDebug::Update(float tick)
 	}
 	else
 	{
-		// 停止中または非再生中
-		// スライダーで設定された m_currentFrame を強制適用する
-		// これにより、一時停止中にスライダーを動かしてもアニメーションが動く
 		int modelFrame = static_cast<int>(m_currentFrame * speed);
-
-		// 技名が変わっているかもしれないのでセット
 		player->Debug_SetAnimation(animName, false);
 		player->Debug_SetFrame(modelFrame);
 	}
 
-	// ブレンドとボックスの更新（常に呼ぶ）
 	player->UpdateModelBlend();
 	player->UpdateAttackBoxes();
 
@@ -382,16 +385,13 @@ void SceneDebug::Update(float tick)
 
 		if (m_currentFrame >= totalGameFrames)
 		{
-			// ループしないように戻す
 			player->Debug_SetAnimation("Idle", true);
 			m_isAttacking = false;
 			m_isPaused = false;
 			m_currentFrame = 0;
-			// paramsはnullにしない（編集継続のため）
 		}
 	}
 
-	// --- カメラ追従処理 ---
 	CameraBase* camera = GetObj<CameraBase>("Camera");
 	if (camera)
 	{
@@ -451,25 +451,20 @@ void SceneDebug::Draw()
 
 		player->Draw();
 
-		// 編集中の技があれば、強制的に攻撃中扱いにしてボックスを描画する
-		bool isEditingAttack = (s_currentAttackType <= 4); // 0~4は攻撃
+		bool isEditingAttack = (s_currentAttackType <= 4 || s_currentAttackType >= 7);
 
 		if (isEditingAttack) {
 			player->SetActiveHitbox(true);
-			// Updateで計算済みだが描画直前にも確実に
 			player->UpdateAttackBoxes();
 		}
 
-		// Hurtboxなどの描画
 		player->DrawBoundingBox();
 
-		// Hitboxの描画
 		if (isEditingAttack)
 		{
 			player->DrawHitbox();
 		}
 
-		// フラグを戻す（再生中でなければ）
 		if (!m_isAttacking) {
 			player->SetActiveHitbox(false);
 		}
@@ -481,9 +476,6 @@ void SceneDebug::Draw()
 	}
 }
 
-/**
- * @brief デバッグGUIの描画
- */
 void SceneDebug::DrawImGui()
 {
 	Player* player = GetObj<Player>("Player");
@@ -496,25 +488,24 @@ void SceneDebug::DrawImGui()
 		return;
 	}
 
-	// ==================================================
-	// アニメーション再生・確認
-	// ==================================================
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text("Select Action:");
 
-		// Punch
 		ImGui::Text("Punch:"); ImGui::SameLine();
 		ImGui::RadioButton("L##P", &s_currentAttackType, 0); ImGui::SameLine();
 		ImGui::RadioButton("M##P", &s_currentAttackType, 1); ImGui::SameLine();
 		ImGui::RadioButton("H##P", &s_currentAttackType, 2);
 
-		// Kick
 		ImGui::Text("Kick :"); ImGui::SameLine();
 		ImGui::RadioButton("M##K", &s_currentAttackType, 3); ImGui::SameLine();
 		ImGui::RadioButton("H##K", &s_currentAttackType, 4);
 
-		// Other
+		ImGui::Text("Special:"); ImGui::SameLine();
+		ImGui::RadioButton("Hadou L", &s_currentAttackType, 7); ImGui::SameLine();
+		ImGui::RadioButton("Hadou M", &s_currentAttackType, 8); ImGui::SameLine();
+		ImGui::RadioButton("Hadou H", &s_currentAttackType, 9);
+
 		ImGui::Text("Other:"); ImGui::SameLine();
 		ImGui::RadioButton("Down", &s_currentAttackType, 5); ImGui::SameLine();
 		ImGui::RadioButton("WakeUp", &s_currentAttackType, 6);
@@ -565,15 +556,15 @@ void SceneDebug::DrawImGui()
 		}
 	}
 
-	// ==================================================
-	// 攻撃パラメータ調整
-	// ==================================================
 	AttackParams* pParams = nullptr;
 	if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
 	else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
 	else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
 	else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
 	else if (s_currentAttackType == 4) pParams = &player->GetHeavyKickParams();
+	else if (s_currentAttackType == 7) pParams = &player->GetHadoukenLParams();
+	else if (s_currentAttackType == 8) pParams = &player->GetHadoukenMParams();
+	else if (s_currentAttackType == 9) pParams = &player->GetHadoukenHParams();
 
 	if (pParams && ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -589,19 +580,23 @@ void SceneDebug::DrawImGui()
 			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
 		}
 
-		ImGui::Text("Hit Active Range (Ref):");
-		if (ImGui::InputInt("Start Frame", &startFrames)) {
-			if (startFrames < 0) startFrames = 0;
-			params.hitboxStart = startFrames * FRAME_TIME_60FPS;
+		if (s_currentAttackType <= 4) {
+			ImGui::Text("Hit Active Range (Ref):");
+			if (ImGui::InputInt("Start Frame", &startFrames)) {
+				if (startFrames < 0) startFrames = 0;
+				params.hitboxStart = startFrames * FRAME_TIME_60FPS;
+			}
+			if (ImGui::InputInt("End Frame", &endFrames)) {
+				if (endFrames < 0) endFrames = 0;
+				params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
+			}
 		}
-		if (ImGui::InputInt("End Frame", &endFrames)) {
-			if (endFrames < 0) endFrames = 0;
-			params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
+		else {
+			ImGui::Text("Projectile Settings:");
+			ImGui::SliderFloat("Proj Speed", &params.projectileSpeed, 1.0f, 30.0f);
+			ImGui::SliderFloat("Proj Size", &params.projectileSize, 0.1f, 5.0f);
 		}
 
-		// ----------------------------------------------------
-		// ボックスリスト編集用ヘルパー
-		// ----------------------------------------------------
 		auto EditAnimatedBoxList = [&](const char* label, std::vector<AnimatedBox>& boxList, bool isHurtbox) {
 			if (ImGui::TreeNode(label))
 			{
@@ -609,7 +604,6 @@ void SceneDebug::DrawImGui()
 				{
 					ImGui::PushID(i);
 					if (isHurtbox) {
-						// 最初の3つは名前を付ける (Head, Body, Legs)
 						const char* names[] = { "Head", "Body", "Legs" };
 						const char* name = (i < 3) ? names[i] : "Extra";
 						ImGui::Text("Box #%d (%s)", i, name);
@@ -654,8 +648,7 @@ void SceneDebug::DrawImGui()
 						if (ImGui::Button("Add Keyframe"))
 						{
 							BoxKeyframe newKey;
-							newKey.frame = (float)m_currentFrame; // 現在のフレームで追加
-							// 直前のキーがあればコピー、なければデフォルト
+							newKey.frame = (float)m_currentFrame;
 							if (!abox.keyframes.empty()) newKey.data = abox.keyframes.back().data;
 							else {
 								newKey.data.offset = { 0.8f, 1.5f };
@@ -672,7 +665,6 @@ void SceneDebug::DrawImGui()
 				if (ImGui::Button(isHurtbox ? "Add Hurtbox" : "Add Hitbox"))
 				{
 					AnimatedBox newBox;
-					// 新規追加時のデフォルトキーフレーム
 					newBox.keyframes.push_back({ 0.0f, {{0.5f, 1.5f}, {0.3f, 0.3f}} });
 					boxList.push_back(newBox);
 				}
@@ -681,12 +673,10 @@ void SceneDebug::DrawImGui()
 			}
 			};
 
-		// Hitboxes (Red)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.5f, 0.5f, 1.0f));
 		EditAnimatedBoxList("Hitboxes (Red)", params.hitboxes, false);
 		ImGui::PopStyleColor();
 
-		// Hurtboxes (Green/Blue)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.0f, 0.5f, 1.0f));
 		EditAnimatedBoxList("Hurtboxes (Green)", params.hurtboxes, true);
 		ImGui::PopStyleColor();
@@ -752,15 +742,7 @@ void SceneDebug::DrawImGui()
 			ImGui::TreePop();
 		}
 	}
-	else if (!pParams)
-	{
-		// Down / WakeUp 用の説明
-		ImGui::Text("Selected action does not have AttackParams.");
-	}
 
-	// ==================================================
-	// くらい判定調整 (基本設定)
-	// ==================================================
 	if (ImGui::CollapsingHeader("Base Hurtbox Settings"))
 	{
 		const char* hurtboxNames[] = { "Head", "Body", "Legs" };

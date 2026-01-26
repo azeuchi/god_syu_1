@@ -17,6 +17,10 @@
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"
+#include "Hadouken.h" 
+
+// 飛び道具
+#include "Projectile.h"
 
 #include <DirectXMath.h>
 #include <algorithm>
@@ -103,6 +107,7 @@ Player::Player()
 	, m_hasHit(false)
 	, m_pActiveAttackParams(nullptr)
 	, m_animSpeed(1.0f)
+	, m_projectile(new Projectile())
 {
 	m_currentAnim = { "Idle", 0 };
 	m_previousAnim = { "Idle", 0 };
@@ -117,6 +122,10 @@ Player::~Player()
 	if (m_currentState) {
 		delete m_currentState;
 		m_currentState = nullptr;
+	}
+	if (m_projectile) {
+		delete m_projectile;
+		m_projectile = nullptr;
 	}
 }
 
@@ -282,11 +291,30 @@ void Player::InitDefaultParameters()
 		p.speedModifiers.push_back({ 7.0f, 16.0f, 1.006f });
 		p.speedModifiers.push_back({ 17.0f, 30.0f, 0.345f });
 	}
+
+	// --- Hadouken (L/M/H) ---
+	{
+		InitDefaultHurtboxes(m_hadoukenLParams.hurtboxes);
+		m_hadoukenLParams.totalDuration = 0.6f;
+		m_hadoukenLParams.projectileSpeed = 4.0f;
+		m_hadoukenLParams.damage = 500;
+
+		InitDefaultHurtboxes(m_hadoukenMParams.hurtboxes);
+		m_hadoukenMParams.totalDuration = 0.6f;
+		m_hadoukenMParams.projectileSpeed = 6.5f;
+		m_hadoukenMParams.damage = 500;
+
+		InitDefaultHurtboxes(m_hadoukenHParams.hurtboxes);
+		m_hadoukenHParams.totalDuration = 0.6f;
+		m_hadoukenHParams.projectileSpeed = 9.0f;
+		m_hadoukenHParams.damage = 500;
+	}
 }
 
 void Player::Update(float tick)
 {
 	PollInputs();
+	UpdateCommandTimer(tick);
 
 	if (m_currentState) {
 		m_isCrouching = m_currentState->IsCrouch();
@@ -298,6 +326,10 @@ void Player::Update(float tick)
 	UpdateAnimation(tick);
 
 	UpdateModelBlend();
+
+	if (m_projectile) {
+		m_projectile->Update(tick);
+	}
 }
 
 void Player::PollInputs()
@@ -381,6 +413,7 @@ void Player::UpdateAnimation(float tick)
 				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
 				strcmp(m_currentAnim.name, "MediumKick") == 0 ||
 				strcmp(m_currentAnim.name, "HeavyKick") == 0 ||
+				strcmp(m_currentAnim.name, "Hadouken") == 0 ||
 				strcmp(m_currentAnim.name, "Down") == 0 ||
 				strcmp(m_currentAnim.name, "WakeUp") == 0
 				);
@@ -515,6 +548,10 @@ void Player::SetPixelShader(Shader* ps)
 void Player::Draw()
 {
 	m_model->Draw();
+	if (m_projectile) {
+		// プロジェクタイルの描画はシーン側のDrawで呼ぶように設計する場合もあるが
+		// ここでも保持している場合は考慮する。
+	}
 }
 Model* Player::GetModel()
 {
@@ -825,5 +862,41 @@ void Player::Reset()
 	m_velocity = { 0.0f, 0.0f, 0.0f };
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
+	if (m_projectile) m_projectile->Deactivate();
 	SetState(new PlayerStateIdle());
+}
+
+bool Player::CanFireProjectile() const
+{
+	if (!m_projectile) return false;
+	return !m_projectile->IsActive();
+}
+
+void Player::UpdateCommandTimer(float tick)
+{
+	if (m_cmdTimerDown > 0) m_cmdTimerDown -= tick;
+	if (m_cmdTimerDownForward > 0) m_cmdTimerDownForward -= tick;
+
+	const PlayerInputs& in = GetInputs();
+
+	// 向いている方向によって左右入力を逆転させる
+	bool forward = (m_rotation.y < 0.0f) ? in.moveRight : in.moveLeft;
+
+	if (in.moveDown && !forward) {
+		m_cmdTimerDown = CMD_WINDOW;
+	}
+	else if (in.moveDown && forward) {
+		if (m_cmdTimerDown > 0) {
+			m_cmdTimerDownForward = CMD_WINDOW;
+		}
+	}
+}
+
+bool Player::CheckHadoukenCommand() const
+{
+	const PlayerInputs& in = GetInputs();
+	bool forward = (m_rotation.y < 0.0f) ? in.moveRight : in.moveLeft;
+
+	// 下 -> 斜め前 -> 前 + パンチ
+	return (m_cmdTimerDownForward > 0 && forward && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }

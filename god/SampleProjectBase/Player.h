@@ -9,6 +9,7 @@
 // 前方宣言
 class PlayerState;
 class Shader;
+class Projectile;
 
 enum class PlayerInputType
 {
@@ -104,6 +105,10 @@ struct AttackParams
 	bool cancelToHeavy = false;
 
 	std::vector<AnimSpeedModifier> speedModifiers;
+
+	// --- 飛び道具用パラメータ ---
+	float projectileSpeed = 5.0f;
+	float projectileSize = 1.0f;
 };
 
 
@@ -198,6 +203,11 @@ public:
 	AttackParams& GetMediumKickParams() { return m_mediumKickParams; }
 	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
+	// 波動拳用パラメータ
+	AttackParams& GetHadoukenLParams() { return m_hadoukenLParams; }
+	AttackParams& GetHadoukenMParams() { return m_hadoukenMParams; }
+	AttackParams& GetHadoukenHParams() { return m_hadoukenHParams; }
+
 	void SetCurrentAttackParams(AttackParams* params);
 	AttackParams* GetCurrentAttackParams() const;
 
@@ -219,6 +229,14 @@ public:
 
 	bool HasHit() const { return m_hasHit; }
 	void OnHit() { m_hasHit = true; }
+
+	// 飛び道具制御
+	Projectile* GetProjectile() { return m_projectile; }
+	bool CanFireProjectile() const;
+
+	// コマンド判定
+	void UpdateCommandTimer(float tick);
+	bool CheckHadoukenCommand() const;
 
 private:
 	// 初期パラメータ設定用関数
@@ -268,9 +286,22 @@ private:
 	AttackParams m_mediumKickParams;
 	AttackParams m_heavyKickParams;
 
+	// 波動拳パラメータ
+	AttackParams m_hadoukenLParams;
+	AttackParams m_hadoukenMParams;
+	AttackParams m_hadoukenHParams;
+
 	AttackParams* m_pActiveAttackParams = nullptr;
 
 	int m_hp;
 	const int m_maxHp = 10000;
 	bool m_hasHit = false;
+
+	// 飛び道具インスタンス
+	Projectile* m_projectile = nullptr;
+
+	// コマンドバッファ
+	float m_cmdTimerDown = 0.0f;
+	float m_cmdTimerDownForward = 0.0f;
+	const float CMD_WINDOW = 0.3f;
 };
