@@ -3,17 +3,17 @@
 #include "Geometory.h"
 #include "DebugLog.h"
 #include "Model.h"
-#include "CameraBase.h"
+#include "CameraBase.h" 
 #include "LightBase.h"
 #include "Shader.h"
-#include "Player.h"
+#include "Player.h" 
 #include "SimpleUI.h"
 #include "Texture.h"
-#include "Input.h"
+#include "Input.h" 
 #include "UISprite.h"
 #include "Image2D.h"
-#include <fstream>
-#include <algorithm>
+#include <fstream> 
+#include <algorithm> 
 #include <cmath>
 #include "PlayerStateDamage.h"
 #include "PlayerStateDown.h"
@@ -176,10 +176,6 @@ void SceneBlank::Init()
 
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
-
-		// 古いフォーマットの読み飛ばしまたは新規パラメータの読み込み
-		// 以前はここにheadOffsetValなどがあったが、AnimatedBoxで置き換えるため
-		// ファイルフォーマットが変わる前提とする。
 
 		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
@@ -401,8 +397,6 @@ void SceneBlank::ResetRound()
 	m_shakeTimerP2 = 0.0f;
 
 	// フェーズ初期化
-	// どちらも0勝 (つまりラウンド1) ならREADY(溜め)から開始
-	// それ以外 (ラウンド2以降) ならROUND_CALL(画像表示)から開始
 	if (m_winCountP1 == 0 && m_winCountP2 == 0)
 	{
 		m_currentPhase = RoundPhase::READY;
@@ -426,8 +420,6 @@ void SceneBlank::ResetRound()
 		player->SetPosition({ -2.0f, 0.0f, 0.0f });
 		player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 		player->Reset(); // HP全回復、ステートリセット
-
-		// 演出中は操作不能にする(AIモード)
 		player->SetInputType(PlayerInputType::AI);
 	}
 
@@ -441,10 +433,9 @@ void SceneBlank::ResetRound()
 		player2->SetInputType(PlayerInputType::AI);
 	}
 
-	// HPバーの見た目もリセット
+	// HPバー初期化
 	if (m_hpBar) m_hpBar->SetSize(m_barMaxWidth, 80.0f);
 	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, 80.0f);
-	// 位置も初期位置へ
 	if (m_hpBar) m_hpBar->SetPosition(m_hpBarPos.x, m_hpBarPos.y);
 	if (m_enemyhpBar) m_enemyhpBar->SetPosition(m_enemyHpBarPos.x, m_enemyHpBarPos.y);
 
@@ -455,12 +446,6 @@ void SceneBlank::ResetRound()
 		pCamera->SetPos({ 0.0f, 1.2f, -5.0f });
 		pCamera->SetLook({ 0.0f, 1.0f, 4.0f });
 	}
-
-	//for (auto effect : m_hitEffects)
-	//{
-	//	delete effect;
-	//}
-	//m_hitEffects.clear();
 
 	DebugLog::log(DebugLog::INFO_LOG, "--- Round Start Sequence ---");
 }
@@ -480,7 +465,6 @@ void SceneBlank::Update(float tick)
 
 		if (m_currentPhase == RoundPhase::READY)
 		{
-			// 1.0秒のラグ（待機）
 			if (m_phaseTimer >= 1.0f)
 			{
 				m_currentPhase = RoundPhase::ROUND_CALL;
@@ -489,7 +473,6 @@ void SceneBlank::Update(float tick)
 		}
 		else if (m_currentPhase == RoundPhase::ROUND_CALL)
 		{
-			// 1.5秒経過したらFIGHTへ
 			if (m_phaseTimer >= 1.5f)
 			{
 				m_currentPhase = RoundPhase::FIGHT_CALL;
@@ -498,7 +481,6 @@ void SceneBlank::Update(float tick)
 		}
 		else if (m_currentPhase == RoundPhase::FIGHT_CALL)
 		{
-			// 1.0秒経過したら試合開始
 			if (m_phaseTimer >= 1.0f)
 			{
 				m_currentPhase = RoundPhase::PLAYING;
@@ -511,18 +493,14 @@ void SceneBlank::Update(float tick)
 			}
 		}
 
-
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
-		// 演出中でもカメラ位置情報をスカイドームに渡して更新する
 		CameraBase* pCamera = GetObj<CameraBase>("Camera");
 		if (m_skyDome && pCamera)
 		{
 			m_skyDome->Update(pCamera->GetPos());
 		}
-
-		// PLAYING以外ならここで終了
 		return;
 	}
 
@@ -536,47 +514,32 @@ void SceneBlank::Update(float tick)
 
 		bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
 
-		// ゲームセットでない(次ラウンドがある)場合のみフェード
 		if (!isGameSet && m_fadeBlack)
 		{
-			// 指定時間待機してから、だんだん濃くする
 			if (m_roundEndTimer < WAIT_BEFORE_FADE)
 			{
-				// まだ待機時間内なので透明
 				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
 			}
 			else
 			{
-				// 待機時間を過ぎたらフェード開始
-				// 0.0f から 1.0f へ変化
 				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
 				if (progress > 1.0f) progress = 1.0f;
-
-				// ご要望通り 0.1 からスタート
 				float alpha = 0.1f + (progress * 0.9f);
-
-				// 色は黒(0,0,0)で、透明度だけを変える
 				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, alpha);
 			}
 		}
 
-
 		if (player) player->Update(tick);
 		if (player2) player2->Update(tick);
 
-		// カメラ更新は続ける
-
-		// 待機時間(待機+フェード時間)が経過し、完全に暗くなったらリセット
 		if (m_roundEndTimer >= ROUND_WAIT_TIME)
 		{
-			// どちらかが規定ラウンド数勝っていたらリザルトへ
 			if (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN)
 			{
 				s_isGameSet = true;
 			}
 			else
 			{
-				// まだ決着がついていないなら次のラウンドへ
 				ResetRound();
 			}
 		}
@@ -596,16 +559,10 @@ void SceneBlank::Update(float tick)
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
 
-		// 判定ボックスの更新
-		if (player) {
-			player->UpdateAttackBoxes();
-		}
-		if (player2) {
-			player2->UpdateAttackBoxes();
-		}
+		// 判定ボックスの更新 (Player::Update内でも計算されるが、ここで最新を保証)
+		if (player) player->UpdateAttackBoxes();
+		if (player2) player2->UpdateAttackBoxes();
 
-
-		// 向きの制御、移動制限、押し出し処理などはラウンド中のみ有効
 
 		// 向きの制御
 		if (player && player2)
@@ -684,12 +641,14 @@ void SceneBlank::Update(float tick)
 				player2->SetPosition(pos2);
 			}
 
-			// ヘルパー: 相手のくらい判定リストを取得する
-			// 攻撃中かつアクティブなHurtboxがあればそれを使い、なければ標準のものを使う
+			// ★ヘルパー: 相手の「現在有効な」くらい判定リストを取得する
+			// 攻撃中かつ詳細なHurtboxがあればそれを使い、なければ標準の3つ(頭・体・足)を使う
+			// これにより、デバッグシーンで調整した判定が本編でも適用される
 			auto GetTargetHurtboxes = [](const Player* target) -> std::vector<DirectX::BoundingBox> {
 				if (target->IsAttacking() && !target->GetActiveHurtboxes().empty()) {
 					return target->GetActiveHurtboxes();
 				}
+				// 攻撃中でないなら、頭・体・足の3つを返す
 				std::vector<DirectX::BoundingBox> boxes;
 				boxes.push_back(target->GetHurtbox(HurtboxType::HEAD));
 				boxes.push_back(target->GetHurtbox(HurtboxType::BODY));
@@ -702,17 +661,14 @@ void SceneBlank::Update(float tick)
 			bool hit2 = false;
 			if (player->IsAttacking() && !player->HasHit())
 			{
-
 				if (!player2->IsInvincible())
 				{
-					// P1の複数のHitboxと P2のHurtbox(標準orカスタム)を総当たりでチェック
 					const auto& hitboxes = player->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player2);
+					auto hurtboxes = GetTargetHurtboxes(player2); // ★ここで全身を取得
 
 					for (const auto& atk : hitboxes)
 					{
-						if (hit2) break; // すでにヒット確定なら抜ける
-
+						if (hit2) break;
 						for (const auto& hurt : hurtboxes)
 						{
 							if (atk.Intersects(hurt))
@@ -728,55 +684,37 @@ void SceneBlank::Update(float tick)
 
 			if (hit2)
 			{
-
-				//DirectX::XMFLOAT3 pos = player2->GetPosition();
-
-				// エフェクト発生
 				SpawnHitEffect(player2);
 
 				AttackParams* params = player->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player2->ReceiveDamage(dmg);
 				player->OnHit();
 
-				// ノックバック処理 (画面端での押し返し対応)
 				float kb = (params != nullptr) ? params->knockback : 0.0f;
-				// 攻撃側の向きに合わせて相手を後ろにずらす
 				float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 
-				// 移動前の座標
 				DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
 				float originalX = p2Pos.x;
-
-				// 本来移動したい先
 				float targetX = originalX + (dir * kb);
-
-				// 壁でクランプ（制限）
 				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 				p2Pos.x = clampedX;
 				player2->SetPosition(p2Pos);
 
-				// 実際に移動できた距離
 				float movedDist = fabsf(clampedX - originalX);
-				// 下がりきれなかった分（余剰距離）
 				float pushBackDist = kb - movedDist;
 
-				// 余りがある＝壁に当たったので、その分攻撃側を下げる
 				if (pushBackDist > 0.0f)
 				{
 					DirectX::XMFLOAT3 p1Pos = player->GetPosition();
-					// 攻撃側を後ろ（dirの逆）へ下げる
 					p1Pos.x -= dir * pushBackDist;
-					// 念のためこちらもクランプ
 					p1Pos.x = std::clamp(p1Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 					player->SetPosition(p1Pos);
 				}
 
-				//  ダウン分岐
 				if (isDown)
 				{
 					player2->SetState(new PlayerStateDown());
@@ -796,12 +734,11 @@ void SceneBlank::Update(float tick)
 				m_hitStopTimer = stopTime;
 				m_shakeTimerP2 = stopTime;
 
-				// KOチェック
 				if (player2->GetHpRatio() <= 0.0f)
 				{
 					m_winCountP1++;
 					m_isRoundOver = true;
-					player->SetInputType(PlayerInputType::AI); // 操作不能に
+					player->SetInputType(PlayerInputType::AI);
 					player2->SetInputType(PlayerInputType::AI);
 					DebugLog::log(DebugLog::INFO_LOG, "P1 WIN ROUND!");
 				}
@@ -811,8 +748,7 @@ void SceneBlank::Update(float tick)
 			Projectile* p1Proj = player->GetProjectile();
 			if (p1Proj && p1Proj->IsActive() && !m_isRoundOver)
 			{
-				// P2のHurtbox(標準orカスタム)に対して判定
-				auto hurtboxes = GetTargetHurtboxes(player2);
+				auto hurtboxes = GetTargetHurtboxes(player2); // ★飛び道具も全身判定
 				bool projHit = false;
 				for (const auto& hurt : hurtboxes)
 				{
@@ -825,12 +761,11 @@ void SceneBlank::Update(float tick)
 
 				if (projHit)
 				{
-					p1Proj->Deactivate(); // 弾消滅
+					p1Proj->Deactivate();
 					SpawnHitEffect(player2);
 					player2->ReceiveDamage(p1Proj->GetDamage());
 
-					// ノックバック処理 (画面端での押し返し対応)
-					float kb = 0.5f; // 固定ノックバック値
+					float kb = 0.5f;
 					float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
 					float originalX = p2Pos.x;
@@ -850,7 +785,7 @@ void SceneBlank::Update(float tick)
 						player->SetPosition(p1Pos);
 					}
 
-					player2->SetState(new PlayerStateDamage(15)); // 少し長めの硬直
+					player2->SetState(new PlayerStateDamage(15));
 
 					float ratio = player2->GetHpRatio();
 					float currentWidth = m_barMaxWidth * ratio;
@@ -873,20 +808,17 @@ void SceneBlank::Update(float tick)
 
 
 			// --- 攻撃判定 (P2 -> P1) ---
-			// 既にラウンドが終わっていたら判定しない
 			bool hit1 = false;
 			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
 			{
-				// 相手が無敵（ダウン中など）ならヒットさせない
 				if (!player->IsInvincible())
 				{
 					const auto& hitboxes = player2->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player);
+					auto hurtboxes = GetTargetHurtboxes(player); // ★ここで全身を取得
 
 					for (const auto& atk : hitboxes)
 					{
 						if (hit1) break;
-
 						for (const auto& hurt : hurtboxes)
 						{
 							if (atk.Intersects(hurt))
@@ -901,28 +833,22 @@ void SceneBlank::Update(float tick)
 
 			if (hit1)
 			{
-
 				SpawnHitEffect(player);
 
 				AttackParams* params = player2->GetCurrentAttackParams();
 				int dmg = (params != nullptr) ? params->damage : 0;
 				int stun = (params != nullptr) ? params->hitFrame : 30;
-				// ダウン属性チェック
 				bool isDown = (params != nullptr) ? params->isDown : false;
 
 				player->ReceiveDamage(dmg);
 				player2->OnHit();
 
-				// ノックバック処理 
 				float kb = (params != nullptr) ? params->knockback : 0.0f;
-				// 攻撃側の向きに合わせて相手を後ろにずらす
 				float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 
 				DirectX::XMFLOAT3 p1Pos = player->GetPosition();
 				float originalX = p1Pos.x;
-
 				float targetX = originalX + (dir * kb);
-
 				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
 				p1Pos.x = clampedX;
 				player->SetPosition(p1Pos);
@@ -938,7 +864,6 @@ void SceneBlank::Update(float tick)
 					player2->SetPosition(p2Pos);
 				}
 
-				//  ダウン分岐
 				if (isDown)
 				{
 					player->SetState(new PlayerStateDown());
@@ -958,7 +883,6 @@ void SceneBlank::Update(float tick)
 				m_hitStopTimer = stopTime;
 				m_shakeTimerP1 = stopTime;
 
-				// KOチェック
 				if (player->GetHpRatio() <= 0.0f)
 				{
 					m_winCountP2++;
@@ -973,7 +897,7 @@ void SceneBlank::Update(float tick)
 			Projectile* p2Proj = player2->GetProjectile();
 			if (p2Proj && p2Proj->IsActive() && !m_isRoundOver)
 			{
-				auto hurtboxes = GetTargetHurtboxes(player);
+				auto hurtboxes = GetTargetHurtboxes(player); // ★飛び道具も全身判定
 				bool projHit = false;
 				for (const auto& hurt : hurtboxes)
 				{
@@ -990,7 +914,6 @@ void SceneBlank::Update(float tick)
 					SpawnHitEffect(player);
 					player->ReceiveDamage(p2Proj->GetDamage());
 
-					// ノックバック処理
 					float kb = 0.5f;
 					float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 					DirectX::XMFLOAT3 p1Pos = player->GetPosition();

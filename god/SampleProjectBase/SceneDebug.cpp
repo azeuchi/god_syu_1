@@ -369,6 +369,8 @@ void SceneDebug::Update(float tick)
 		player->Debug_SetFrame(modelFrame);
 	}
 
+	player->SetAttackTimer((float)m_currentFrame);
+
 	player->UpdateModelBlend();
 	player->UpdateAttackBoxes();
 

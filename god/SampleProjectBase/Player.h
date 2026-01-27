@@ -222,6 +222,9 @@ public:
 		m_currentAnim.frame = (float)frame;
 	}
 
+	// 攻撃タイマー設定
+	void SetAttackTimer(float timer) { m_attackTimer = timer; }
+
 	void ReceiveDamage(int damage);
 	float GetHpRatio() const;
 
@@ -292,6 +295,9 @@ private:
 	AttackParams m_hadoukenHParams;
 
 	AttackParams* m_pActiveAttackParams = nullptr;
+
+	//  攻撃の経過時間を正確に測るタイマー
+	float m_attackTimer = 0.0f;
 
 	int m_hp;
 	const int m_maxHp = 10000;

@@ -17,9 +17,8 @@
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"
-#include "Hadouken.h" 
+#include "Hadouken.h"
 
-// 飛び道具
 #include "Projectile.h"
 
 #include <DirectXMath.h>
@@ -108,6 +107,7 @@ Player::Player()
 	, m_pActiveAttackParams(nullptr)
 	, m_animSpeed(1.0f)
 	, m_projectile(new Projectile())
+	, m_attackTimer(0.0f)
 {
 	m_currentAnim = { "Idle", 0 };
 	m_previousAnim = { "Idle", 0 };
@@ -424,6 +424,9 @@ void Player::UpdateAnimation(float tick)
 			}
 			else
 			{
+				// 攻撃中なら、絶対時間タイマーを進める
+				m_attackTimer += tick * 60.0f;
+
 				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
 				{
 					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
@@ -760,6 +763,8 @@ bool Player::IsAttacking() const
 void Player::SetCurrentAttackParams(AttackParams* params)
 {
 	m_pActiveAttackParams = params;
+	// 攻撃開始時にタイマーをリセット
+	m_attackTimer = 0.0f;
 }
 AttackParams* Player::GetCurrentAttackParams() const
 {
@@ -774,7 +779,8 @@ void Player::UpdateAttackBoxes()
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 
-	float currentFrame = m_currentAnim.frame;
+	
+	float currentFrame = m_attackTimer;
 
 	// 攻撃判定(Hitbox)の更新 (補間あり)
 	for (const auto& animBox : m_pActiveAttackParams->hitboxes)
