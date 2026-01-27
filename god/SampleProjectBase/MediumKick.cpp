@@ -2,11 +2,6 @@
 #include "PlayerStateIdle.h"
 #include "Player.h"
 
-// 遷移先（キャンセル等）
-#include "LightPunch.h"
-#include "MediumPunch.h"
-#include "HeavyPunch.h"
-#include "HeavyKick.h"
 
 void MediumKick::OnEnter(Player* player)
 {

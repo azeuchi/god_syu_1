@@ -158,7 +158,7 @@ void Player::InitDefaultParameters()
 	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.116f, 0.308f };
 
 
-	// ★ヘルパー：各攻撃技の初期設定として、基本の3つのHurtbox (Head, Body, Legs) を追加する
+	// ヘルパー：各攻撃技の初期設定として、基本の3つのHurtbox (Head, Body, Legs) 
 	// これにより、攻撃モーション中もデフォルトで頭・体・足の判定が存在する状態になる
 	auto InitDefaultHurtboxes = [&](std::vector<AnimatedBox>& boxes) {
 		boxes.clear();
@@ -187,7 +187,7 @@ void Player::InitDefaultParameters()
 		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.223f;
 		p.isDown = false;
 
-		// Hurtboxを初期化（頭・体・足を追加）
+		// Hurtboxを初期化（頭・体・足）
 		InitDefaultHurtboxes(p.hurtboxes);
 
 		p.cancelEnabled = true; p.cancelStart = 0.0666667f; p.cancelEnd = 0.166667f;

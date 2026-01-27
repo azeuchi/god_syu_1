@@ -2,8 +2,6 @@
 #include "PlayerStateIdle.h"
 #include "Player.h"
 
-#include "LightPunch.h"
-#include "HeavyKick.h"
 
 void MediumPunch::OnEnter(Player* player)
 {

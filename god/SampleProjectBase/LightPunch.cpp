@@ -2,11 +2,6 @@
 #include "PlayerStateIdle.h"
 #include "Player.h"
 
-// 遷移先のヘッダーをインクルード
-#include "LightPunch.h"  
-#include "MediumPunch.h"
-#include "HeavyKick.h"
-
 void LightPunch::OnEnter(Player* player)
 {
 	player->PlayAnimation("LightPunch", true);

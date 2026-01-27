@@ -119,7 +119,7 @@ void SceneBlank::Init()
 
 	// ラウンドコール画像
 	m_imgRound1 = new Image2D();
-	m_imgRound1->Load("Assets/Texture/ROUND1.png", 640.0f, 360.0f, 800.0f, 200.0f);
+	m_imgRound1->Load("Assets/Texture/ROUND1.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
 	m_imgRound2 = new Image2D();
 	m_imgRound2->Load("Assets/Texture/ROUND2.png", 640.0f, 360.0f, 800.0f, 350.0f);
@@ -505,7 +505,7 @@ void SceneBlank::Update(float tick)
 
 
 	// ==========================================================
-	// 1. ラウンド終了後の待機処理
+	// ラウンド終了後の待機処理
 	// ==========================================================
 	if (m_isRoundOver)
 	{
@@ -546,7 +546,7 @@ void SceneBlank::Update(float tick)
 	else
 	{
 		// ==========================================================
-		// 2. 通常のゲーム進行
+		// 通常のゲーム進行
 		// ==========================================================
 		float playerTick = tick;
 		if (m_hitStopTimer > 0.0f)
@@ -763,7 +763,7 @@ void SceneBlank::Update(float tick)
 					SpawnHitEffect(player2);
 					player2->ReceiveDamage(p1Proj->GetDamage());
 
-					float kb = 0.5f;
+					float kb = 0.0f;
 					float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
 					float originalX = p2Pos.x;
@@ -1144,7 +1144,7 @@ void SceneBlank::Draw()
 	}
 
 	// ------------------------------------------------
-	// 3. 飛び道具 & エフェクト描画 (透過あり)
+	//  飛び道具 & エフェクト描画 
 	// ------------------------------------------------
 
 	// ブレンド設定: AlphaToCoverage ON (半透明用)
@@ -1174,7 +1174,7 @@ void SceneBlank::Draw()
 
 
 	// ------------------------------------------------
-	// 4. UIの描画 
+	// UIの描画 
 	// ------------------------------------------------
 
 	// 深度設定: UI用 (Depth ON, Func ALWAYS)
@@ -1182,14 +1182,9 @@ void SceneBlank::Draw()
 	{
 		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
 	}
-	// BlendStateは上で設定済みなのでそのまま継続利用
-
 	if (m_pDepthState)
 	{
-		// UI設定を元に戻すわけではないが、コードの流れ上ここで再設定している場合は注意
-		// GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
-		// (元のコードではここでm_pDepthStateを設定していたが、UI描画前なのでm_pDepthStateUIが正しい)
-		// UI描画ブロックに入っているのでUI用のステートが優先されるべき
+		
 	}
 
 	Sprite::SetUVScale({ 1.0f, 1.0f });

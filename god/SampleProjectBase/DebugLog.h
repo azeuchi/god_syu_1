@@ -53,10 +53,10 @@ public:
 		logStream << "[" << LogTypeToString(type) << "] ";
 		logStream << message;
 
-		// 可変引数で渡された変数を追加
+		// 可変引数で渡された変数
 		(logStream << ... << args);
  
-		// 最後に改行を追加
+		// 最後に改行
 		logStream << std::endl;
 
 		// ログをコンソールに表示

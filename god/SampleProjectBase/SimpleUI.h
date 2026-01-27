@@ -19,7 +19,7 @@ public:
     // 矩形UIを追加
     //static void AddRect(float x, float y, float w, float h, DirectX::XMFLOAT4 color);
 
-    // 矩形UIを追加（画像指定あり）
+    // 矩形UI
     static void AddRect(float x, float y, float w, float h, DirectX::XMFLOAT4 color, Texture* tex = nullptr);
 
     // 全UI描画

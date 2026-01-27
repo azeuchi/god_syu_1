@@ -2,10 +2,6 @@
 #include "PlayerStateIdle.h"
 #include "Player.h"
 
-#include "LightPunch.h"
-#include "MediumPunch.h"
-#include "HeavyKick.h"
-
 void HeavyKick::OnEnter(Player* player)
 {
 	player->PlayAnimation("HeavyKick", true);
