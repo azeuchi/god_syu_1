@@ -176,7 +176,6 @@ void SceneBlank::Init()
 
 		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 		ifs >> p.isDown;
-
 		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
 		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
 
@@ -559,7 +558,7 @@ void SceneBlank::Update(float tick)
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
 
-		// 判定ボックスの更新 (Player::Update内でも計算されるが、ここで最新を保証)
+		// 判定ボックスの更新
 		if (player) player->UpdateAttackBoxes();
 		if (player2) player2->UpdateAttackBoxes();
 
@@ -641,9 +640,8 @@ void SceneBlank::Update(float tick)
 				player2->SetPosition(pos2);
 			}
 
-			// ★ヘルパー: 相手の「現在有効な」くらい判定リストを取得する
-			// 攻撃中かつ詳細なHurtboxがあればそれを使い、なければ標準の3つ(頭・体・足)を使う
-			// これにより、デバッグシーンで調整した判定が本編でも適用される
+			// ヘルパー: 相手のくらい判定リストを正しく取得する
+			// 攻撃中かつアクティブなHurtboxがあればそれを使い、なければ標準の3つを使う
 			auto GetTargetHurtboxes = [](const Player* target) -> std::vector<DirectX::BoundingBox> {
 				if (target->IsAttacking() && !target->GetActiveHurtboxes().empty()) {
 					return target->GetActiveHurtboxes();
@@ -664,7 +662,7 @@ void SceneBlank::Update(float tick)
 				if (!player2->IsInvincible())
 				{
 					const auto& hitboxes = player->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player2); // ★ここで全身を取得
+					auto hurtboxes = GetTargetHurtboxes(player2); // 全身判定を使用
 
 					for (const auto& atk : hitboxes)
 					{
@@ -748,7 +746,7 @@ void SceneBlank::Update(float tick)
 			Projectile* p1Proj = player->GetProjectile();
 			if (p1Proj && p1Proj->IsActive() && !m_isRoundOver)
 			{
-				auto hurtboxes = GetTargetHurtboxes(player2); // ★飛び道具も全身判定
+				auto hurtboxes = GetTargetHurtboxes(player2); // 飛び道具も全身判定
 				bool projHit = false;
 				for (const auto& hurt : hurtboxes)
 				{
@@ -814,7 +812,7 @@ void SceneBlank::Update(float tick)
 				if (!player->IsInvincible())
 				{
 					const auto& hitboxes = player2->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player); // ★ここで全身を取得
+					auto hurtboxes = GetTargetHurtboxes(player); // 全身判定を使用
 
 					for (const auto& atk : hitboxes)
 					{
@@ -897,7 +895,7 @@ void SceneBlank::Update(float tick)
 			Projectile* p2Proj = player2->GetProjectile();
 			if (p2Proj && p2Proj->IsActive() && !m_isRoundOver)
 			{
-				auto hurtboxes = GetTargetHurtboxes(player); // ★飛び道具も全身判定
+				auto hurtboxes = GetTargetHurtboxes(player); // 全身判定を使用
 				bool projHit = false;
 				for (const auto& hurt : hurtboxes)
 				{

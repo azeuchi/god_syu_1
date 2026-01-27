@@ -198,7 +198,7 @@ void SceneDebug::Init()
 			ifs >> p.totalDuration;
 			ifs >> p.hitboxStart >> p.hitboxEnd;
 
-			// 判定ボックス読み込み (AnimatedBox対応)
+			// 判定ボックス読み込み 
 			auto LoadAnimatedBoxes = [&](std::vector<AnimatedBox>& targetList) {
 				size_t boxCount = 0;
 				ifs >> boxCount;

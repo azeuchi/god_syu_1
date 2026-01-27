@@ -52,7 +52,7 @@ void Projectile::Update(float tick)
 	m_hitbox.Center = m_position;
 	m_hitbox.Extents = { m_size * 0.5f, m_size * 0.5f, 0.1f };
 
-	// カメラ外判定（簡易的に原点からの距離）
+	// カメラ外判定
 	if (fabsf(m_position.x) > CAMERA_OUT_LIMIT)
 	{
 		m_isActive = false;

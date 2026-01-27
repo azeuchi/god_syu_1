@@ -289,7 +289,8 @@ void Player::InitDefaultParameters()
 		p.speedModifiers.clear();
 		p.speedModifiers.push_back({ 0.0f, 6.0f, 0.463f });
 		p.speedModifiers.push_back({ 7.0f, 16.0f, 1.006f });
-		p.speedModifiers.push_back({ 17.0f, 30.0f, 0.345f });
+		p.speedModifiers.push_back(
+			{ 17.0f, 30.0f, 0.345f });
 	}
 
 	// --- Hadouken (L/M/H) ---
