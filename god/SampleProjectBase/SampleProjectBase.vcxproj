@@ -199,6 +199,7 @@
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="MoveLight.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerParameterLoader.cpp" />
     <ClCompile Include="PlayerState.cpp" />
     <ClCompile Include="PlayerStateAir.cpp" />
     <ClCompile Include="PlayerStateCrouch.cpp" />
@@ -264,6 +265,7 @@
     <ClInclude Include="Model.h" />
     <ClInclude Include="MoveLight.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerParameterLoader.h" />
     <ClInclude Include="PlayerState.h" />
     <ClInclude Include="PlayerStateAir.h" />
     <ClInclude Include="PlayerStateCrouch.h" />

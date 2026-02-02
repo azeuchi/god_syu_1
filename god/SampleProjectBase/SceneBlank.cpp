@@ -16,6 +16,7 @@
 #include <algorithm> 
 #include <cmath>
 #include "Projectile.h"
+#include "PlayerParameterLoader.h" 
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -111,103 +112,8 @@ void SceneBlank::Init()
 	Player* player = GetObj<Player>("Player");
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
-	// デフォルト値 
-	float moveSpeed = 2.0f;
-	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-
-	// ファイルから読み込み用ヘルパーラムダ
-	auto LoadOneParam = [&](AttackParams& p, std::ifstream& ifs) {
-		if (ifs.eof()) return;
-		ifs >> p.totalDuration;
-		ifs >> p.hitboxStart >> p.hitboxEnd;
-
-		// 判定ボックス読み込み (AnimatedBox対応)
-		auto LoadAnimatedBoxes = [&](std::vector<AnimatedBox>& targetList) {
-			size_t boxCount = 0;
-			ifs >> boxCount;
-			targetList.clear();
-			for (size_t i = 0; i < boxCount; ++i)
-			{
-				AnimatedBox abox;
-				size_t keyframeCount = 0;
-				ifs >> keyframeCount;
-				for (size_t k = 0; k < keyframeCount; ++k)
-				{
-					BoxKeyframe key;
-					ifs >> key.frame;
-					ifs >> key.data.offset.x >> key.data.offset.y >> key.data.extents.x >> key.data.extents.y;
-					abox.keyframes.push_back(key);
-				}
-				targetList.push_back(abox);
-			}
-			};
-
-		// 攻撃判定 (Hitbox)
-		LoadAnimatedBoxes(p.hitboxes);
-		// くらい判定 (Hurtbox)
-		LoadAnimatedBoxes(p.hurtboxes);
-
-		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
-		ifs >> p.isDown;
-		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
-		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
-
-		// 速度変化リスト読み込み
-		size_t count = 0;
-		if (!ifs.eof()) ifs >> count;
-		p.speedModifiers.clear();
-		for (size_t k = 0; k < count; ++k) {
-			AnimSpeedModifier mod;
-			ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
-			p.speedModifiers.push_back(mod);
-		}
-
-		// 飛び道具設定読み込み
-		if (!ifs.eof()) {
-			ifs >> p.projectileSpeed >> p.projectileSize;
-		}
-		};
-
-	std::ifstream ifs(SETTINGS_FILE);
-	if (ifs.is_open())
-	{
-		ifs >> moveSpeed;
-		ifs >> scale.x >> scale.y >> scale.z;
-
-		// 立ち状態の当たり判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxBase((HurtboxType)i, off, ext);
-		}
-
-		// しゃがみ状態の当たり判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
-		}
-
-		// 各攻撃のパラメータ
-		LoadOneParam(player->GetLightPunchParams(), ifs);
-		LoadOneParam(player->GetMediumPunchParams(), ifs);
-		LoadOneParam(player->GetHeavyPunchParams(), ifs);
-		LoadOneParam(player->GetMediumKickParams(), ifs);
-		LoadOneParam(player->GetHeavyKickParams(), ifs);
-		LoadOneParam(player->GetHadoukenLParams(), ifs);
-		LoadOneParam(player->GetHadoukenMParams(), ifs);
-		LoadOneParam(player->GetHadoukenHParams(), ifs);
-
-		ifs.close();
-		// ファイル読み込み成功時はその値で上書き
-		player->SetMoveSpeed(moveSpeed);
-		player->SetScale(scale);
-	}
-	else
-	{
-		// 読み込み失敗時はPlayerクラスの初期値が使われるので何もしない
-		DebugLog::log(DebugLog::WARNING_LOG, "設定ファイルが見つかりません。デフォルト値を使用します。");
-	}
+	// 設定ファイルからパラメータを読み込み
+	PlayerParameterLoader::LoadSettings(player, SETTINGS_FILE);
 
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -246,24 +152,7 @@ void SceneBlank::Init()
 	player2->SetScale(scaleP2);
 
 	// P1からパラメータをコピー
-	player2->GetLightPunchParams() = player->GetLightPunchParams();
-	player2->GetMediumPunchParams() = player->GetMediumPunchParams();
-	player2->GetHeavyPunchParams() = player->GetHeavyPunchParams();
-	player2->GetMediumKickParams() = player->GetMediumKickParams();
-	player2->GetHeavyKickParams() = player->GetHeavyKickParams();
-	player2->GetHadoukenLParams() = player->GetHadoukenLParams();
-	player2->GetHadoukenMParams() = player->GetHadoukenMParams();
-	player2->GetHadoukenHParams() = player->GetHadoukenHParams();
-
-	// 当たり判定情報のコピー
-	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-		player2->SetHurtboxBase((HurtboxType)i,
-			player->GetHurtboxBaseOffset((HurtboxType)i),
-			player->GetHurtboxBaseExtents((HurtboxType)i));
-		player2->SetHurtboxCrouch((HurtboxType)i,
-			player->GetHurtboxCrouchOffset((HurtboxType)i),
-			player->GetHurtboxCrouchExtents((HurtboxType)i));
-	}
+	PlayerParameterLoader::CopyParameters(player, player2);
 
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -279,7 +168,6 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
@@ -675,7 +563,7 @@ void SceneBlank::Draw()
 	// 背景の描画
 	if (m_skyDome)
 	{
-		// 元の引数ありのDrawに戻す
+	
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 
@@ -708,7 +596,7 @@ void SceneBlank::Draw()
 	}
 
 	//  プレイヤー2の描画
-	Player* player2 = GetObj<Player>("Player2"); // ここでplayer2を取得 
+	Player* player2 = GetObj<Player>("Player2"); 
 	if (player2) {
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
