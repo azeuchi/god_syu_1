@@ -15,8 +15,6 @@
 #include <fstream> 
 #include <algorithm> 
 #include <cmath>
-#include "PlayerStateDamage.h"
-#include "PlayerStateDown.h"
 #include "Projectile.h"
 
 using namespace DirectX;
@@ -100,35 +98,10 @@ void SceneBlank::Init()
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
-	// UI（HPバー・ラウンド画像）の初期化
+	// UIマネージャの初期化
 	// ==================================================
-	m_barMaxWidth = 500.0f;
-
-	m_hpBar = new Image2D();
-	m_hpBarPos = { 330.0f, 80.0f };
-	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
-
-	m_enemyhpBar = new Image2D();
-	m_enemyHpBarPos = { 950.0f, 80.0f };
-	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
-
-	// フェード用画像
-	m_fadeBlack = new Image2D();
-	m_fadeBlack->Load("Assets/Texture/black.png", 640.0f, 360.0f, 1280.0f, 720.0f);
-	m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-	// ラウンドコール画像
-	m_imgRound1 = new Image2D();
-	m_imgRound1->Load("Assets/Texture/ROUND1.png", 640.0f, 360.0f, 800.0f, 350.0f);
-
-	m_imgRound2 = new Image2D();
-	m_imgRound2->Load("Assets/Texture/ROUND2.png", 640.0f, 360.0f, 800.0f, 350.0f);
-
-	m_imgFinalRound = new Image2D();
-	m_imgFinalRound->Load("Assets/Texture/FINALROUND.png", 640.0f, 360.0f, 800.0f, 350.0f);
-
-	m_imgFight = new Image2D();
-	m_imgFight->Load("Assets/Texture/FIGHT.png", 640.0f, 360.0f, 800.0f, 350.0f);
+	m_uiManager = new BattleUIManager();
+	m_uiManager->Init();
 
 
 	// ==================================================
@@ -340,14 +313,6 @@ void SceneBlank::Init()
 	depthDesc.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthState);
 
-	// UI用の深度ステート
-	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
-	depthDescUI.DepthEnable = TRUE;
-	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS; // 常に手前に描画
-	depthDescUI.StencilEnable = FALSE;
-	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
-
 	// 半透明合成用ブレンドステート 
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = TRUE;
@@ -365,21 +330,17 @@ void SceneBlank::Init()
 
 void SceneBlank::Uninit()
 {
-	if (m_hpBar) delete m_hpBar;
-	if (m_enemyhpBar) delete m_enemyhpBar;
-	if (m_fadeBlack) { delete m_fadeBlack; m_fadeBlack = nullptr; }
-
-	if (m_imgRound1) { delete m_imgRound1; m_imgRound1 = nullptr; }
-	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }
-	if (m_imgFinalRound) { delete m_imgFinalRound; m_imgFinalRound = nullptr; }
-	if (m_imgFight) { delete m_imgFight; m_imgFight = nullptr; }
+	if (m_uiManager)
+	{
+		delete m_uiManager;
+		m_uiManager = nullptr;
+	}
 
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
 
 	// 描画設定の解放
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
-	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 }
 
@@ -407,9 +368,9 @@ void SceneBlank::ResetRound()
 
 	m_phaseTimer = 0.0f;
 
-	if (m_fadeBlack)
+	if (m_uiManager)
 	{
-		m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
+		m_uiManager->Reset();
 	}
 
 	// 1Pリセット
@@ -431,12 +392,6 @@ void SceneBlank::ResetRound()
 		player2->Reset();
 		player2->SetInputType(PlayerInputType::AI);
 	}
-
-	// HPバー初期化
-	if (m_hpBar) m_hpBar->SetSize(m_barMaxWidth, 80.0f);
-	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, 80.0f);
-	if (m_hpBar) m_hpBar->SetPosition(m_hpBarPos.x, m_hpBarPos.y);
-	if (m_enemyhpBar) m_enemyhpBar->SetPosition(m_enemyHpBarPos.x, m_enemyHpBarPos.y);
 
 	// カメラリセット
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
@@ -513,18 +468,18 @@ void SceneBlank::Update(float tick)
 
 		bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
 
-		if (!isGameSet && m_fadeBlack)
+		if (!isGameSet && m_uiManager)
 		{
 			if (m_roundEndTimer < WAIT_BEFORE_FADE)
 			{
-				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
+				m_uiManager->SetFadeAlpha(0.0f);
 			}
 			else
 			{
 				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
 				if (progress > 1.0f) progress = 1.0f;
 				float alpha = 0.1f + (progress * 0.9f);
-				m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, alpha);
+				m_uiManager->SetFadeAlpha(alpha);
 			}
 		}
 
@@ -558,400 +513,37 @@ void SceneBlank::Update(float tick)
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
 
-		// 判定ボックスの更新
-		if (player) player->UpdateAttackBoxes();
-		if (player2) player2->UpdateAttackBoxes();
+		// ==========================================================
+		// 衝突・攻撃判定を一括処理
+		// ==========================================================
+		CollisionResult result = BattleCollision::UpdateInteractions(
+			player,
+			player2,
+			playerTick,
+			m_hitEffects,
+			STAGE_LIMIT_X
+		);
 
-
-		// 向きの制御
-		if (player && player2)
+		// 結果の適用
+		if (result.isRoundOver)
 		{
-			float x1 = player->GetPosition().x;
-			float x2 = player2->GetPosition().x;
-			float absScale1 = fabsf(player->GetScale().x);
-			float absScale2 = fabsf(player2->GetScale().x);
-			DirectX::XMFLOAT3 s1 = player->GetScale();
-			DirectX::XMFLOAT3 s2 = player2->GetScale();
-			float rotLeft = DirectX::XM_PI / 2.0f;
-			float rotRight = DirectX::XM_PI / -2.0f;
-
-			if (x1 < x2) {
-				s1.x = absScale1; player->SetScale(s1); player->SetRotation({ 0.0f, rotRight, 0.0f });
-				s2.x = -absScale2; player2->SetScale(s2); player2->SetRotation({ 0.0f, rotLeft, 0.0f });
-			}
-			else {
-				s1.x = -absScale1; player->SetScale(s1); player->SetRotation({ 0.0f, rotLeft, 0.0f });
-				s2.x = absScale2; player2->SetScale(s2); player2->SetRotation({ 0.0f, rotRight, 0.0f });
-			}
+			m_isRoundOver = true;
+			m_winCountP1 += result.winCountP1ToAdd;
+			m_winCountP2 += result.winCountP2ToAdd;
 		}
 
-		// 移動制限
-		if (player) {
-			XMFLOAT3 pos = player->GetPosition();
-			pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-			player->SetPosition(pos);
-		}
-		if (player2) {
-			XMFLOAT3 pos = player2->GetPosition();
-			pos.x = std::clamp(pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-			player2->SetPosition(pos);
-		}
-
-		// 衝突判定と押し出し
-		if (player && player2)
+		if (result.hitStopTimer > 0.0f)
 		{
-			bool isColliding = player->CheckCollision(player2);
-			player->SetIsColliding(isColliding);
-			player2->SetIsColliding(isColliding);
+			m_hitStopTimer = result.hitStopTimer;
+		}
 
-			if (isColliding && !player->IsAttacking() && !player2->IsAttacking())
-			{
-				DirectX::BoundingBox box1 = player->GetHurtbox(HurtboxType::BODY);
-				DirectX::BoundingBox box2 = player2->GetHurtbox(HurtboxType::BODY);
-				DirectX::XMFLOAT3 pos1 = player->GetPosition();
-				DirectX::XMFLOAT3 pos2 = player2->GetPosition();
+		if (result.shakeTimerP1 > 0.0f) m_shakeTimerP1 = result.shakeTimerP1;
+		if (result.shakeTimerP2 > 0.0f) m_shakeTimerP2 = result.shakeTimerP2;
 
-				float deltaX = box1.Center.x - box2.Center.x;
-				float sumExtentsX = box1.Extents.x + box2.Extents.x;
-				float overlapX = sumExtentsX - abs(deltaX);
-
-				float deltaY = box1.Center.y - box2.Center.y;
-				float sumExtentsY = box1.Extents.y + box2.Extents.y;
-				float overlapY = sumExtentsY - abs(deltaY);
-
-				DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
-
-				if (overlapX < overlapY) {
-					float pushAmount = overlapX / 2.0f;
-					float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
-					pushVector.x = direction * pushAmount;
-				}
-				else {
-					float pushAmount = overlapY / 2.0f;
-					float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
-					pushVector.y = direction * pushAmount;
-				}
-
-				pos1.x += pushVector.x; pos2.x -= pushVector.x;
-				pos1.y += pushVector.y; pos2.y -= pushVector.y;
-				pos1.x = std::clamp(pos1.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-				pos2.x = std::clamp(pos2.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-				player->SetPosition(pos1);
-				player2->SetPosition(pos2);
-			}
-
-			// ヘルパー: 相手のくらい判定リストを正しく取得する
-			// 攻撃中かつアクティブなHurtboxがあればそれを使い、なければ標準の3つを使う
-			auto GetTargetHurtboxes = [](const Player* target) -> std::vector<DirectX::BoundingBox> {
-				if (target->IsAttacking() && !target->GetActiveHurtboxes().empty()) {
-					return target->GetActiveHurtboxes();
-				}
-				// 攻撃中でないなら、頭・体・足の3つを返す
-				std::vector<DirectX::BoundingBox> boxes;
-				boxes.push_back(target->GetHurtbox(HurtboxType::HEAD));
-				boxes.push_back(target->GetHurtbox(HurtboxType::BODY));
-				boxes.push_back(target->GetHurtbox(HurtboxType::LEGS));
-				return boxes;
-				};
-
-
-			// --- 攻撃判定 (P1 -> P2) ---
-			bool hit2 = false;
-			if (player->IsAttacking() && !player->HasHit())
-			{
-				if (!player2->IsInvincible())
-				{
-					const auto& hitboxes = player->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player2); // 全身判定を使用
-
-					for (const auto& atk : hitboxes)
-					{
-						if (hit2) break;
-						for (const auto& hurt : hurtboxes)
-						{
-							if (atk.Intersects(hurt))
-							{
-								hit2 = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-
-			if (hit2)
-			{
-				SpawnHitEffect(player2);
-
-				AttackParams* params = player->GetCurrentAttackParams();
-				int dmg = (params != nullptr) ? params->damage : 0;
-				int stun = (params != nullptr) ? params->hitFrame : 30;
-				bool isDown = (params != nullptr) ? params->isDown : false;
-
-				player2->ReceiveDamage(dmg);
-				player->OnHit();
-
-				float kb = (params != nullptr) ? params->knockback : 0.0f;
-				float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-
-				DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
-				float originalX = p2Pos.x;
-				float targetX = originalX + (dir * kb);
-				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-				p2Pos.x = clampedX;
-				player2->SetPosition(p2Pos);
-
-				float movedDist = fabsf(clampedX - originalX);
-				float pushBackDist = kb - movedDist;
-
-				if (pushBackDist > 0.0f)
-				{
-					DirectX::XMFLOAT3 p1Pos = player->GetPosition();
-					p1Pos.x -= dir * pushBackDist;
-					p1Pos.x = std::clamp(p1Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-					player->SetPosition(p1Pos);
-				}
-
-				if (isDown)
-				{
-					player2->SetState(new PlayerStateDown());
-				}
-				else
-				{
-					player2->SetState(new PlayerStateDamage(stun));
-				}
-
-				float ratio = player2->GetHpRatio();
-				float currentWidth = m_barMaxWidth * ratio;
-				float reduceWidth = m_barMaxWidth - currentWidth;
-				m_enemyhpBar->SetSize(currentWidth, 80.0f);
-				m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
-
-				float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
-				m_hitStopTimer = stopTime;
-				m_shakeTimerP2 = stopTime;
-
-				if (player2->GetHpRatio() <= 0.0f)
-				{
-					m_winCountP1++;
-					m_isRoundOver = true;
-					player->SetInputType(PlayerInputType::AI);
-					player2->SetInputType(PlayerInputType::AI);
-					DebugLog::log(DebugLog::INFO_LOG, "P1 WIN ROUND!");
-				}
-			}
-
-			// --- 飛び道具判定 (P1 -> P2) ---
-			Projectile* p1Proj = player->GetProjectile();
-			if (p1Proj && p1Proj->IsActive() && !m_isRoundOver)
-			{
-				auto hurtboxes = GetTargetHurtboxes(player2); // 飛び道具も全身判定
-				bool projHit = false;
-				for (const auto& hurt : hurtboxes)
-				{
-					if (p1Proj->GetHitbox().Intersects(hurt))
-					{
-						projHit = true;
-						break;
-					}
-				}
-
-				if (projHit)
-				{
-					p1Proj->Deactivate();
-					SpawnHitEffect(player2);
-					player2->ReceiveDamage(p1Proj->GetDamage());
-
-					float kb = 0.0f;
-					float dir = (player->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
-					float originalX = p2Pos.x;
-					float targetX = originalX + (dir * kb);
-					float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-					p2Pos.x = clampedX;
-					player2->SetPosition(p2Pos);
-
-					float movedDist = fabsf(clampedX - originalX);
-					float pushBackDist = kb - movedDist;
-
-					if (pushBackDist > 0.0f)
-					{
-						DirectX::XMFLOAT3 p1Pos = player->GetPosition();
-						p1Pos.x -= dir * pushBackDist;
-						p1Pos.x = std::clamp(p1Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-						player->SetPosition(p1Pos);
-					}
-
-					player2->SetState(new PlayerStateDamage(15));
-
-					float ratio = player2->GetHpRatio();
-					float currentWidth = m_barMaxWidth * ratio;
-					float reduceWidth = m_barMaxWidth - currentWidth;
-					m_enemyhpBar->SetSize(currentWidth, 80.0f);
-					m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth / 2.0f), m_enemyHpBarPos.y);
-					m_hitStopTimer = 0.1f;
-					m_shakeTimerP2 = 0.1f;
-
-					if (player2->GetHpRatio() <= 0.0f)
-					{
-						m_winCountP1++;
-						m_isRoundOver = true;
-						player->SetInputType(PlayerInputType::AI);
-						player2->SetInputType(PlayerInputType::AI);
-						DebugLog::log(DebugLog::INFO_LOG, "P1 WIN ROUND!");
-					}
-				}
-			}
-
-
-			// --- 攻撃判定 (P2 -> P1) ---
-			bool hit1 = false;
-			if (!m_isRoundOver && player2->IsAttacking() && !player2->HasHit())
-			{
-				if (!player->IsInvincible())
-				{
-					const auto& hitboxes = player2->GetActiveHitboxes();
-					auto hurtboxes = GetTargetHurtboxes(player); // 全身判定を使用
-
-					for (const auto& atk : hitboxes)
-					{
-						if (hit1) break;
-						for (const auto& hurt : hurtboxes)
-						{
-							if (atk.Intersects(hurt))
-							{
-								hit1 = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			if (hit1)
-			{
-				SpawnHitEffect(player);
-
-				AttackParams* params = player2->GetCurrentAttackParams();
-				int dmg = (params != nullptr) ? params->damage : 0;
-				int stun = (params != nullptr) ? params->hitFrame : 30;
-				bool isDown = (params != nullptr) ? params->isDown : false;
-
-				player->ReceiveDamage(dmg);
-				player2->OnHit();
-
-				float kb = (params != nullptr) ? params->knockback : 0.0f;
-				float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-
-				DirectX::XMFLOAT3 p1Pos = player->GetPosition();
-				float originalX = p1Pos.x;
-				float targetX = originalX + (dir * kb);
-				float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-				p1Pos.x = clampedX;
-				player->SetPosition(p1Pos);
-
-				float movedDist = fabsf(clampedX - originalX);
-				float pushBackDist = kb - movedDist;
-
-				if (pushBackDist > 0.0f)
-				{
-					DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
-					p2Pos.x -= dir * pushBackDist;
-					p2Pos.x = std::clamp(p2Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-					player2->SetPosition(p2Pos);
-				}
-
-				if (isDown)
-				{
-					player->SetState(new PlayerStateDown());
-				}
-				else
-				{
-					player->SetState(new PlayerStateDamage(stun));
-				}
-
-				float ratio = player->GetHpRatio();
-				float currentWidth = m_barMaxWidth * ratio;
-				float reduceWidth = m_barMaxWidth - currentWidth;
-				m_hpBar->SetSize(currentWidth, 80.0f);
-				m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
-
-				float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
-				m_hitStopTimer = stopTime;
-				m_shakeTimerP1 = stopTime;
-
-				if (player->GetHpRatio() <= 0.0f)
-				{
-					m_winCountP2++;
-					m_isRoundOver = true;
-					player->SetInputType(PlayerInputType::AI);
-					player2->SetInputType(PlayerInputType::AI);
-					DebugLog::log(DebugLog::INFO_LOG, "P2 WIN ROUND!");
-				}
-			}
-
-			// --- 飛び道具判定 (P2 -> P1) ---
-			Projectile* p2Proj = player2->GetProjectile();
-			if (p2Proj && p2Proj->IsActive() && !m_isRoundOver)
-			{
-				auto hurtboxes = GetTargetHurtboxes(player); // 全身判定を使用
-				bool projHit = false;
-				for (const auto& hurt : hurtboxes)
-				{
-					if (p2Proj->GetHitbox().Intersects(hurt))
-					{
-						projHit = true;
-						break;
-					}
-				}
-
-				if (projHit)
-				{
-					p2Proj->Deactivate();
-					SpawnHitEffect(player);
-					player->ReceiveDamage(p2Proj->GetDamage());
-
-					float kb = 0.5f;
-					float dir = (player2->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-					DirectX::XMFLOAT3 p1Pos = player->GetPosition();
-					float originalX = p1Pos.x;
-					float targetX = originalX + (dir * kb);
-					float clampedX = std::clamp(targetX, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-					p1Pos.x = clampedX;
-					player->SetPosition(p1Pos);
-
-					float movedDist = fabsf(clampedX - originalX);
-					float pushBackDist = kb - movedDist;
-
-					if (pushBackDist > 0.0f)
-					{
-						DirectX::XMFLOAT3 p2Pos = player2->GetPosition();
-						p2Pos.x -= dir * pushBackDist;
-						p2Pos.x = std::clamp(p2Pos.x, -STAGE_LIMIT_X, STAGE_LIMIT_X);
-						player2->SetPosition(p2Pos);
-					}
-
-					player->SetState(new PlayerStateDamage(15));
-
-					float ratio = player->GetHpRatio();
-					float currentWidth = m_barMaxWidth * ratio;
-					float reduceWidth = m_barMaxWidth - currentWidth;
-					m_hpBar->SetSize(currentWidth, 80.0f);
-					m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth / 2.0f), m_hpBarPos.y);
-					m_hitStopTimer = 0.1f;
-					m_shakeTimerP1 = 0.1f;
-
-					if (player->GetHpRatio() <= 0.0f)
-					{
-						m_winCountP2++;
-						m_isRoundOver = true;
-						player->SetInputType(PlayerInputType::AI);
-						player2->SetInputType(PlayerInputType::AI);
-						DebugLog::log(DebugLog::INFO_LOG, "P2 WIN ROUND!");
-					}
-				}
-			}
+		// UI更新
+		if (m_uiManager && player && player2)
+		{
+			m_uiManager->UpdateHPBars(player->GetHpRatio(), player2->GetHpRatio());
 		}
 	}
 
@@ -1176,93 +768,11 @@ void SceneBlank::Draw()
 	// ------------------------------------------------
 	// UIの描画 
 	// ------------------------------------------------
-
-	// 深度設定: UI用 (Depth ON, Func ALWAYS)
-	if (m_pDepthStateUI)
+	if (m_uiManager)
 	{
-		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
-	}
-	if (m_pDepthState)
-	{
-		
+		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2);
 	}
 
-	Sprite::SetUVScale({ 1.0f, 1.0f });
-	Sprite::SetUVPos({ 0.0f, 0.0f });
-
-	// UIリストクリアと行列初期化
-	SimpleUI::Clear();
-	DirectX::XMFLOAT4X4 identity;
-	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
-	SimpleUI::SetMatrix(identity, identity, identity);
-
-	// --- HPバー描画登録 ---
-	if (m_hpBar) m_hpBar->Draw();
-	if (m_enemyhpBar) m_enemyhpBar->Draw();
-
-
-	GetContext()->PSSetShader(nullptr, nullptr, 0);
-
-	// --- ラウンド演出の描画登録 ---
-	if (m_currentPhase == RoundPhase::ROUND_CALL)
-	{
-		// 勝利数に応じて表示画像を切り替え
-		if (m_winCountP1 == 0 && m_winCountP2 == 0)
-		{
-			if (m_imgRound1) m_imgRound1->Draw();
-		}
-		else if (m_winCountP1 == 1 && m_winCountP2 == 1)
-		{
-			// 1-1 ならファイナルラウンド
-			if (m_imgFinalRound) m_imgFinalRound->Draw();
-		}
-		else
-		{
-			// それ以外 (1-0 or 0-1) ならラウンド2
-			if (m_imgRound2) m_imgRound2->Draw();
-		}
-	}
-	else if (m_currentPhase == RoundPhase::FIGHT_CALL)
-	{
-		if (m_imgFight) m_imgFight->Draw();
-	}
-
-	// --- フェード画像の描画登録 ---
-	bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
-	if (m_isRoundOver && !isGameSet && m_fadeBlack)
-	{
-		// フェード進行度を計算
-		float progress = 0.0f;
-		if (m_roundEndTimer >= WAIT_BEFORE_FADE)
-		{
-			progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
-			if (progress > 1.0f) progress = 1.0f;
-		}
-
-		// 透明度設定 (0.1スタート)
-		float alpha = 0.1f + (progress * 0.9f);
-		m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, alpha);
-		m_fadeBlack->Draw();
-	}
-
-	// まとめて描画実行
-	SimpleUI::DrawAll();
-
-	// 設定をデフォルトに戻す
-	Sprite::SetUVScale({ 1.0f, 1.0f }); // 全体表示に戻す
-	Sprite::SetUVPos({ 0.0f, 0.0f });   // 原点に戻す
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
-}
-
-void SceneBlank::SpawnHitEffect(Player* target)
-{
-	for (auto effect : m_hitEffects)
-	{
-		if (!effect->IsActive())
-		{
-			effect->Activate(target); // プレイヤーを渡す
-			break;
-		}
-	}
 }

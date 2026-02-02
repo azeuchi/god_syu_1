@@ -1,10 +1,11 @@
 #pragma once
 #include "SceneBase.hpp"
-#include "Image2D.h"
 #include "SkyDome.h"
-#include <DirectXMath.h> // XMFLOAT2用
-#include <d3d11.h>       // DirectX用
+#include <DirectXMath.h> 
+#include <d3d11.h>       
 #include "HitEffect.h"
+#include "BattleUIManager.h" // UI管理クラス
+#include "BattleCollision.h" // 衝突判定管理クラス
 
 /**
  * @brief メインのゲームシーン
@@ -26,46 +27,20 @@ private:
 	void ResetRound();
 
 private:
-	// HPバー表示用クラス
-	Image2D* m_hpBar;
-	Image2D* m_enemyhpBar;
-	SkyDome* m_skyDome;
+	// UIマネージャ
+	BattleUIManager* m_uiManager;
 
-	// フェード用画像
-	Image2D* m_fadeBlack;
+	SkyDome* m_skyDome;
 
 	//エフェクト管理用リスト
 	std::vector<HitEffect*> m_hitEffects;
 
-	//エフェクト発生用ヘルパー関数
-	void SpawnHitEffect(Player* target);
-
-	// ラウンド開始演出用画像
-	Image2D* m_imgRound1 = nullptr;
-	Image2D* m_imgRound2 = nullptr;
-	Image2D* m_imgFinalRound = nullptr;
-	Image2D* m_imgFight = nullptr;
-
-	// 演出用ステート定義
-	enum class RoundPhase {
-		READY,      // 開始前の溜め (ラウンド1のみ使用)
-		ROUND_CALL, // ラウンド数表示
-		FIGHT_CALL, // FIGHT表示
-		PLAYING     // 試合中
-	};
-
 	RoundPhase m_currentPhase = RoundPhase::READY;
 	float m_phaseTimer = 0.0f;
 
-	// HPバーの初期位置・サイズを記憶しておく変数
-	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
-	DirectX::XMFLOAT2 m_enemyHpBarPos; // 2Pの初期座標
-	float m_barMaxWidth = 500.0f;      // バーの最大幅 (満タン時)
-
 	// 描画設定
 	ID3D11DepthStencilState* m_pDepthState = nullptr;   // スカイドーム用
-	ID3D11DepthStencilState* m_pDepthStateUI = nullptr; // UI用 (Depth ON, ALWAYS)
-	ID3D11BlendState* m_pBlendState = nullptr;          // UI用 (AlphaToCoverage)
+	ID3D11BlendState* m_pBlendState = nullptr;          // 半透明用
 
 	// ヒットストップ演出用タイマー
 	float m_hitStopTimer = 0.0f;

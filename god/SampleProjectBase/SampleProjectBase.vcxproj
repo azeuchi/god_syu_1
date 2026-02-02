@@ -175,6 +175,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Ball.cpp" />
+    <ClCompile Include="BattleCollision.cpp" />
+    <ClCompile Include="BattleUIManager.cpp" />
     <ClCompile Include="Box.cpp" />
     <ClCompile Include="CameraDCC.cpp" />
     <ClCompile Include="CameraBase.cpp" />
@@ -236,6 +238,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Ball.h" />
+    <ClInclude Include="BattleCollision.h" />
+    <ClInclude Include="BattleUIManager.h" />
     <ClInclude Include="Box.h" />
     <ClInclude Include="CameraDCC.h" />
     <ClInclude Include="CameraBase.h" />
