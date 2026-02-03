@@ -2,13 +2,15 @@
 #include "SimpleUI.h"
 #include "UISprite.h"
 #include "Texture.h"
-#include "Sprite.h" // Spriteクラスのために追加
+#include "Sprite.h" 
 
 BattleUIManager::BattleUIManager()
 	: m_hpBar(nullptr), m_enemyhpBar(nullptr), m_fadeBlack(nullptr)
+	, m_hpFrame(nullptr), m_enemyhpFrame(nullptr)
 	, m_imgRound1(nullptr), m_imgRound2(nullptr), m_imgFinalRound(nullptr), m_imgFight(nullptr)
 	, m_pDepthStateUI(nullptr), m_pBlendState(nullptr)
-	, m_barMaxWidth(500.0f)
+	, m_barMaxWidth(400.0f)
+	,m_barHeight(40.0f)
 	, m_currentFadeAlpha(0.0f)
 {
 	m_hpBarPos = { 330.0f, 80.0f };
@@ -29,10 +31,16 @@ void BattleUIManager::Init()
 	m_currentFadeAlpha = 0.0f;
 
 	m_hpBar = new Image2D();
-	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, 80.0f);
+	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, m_barHeight);
 
 	m_enemyhpBar = new Image2D();
-	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, 80.0f);
+	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, m_barHeight);
+
+	m_hpFrame = new Image2D();
+	m_hpFrame->Load("Assets/Texture/hpframe.png", 330.0f, 80.0f, 550.0f, 80.0f);
+
+	m_enemyhpFrame = new Image2D();
+	m_enemyhpFrame->Load("Assets/Texture/hpframe.png", 950.0f, 80.0f, 550.0f, 80.0f);
 
 	// フェード用画像
 	m_fadeBlack = new Image2D();
@@ -81,6 +89,9 @@ void BattleUIManager::Uninit()
 	if (m_enemyhpBar) { delete m_enemyhpBar; m_enemyhpBar = nullptr; }
 	if (m_fadeBlack) { delete m_fadeBlack; m_fadeBlack = nullptr; }
 
+	if (m_hpFrame) { delete m_hpFrame; m_hpFrame = nullptr; }
+	if (m_enemyhpFrame) { delete m_enemyhpFrame; m_enemyhpFrame = nullptr; }
+
 	if (m_imgRound1) { delete m_imgRound1; m_imgRound1 = nullptr; }
 	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }
 	if (m_imgFinalRound) { delete m_imgFinalRound; m_imgFinalRound = nullptr; }
@@ -93,8 +104,8 @@ void BattleUIManager::Uninit()
 void BattleUIManager::Reset()
 {
 	// HPバー初期化
-	if (m_hpBar) m_hpBar->SetSize(m_barMaxWidth, 80.0f);
-	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, 80.0f);
+	if (m_hpBar) m_hpBar->SetSize(m_barMaxWidth, m_barHeight);
+	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, m_barHeight);
 	if (m_hpBar) m_hpBar->SetPosition(m_hpBarPos.x, m_hpBarPos.y);
 	if (m_enemyhpBar) m_enemyhpBar->SetPosition(m_enemyHpBarPos.x, m_enemyHpBarPos.y);
 
@@ -110,13 +121,13 @@ void BattleUIManager::UpdateHPBars(float p1Ratio, float p2Ratio)
 	// P1
 	float currentWidth1 = m_barMaxWidth * p1Ratio;
 	float reduceWidth1 = m_barMaxWidth - currentWidth1;
-	m_hpBar->SetSize(currentWidth1, 80.0f);
+	m_hpBar->SetSize(currentWidth1, m_barHeight);
 	m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth1 / 2.0f), m_hpBarPos.y);
 
 	// P2
 	float currentWidth2 = m_barMaxWidth * p2Ratio;
 	float reduceWidth2 = m_barMaxWidth - currentWidth2;
-	m_enemyhpBar->SetSize(currentWidth2, 80.0f);
+	m_enemyhpBar->SetSize(currentWidth2, m_barHeight);
 	m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth2 / 2.0f), m_enemyHpBarPos.y);
 }
 
@@ -149,6 +160,10 @@ void BattleUIManager::Draw(RoundPhase currentPhase, int winCountP1, int winCount
 	// --- HPバー描画登録 ---
 	if (m_hpBar) m_hpBar->Draw();
 	if (m_enemyhpBar) m_enemyhpBar->Draw();
+
+	//--- HPフレーム描画登録 ---
+	if (m_hpFrame) m_hpFrame->Draw();
+	if (m_enemyhpFrame) m_enemyhpFrame->Draw();
 
 	// --- ラウンド演出の描画登録 ---
 	if (currentPhase == RoundPhase::ROUND_CALL)

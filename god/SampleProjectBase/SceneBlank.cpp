@@ -130,7 +130,6 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
-
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
@@ -627,7 +626,7 @@ void SceneBlank::Draw()
 	//  飛び道具 & エフェクト描画 
 	// ------------------------------------------------
 
-	// ブレンド設定: AlphaToCoverage ON (半透明用)
+	// ブレンド設定: AlphaToCoverage ON
 	if (m_pBlendState)
 	{
 		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);

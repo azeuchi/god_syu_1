@@ -36,9 +36,18 @@ private:
 	// HPバー
 	Image2D* m_hpBar;
 	Image2D* m_enemyhpBar;
+
+	Image2D* m_hpFrame;
+	Image2D* m_enemyhpFrame;
+
 	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
 	DirectX::XMFLOAT2 m_enemyHpBarPos; // 2Pの初期座標
+
+	DirectX::XMFLOAT2 m_hpFramePos;      // 1Pの初期座標
+	DirectX::XMFLOAT2 m_enemyHpFramerPos; // 2Pの初期座標
+
 	float m_barMaxWidth;               // バーの最大幅
+	float m_barHeight;                    // HPバーの高さを管理する変数
 
 	// フェード用画像
 	Image2D* m_fadeBlack;
