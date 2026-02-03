@@ -232,13 +232,18 @@ void SceneBlank::Init()
 	rsDesc.MultisampleEnable = FALSE;
 	rsDesc.AntialiasedLineEnable = FALSE;
 
-	// 表面カリング（アウトライン用：表面を消して裏面を描く）
+	// 表面カリング（P1アウトライン用：表面を消して裏面を描く）
 	rsDesc.CullMode = D3D11_CULL_FRONT;
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullFront);
 
 	// 裏面カリング（通常描画用：裏面を消して表面を描く）
 	rsDesc.CullMode = D3D11_CULL_BACK;
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
+
+	// スカイドーム用：カリングなし
+	rsDesc.CullMode = D3D11_CULL_NONE;
+	rsDesc.DepthClipEnable = FALSE; // スカイドーム用は深度クリップも切っておくと安全
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
 }
 
 void SceneBlank::Uninit()
@@ -257,6 +262,7 @@ void SceneBlank::Uninit()
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
 	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
+	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
 }
 
 /**
@@ -589,12 +595,13 @@ void SceneBlank::Draw()
 		GetObj<Shader>("PS_Outline")
 	};
 
-	// ★修正: スカイドーム描画前にカリング設定をデフォルト(nullptr)に戻す
-	GetContext()->RSSetState(nullptr);
-
 	// 背景の描画
 	if (m_skyDome)
 	{
+		if (m_pCullNone)
+		{
+			GetContext()->RSSetState(m_pCullNone);
+		}
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 

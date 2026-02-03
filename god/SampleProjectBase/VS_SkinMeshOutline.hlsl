@@ -57,8 +57,7 @@ VS_OUT main(VS_IN vin)
     normalize(Normal);
 	
 	// アウトライン用に法線方向に押し出し
-	// モデルのスケール等に合わせて調整してください
-    Pos.xyz += Normal.xyz * 1.5f;
+    Pos.xyz += Normal.xyz * 1.0f;
 
     vout.pos = Pos;
 	

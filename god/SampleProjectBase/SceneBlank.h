@@ -42,9 +42,10 @@ private:
 	ID3D11DepthStencilState* m_pDepthState = nullptr;   // スカイドーム用
 	ID3D11BlendState* m_pBlendState = nullptr;          // 半透明用
 
-	// アウトライン描画用ラスタライザーステート
-	ID3D11RasterizerState* m_pCullFront = nullptr;      // 表面カリング（アウトライン用）
-	ID3D11RasterizerState* m_pCullBack = nullptr;       // 裏面カリング（通常描画用）
+	// アウトライン・カリング設定用ラスタライザーステート
+	ID3D11RasterizerState* m_pCullFront = nullptr;      // 表面カリング（P1アウトライン、P2通常用）
+	ID3D11RasterizerState* m_pCullBack = nullptr;       // 裏面カリング（P1通常、P2アウトライン用）
+	ID3D11RasterizerState* m_pCullNone = nullptr;       // カリングなし（スカイドーム用）
 
 	// ヒットストップ演出用タイマー
 	float m_hitStopTimer = 0.0f;
