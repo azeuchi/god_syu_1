@@ -15,6 +15,9 @@ BattleUIManager::BattleUIManager()
 {
 	m_hpBarPos = { 330.0f, 80.0f };
 	m_enemyHpBarPos = { 950.0f, 80.0f };
+
+	m_hpFramePos = { 330.0f, 80.0f };
+	m_enemyHpFramerPos = { 950.0f, 80.0f };
 }
 
 BattleUIManager::~BattleUIManager()
@@ -91,6 +94,7 @@ void BattleUIManager::Uninit()
 
 	if (m_hpFrame) { delete m_hpFrame; m_hpFrame = nullptr; }
 	if (m_enemyhpFrame) { delete m_enemyhpFrame; m_enemyhpFrame = nullptr; }
+
 
 	if (m_imgRound1) { delete m_imgRound1; m_imgRound1 = nullptr; }
 	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }

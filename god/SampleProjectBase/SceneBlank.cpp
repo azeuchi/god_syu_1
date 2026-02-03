@@ -68,12 +68,16 @@ void SceneBlank::Init()
 	Shader* shader[] = {
 		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
 		CreateObj<PixelShader>("PS_TexColor"),
-		CreateObj<VertexShader>("VS_Object")
+		CreateObj<VertexShader>("VS_Object"),
+		CreateObj<VertexShader>("VS_SkinMeshOutline"),
+		CreateObj<PixelShader>("PS_Outline")
 	};
 	const char* file[] = {
 		"Assets/Shader/VS_SkinMeshAnimation.cso",
 		"Assets/Shader/PS_TexColor.cso",
-		"Assets/Shader/VS_Object.cso"
+		"Assets/Shader/VS_Object.cso",
+		"Assets/Shader/VS_SkinMeshOutline.cso",
+		"Assets/Shader/PS_Outline.cso"
 	};
 	int shaderNum = _countof(shader);
 	for (int i = 0; i < shaderNum; ++i)
@@ -213,6 +217,28 @@ void SceneBlank::Init()
 	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
+
+	// ----------------------------------------------------
+	// アウトライン用ラスタライザーステートの作成
+	// ----------------------------------------------------
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.FrontCounterClockwise = FALSE; // 時計回りが表面
+	rsDesc.DepthBias = 0;
+	rsDesc.SlopeScaledDepthBias = 0.0f;
+	rsDesc.DepthBiasClamp = 0.0f;
+	rsDesc.DepthClipEnable = TRUE;
+	rsDesc.ScissorEnable = FALSE;
+	rsDesc.MultisampleEnable = FALSE;
+	rsDesc.AntialiasedLineEnable = FALSE;
+
+	// 表面カリング（アウトライン用：表面を消して裏面を描く）
+	rsDesc.CullMode = D3D11_CULL_FRONT;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullFront);
+
+	// 裏面カリング（通常描画用：裏面を消して表面を描く）
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
 }
 
 void SceneBlank::Uninit()
@@ -229,6 +255,8 @@ void SceneBlank::Uninit()
 	// 描画設定の解放
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
+	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
+	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 }
 
 /**
@@ -557,18 +585,100 @@ void SceneBlank::Draw()
 	Shader* shader[] = {
 		GetObj<Shader>("VS_SkinMeshAnimation"),
 		GetObj<Shader>("PS_TexColor"),
+		GetObj<Shader>("VS_SkinMeshOutline"),
+		GetObj<Shader>("PS_Outline")
 	};
+
+	// ★修正: スカイドーム描画前にカリング設定をデフォルト(nullptr)に戻す
+	GetContext()->RSSetState(nullptr);
 
 	// 背景の描画
 	if (m_skyDome)
 	{
-	
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 
-	// プレイヤー1の描画
 	Player* player = GetObj<Player>("Player");
+	Player* player2 = GetObj<Player>("Player2");
+
+	// ==================================================
+	// アウトライン描画パス
+	// ==================================================
+
 	if (player) {
+		// ★判定: スケールXがマイナスなら反転している
+		bool isFlipped = (player->GetScale().x < 0.0f);
+
+		// 反転している場合 -> 裏面を描画したいので「表面カリング(CullBack)」を使う (逆転)
+		// 通常の場合       -> 裏面を描画したいので「表面カリング(CullFront)」を使う
+		if (isFlipped) {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+		else {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+
+		XMFLOAT3 pos = player->GetPosition();
+		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
+
+		XMFLOAT3 rot = player->GetRotation();
+		XMFLOAT3 pScale = player->GetScale();
+		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
+		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
+		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
+		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
+
+		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
+		shader[2]->WriteBuffer(0, mat); // WVPのみ
+		player->SetVertexShader(shader[2]);
+		player->SetPixelShader(shader[3]);
+		player->Draw();
+	}
+
+	if (player2) {
+		bool isFlipped = (player2->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+		else {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+
+		XMFLOAT3 pos = player2->GetPosition();
+		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
+
+		XMFLOAT3 rot = player2->GetRotation();
+		XMFLOAT3 pScale = player2->GetScale();
+		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
+		Matrix modelBaseScaleMat = player2->GetModel()->GetScaleBaseMatrix();
+		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
+		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
+
+		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
+		shader[2]->WriteBuffer(0, mat);
+		player2->SetVertexShader(shader[2]);
+		player2->SetPixelShader(shader[3]);
+		player2->Draw();
+	}
+
+	// ==================================================
+	// 通常描画パス (表面を描画)
+	// ==================================================
+
+	if (player) {
+		bool isFlipped = (player->GetScale().x < 0.0f);
+
+		// 反転している場合 -> 表面を描画したいので「裏面カリング(CullFront)」を使う (逆転)
+		// 通常の場合       -> 表面を描画したいので「裏面カリング(CullBack)」を使う
+		if (isFlipped) {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+		else {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+
 		XMFLOAT3 pos = player->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
 
@@ -594,9 +704,15 @@ void SceneBlank::Draw()
 #endif
 	}
 
-	//  プレイヤー2の描画
-	Player* player2 = GetObj<Player>("Player2"); 
 	if (player2) {
+		bool isFlipped = (player2->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+		else {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
 
@@ -625,6 +741,9 @@ void SceneBlank::Draw()
 	// ------------------------------------------------
 	//  飛び道具 & エフェクト描画 
 	// ------------------------------------------------
+
+	// 通常のカリング(CullBack)に戻す
+	if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
 
 	// ブレンド設定: AlphaToCoverage ON
 	if (m_pBlendState)
@@ -662,4 +781,5 @@ void SceneBlank::Draw()
 
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
+	GetContext()->RSSetState(nullptr);
 }
