@@ -117,7 +117,7 @@ void SceneBlank::Init()
 	player->SetInputType(PlayerInputType::PLAYER_1);
 
 	// 設定ファイルからパラメータを読み込み
-	PlayerParameterLoader::LoadSettings(player, SETTINGS_FILE);
+	PlayerParameterLoader::LoadSettings(player);
 
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -613,7 +613,7 @@ void SceneBlank::Draw()
 	// ==================================================
 
 	if (player) {
-		// ★判定: スケールXがマイナスなら反転している
+		// スケールXがマイナスなら反転している
 		bool isFlipped = (player->GetScale().x < 0.0f);
 
 		// 反転している場合 -> 裏面を描画したいので「表面カリング(CullBack)」を使う (逆転)

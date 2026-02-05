@@ -27,89 +27,100 @@ namespace
 			targetList.push_back(abox);
 		}
 	}
-
-	// 攻撃パラメータ1つ分の読み込み
-	void LoadOneParam(AttackParams& p, std::ifstream& ifs)
-	{
-		if (ifs.eof()) return;
-		ifs >> p.totalDuration;
-		ifs >> p.hitboxStart >> p.hitboxEnd;
-
-		// 攻撃判定 (Hitbox)
-		LoadAnimatedBoxes(ifs, p.hitboxes);
-		// くらい判定 (Hurtbox)
-		LoadAnimatedBoxes(ifs, p.hurtboxes);
-
-		ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
-		ifs >> p.isDown;
-		ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
-		ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
-
-		// 速度変化リスト読み込み
-		size_t count = 0;
-		if (!ifs.eof()) ifs >> count;
-		p.speedModifiers.clear();
-		for (size_t k = 0; k < count; ++k) {
-			AnimSpeedModifier mod;
-			ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
-			p.speedModifiers.push_back(mod);
-		}
-
-		// 飛び道具設定読み込み
-		if (!ifs.eof()) {
-			ifs >> p.projectileSpeed >> p.projectileSize;
-		}
-	}
 }
 
-void PlayerParameterLoader::LoadSettings(Player* player, const char* filePath)
+void PlayerParameterLoader::LoadCommonSettings(Player* player, const char* filePath)
 {
 	if (!player) return;
 
-	// デフォルト値 
-	float moveSpeed = 2.0f;
+	std::ifstream ifs(filePath);
+	if (!ifs.is_open())
+	{
+		DebugLog::log(DebugLog::WARNING_LOG, "共通設定ファイルが見つかりません: %s", filePath);
+		return;
+	}
+
+	float moveSpeed = 0.0f;
 	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
+	ifs >> moveSpeed;
+	ifs >> scale.x >> scale.y >> scale.z;
+
+	// 立ち状態の当たり判定
+	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
+		DirectX::XMFLOAT2 ext, off;
+		if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
+		player->SetHurtboxBase((HurtboxType)i, off, ext);
+	}
+
+	// しゃがみ状態の当たり判定
+	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
+		DirectX::XMFLOAT2 ext, off;
+		if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
+		player->SetHurtboxCrouch((HurtboxType)i, off, ext);
+	}
+
+	player->SetMoveSpeed(moveSpeed);
+	player->SetScale(scale);
+
+	ifs.close();
+}
+
+void PlayerParameterLoader::LoadAttackParams(AttackParams& p, const char* filePath)
+{
 	std::ifstream ifs(filePath);
-	if (ifs.is_open())
+	if (!ifs.is_open())
 	{
-		ifs >> moveSpeed;
-		ifs >> scale.x >> scale.y >> scale.z;
-
-		// 立ち状態の当たり判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxBase((HurtboxType)i, off, ext);
-		}
-
-		// しゃがみ状態の当たり判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
-		}
-
-		// 各攻撃のパラメータ
-		LoadOneParam(player->GetLightPunchParams(), ifs);
-		LoadOneParam(player->GetMediumPunchParams(), ifs);
-		LoadOneParam(player->GetHeavyPunchParams(), ifs);
-		LoadOneParam(player->GetMediumKickParams(), ifs);
-		LoadOneParam(player->GetHeavyKickParams(), ifs);
-		LoadOneParam(player->GetHadoukenLParams(), ifs);
-		LoadOneParam(player->GetHadoukenMParams(), ifs);
-		LoadOneParam(player->GetHadoukenHParams(), ifs);
-
-		ifs.close();
-		// ファイル読み込み成功時はその値で上書き
-		player->SetMoveSpeed(moveSpeed);
-		player->SetScale(scale);
+		DebugLog::log(DebugLog::WARNING_LOG, "攻撃設定ファイルが見つかりません: %s", filePath);
+		return;
 	}
-	else
-	{
-		// 読み込み失敗時はPlayerクラスの初期値が使われるので何もしない
-		DebugLog::log(DebugLog::WARNING_LOG, "設定ファイルが見つかりません。デフォルト値を使用します。");
+
+	ifs >> p.totalDuration;
+	ifs >> p.hitboxStart >> p.hitboxEnd;
+
+	// 攻撃判定 (Hitbox)
+	LoadAnimatedBoxes(ifs, p.hitboxes);
+	// くらい判定 (Hurtbox)
+	LoadAnimatedBoxes(ifs, p.hurtboxes);
+
+	ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
+	ifs >> p.isDown;
+	ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
+	ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
+
+	// 速度変化リスト読み込み
+	size_t count = 0;
+	if (!ifs.eof()) ifs >> count;
+	p.speedModifiers.clear();
+	for (size_t k = 0; k < count; ++k) {
+		AnimSpeedModifier mod;
+		ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
+		p.speedModifiers.push_back(mod);
 	}
+
+	// 飛び道具設定読み込み
+	if (!ifs.eof()) {
+		ifs >> p.projectileSpeed >> p.projectileSize;
+	}
+
+	ifs.close();
+}
+
+void PlayerParameterLoader::LoadSettings(Player* player)
+{
+	if (!player) return;
+
+	LoadCommonSettings(player, "Param_Common.ini");
+
+	LoadAttackParams(player->GetLightPunchParams(), "Param_LightPunch.ini");
+	LoadAttackParams(player->GetMediumPunchParams(), "Param_MediumPunch.ini");
+	LoadAttackParams(player->GetHeavyPunchParams(), "Param_HeavyPunch.ini");
+	LoadAttackParams(player->GetMediumKickParams(), "Param_MediumKick.ini");
+	LoadAttackParams(player->GetHeavyKickParams(), "Param_HeavyKick.ini");
+
+	LoadAttackParams(player->GetHadoukenLParams(), "Param_HadoukenL.ini");
+	LoadAttackParams(player->GetHadoukenMParams(), "Param_HadoukenM.ini");
+	LoadAttackParams(player->GetHadoukenHParams(), "Param_HadoukenH.ini");
 }
 
 void PlayerParameterLoader::CopyParameters(Player* src, Player* dst)

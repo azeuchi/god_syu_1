@@ -1,3 +1,4 @@
+// SceneDebug.cpp
 #include "math.h"
 #include "SceneDebug.h"
 #include "Geometory.h"
@@ -13,13 +14,12 @@
 #include <fstream> 
 #include <cmath> 
 #include <string>
+#include "PlayerParameterLoader.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 Texture* g_uiTex_debug = nullptr;
-
-const char* SETTINGS_FILE_DEBUG = "player_settings.ini";
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
@@ -41,104 +41,100 @@ static const char* GetCurrentAnimName()
 void SceneDebug::SavePlayerSettings()
 {
 	Player* player = GetObj<Player>("Player");
-	if (player)
+	if (!player) return;
+
+	// 1. 共通設定の保存
 	{
-		std::ofstream ofs(SETTINGS_FILE_DEBUG);
+		std::ofstream ofs("Param_Common.ini");
 		if (ofs.is_open())
 		{
-			// ヘルパーラムダ: AttackParamsを1つ書き出す関数
-			auto WriteParams = [&](const AttackParams& params) {
-				// タイミング・判定
-				ofs << params.totalDuration << std::endl;
-				ofs << params.hitboxStart << std::endl;
-				ofs << params.hitboxEnd << std::endl;
-
-				// 判定ボックス保存(AnimatedBox対応)
-				auto WriteAnimatedBoxes = [&](const std::vector<AnimatedBox>& boxes) {
-					ofs << boxes.size() << std::endl;
-					for (const auto& abox : boxes) {
-						ofs << abox.keyframes.size() << std::endl;
-						for (const auto& key : abox.keyframes) {
-							ofs << key.frame << std::endl;
-							ofs << key.data.offset.x << " " << key.data.offset.y << std::endl;
-							ofs << key.data.extents.x << " " << key.data.extents.y << std::endl;
-						}
-					}
-					};
-
-				// Hitboxes
-				WriteAnimatedBoxes(params.hitboxes);
-				// Hurtboxes
-				WriteAnimatedBoxes(params.hurtboxes);
-
-				// ゲームバランス
-				ofs << params.damage << std::endl;
-				ofs << params.hitFrame << std::endl;
-				ofs << params.blockFrame << std::endl;
-				ofs << params.hitStop << std::endl;
-				ofs << params.knockback << std::endl;
-
-				// ダウン設定
-				ofs << params.isDown << std::endl;
-
-				// キャンセル設定
-				ofs << params.cancelEnabled << std::endl;
-				ofs << params.cancelStart << std::endl;
-				ofs << params.cancelEnd << std::endl;
-				ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavyPunch << " " << params.cancelToMediumKick << " " << params.cancelToHeavy << std::endl;
-
-				// 速度変化リスト (Speed Modifiers)
-				size_t speedModCount = params.speedModifiers.size();
-				ofs << speedModCount << std::endl;
-				for (const auto& mod : params.speedModifiers) {
-					ofs << mod.startFrame << " " << mod.endFrame << " " << mod.speed << std::endl;
-				}
-
-				// 飛び道具設定
-				ofs << params.projectileSpeed << std::endl;
-				ofs << params.projectileSize << std::endl;
-				};
-
-			// ==================================================
-			// 基本設定の保存
-			// ==================================================
 			ofs << player->GetMoveSpeed() << std::endl;
 			DirectX::XMFLOAT3 scale = player->GetScale();
 			ofs << scale.x << " " << scale.y << " " << scale.z << std::endl;
 
-			// ==================================================
-			// 立ち(Base)のくらい判定保存
-			// ==================================================
+			// 立ち(Base)のくらい判定
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
 				ofs << ext.x << " " << ext.y << " " << off.x << " " << off.y << std::endl;
 			}
 
-			// ==================================================
-			// しゃがみ(Crouch)のくらい判定保存
-			// ==================================================
+			// しゃがみ(Crouch)のくらい判定
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
 				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxCrouchOffset((HurtboxType)i);
 				ofs << ext.x << " " << ext.y << " " << off.x << " " << off.y << std::endl;
 			}
-
-			// ==================================================
-			// 各技パラメータの保存
-			// ==================================================
-			WriteParams(player->GetLightPunchParams());
-			WriteParams(player->GetMediumPunchParams());
-			WriteParams(player->GetHeavyPunchParams());
-			WriteParams(player->GetMediumKickParams());
-			WriteParams(player->GetHeavyKickParams());
-			WriteParams(player->GetHadoukenLParams());
-			WriteParams(player->GetHadoukenMParams());
-			WriteParams(player->GetHadoukenHParams());
-
 			ofs.close();
 		}
 	}
+
+	// 2. 各攻撃パラメータの保存用ヘルパー関数
+	auto SaveOneAttack = [&](const char* filename, const AttackParams& params) {
+		std::ofstream ofs(filename);
+		if (!ofs.is_open()) return;
+
+		// タイミング・判定
+		ofs << params.totalDuration << std::endl;
+		ofs << params.hitboxStart << std::endl;
+		ofs << params.hitboxEnd << std::endl;
+
+		// 判定ボックス保存(AnimatedBox対応)
+		auto WriteAnimatedBoxes = [&](const std::vector<AnimatedBox>& boxes) {
+			ofs << boxes.size() << std::endl;
+			for (const auto& abox : boxes) {
+				ofs << abox.keyframes.size() << std::endl;
+				for (const auto& key : abox.keyframes) {
+					ofs << key.frame << std::endl;
+					ofs << key.data.offset.x << " " << key.data.offset.y << std::endl;
+					ofs << key.data.extents.x << " " << key.data.extents.y << std::endl;
+				}
+			}
+			};
+
+		WriteAnimatedBoxes(params.hitboxes);
+		WriteAnimatedBoxes(params.hurtboxes);
+
+		// ゲームバランス
+		ofs << params.damage << std::endl;
+		ofs << params.hitFrame << std::endl;
+		ofs << params.blockFrame << std::endl;
+		ofs << params.hitStop << std::endl;
+		ofs << params.knockback << std::endl;
+		ofs << params.isDown << std::endl;
+
+		// キャンセル設定
+		ofs << params.cancelEnabled << std::endl;
+		ofs << params.cancelStart << std::endl;
+		ofs << params.cancelEnd << std::endl;
+		ofs << params.cancelToLight << " " << params.cancelToMedium << " " << params.cancelToHeavyPunch << " " << params.cancelToMediumKick << " " << params.cancelToHeavy << std::endl;
+
+		// 速度変化リスト
+		size_t speedModCount = params.speedModifiers.size();
+		ofs << speedModCount << std::endl;
+		for (const auto& mod : params.speedModifiers) {
+			ofs << mod.startFrame << " " << mod.endFrame << " " << mod.speed << std::endl;
+		}
+
+		// 飛び道具設定
+		ofs << params.projectileSpeed << std::endl;
+		ofs << params.projectileSize << std::endl;
+
+		ofs.close();
+		};
+
+	// 3. 各ファイルの保存実行
+	SaveOneAttack("Param_LightPunch.ini", player->GetLightPunchParams());
+	SaveOneAttack("Param_MediumPunch.ini", player->GetMediumPunchParams());
+	SaveOneAttack("Param_HeavyPunch.ini", player->GetHeavyPunchParams());
+	SaveOneAttack("Param_MediumKick.ini", player->GetMediumKickParams());
+	SaveOneAttack("Param_HeavyKick.ini", player->GetHeavyKickParams());
+
+	SaveOneAttack("Param_HadoukenL.ini", player->GetHadoukenLParams());
+	SaveOneAttack("Param_HadoukenM.ini", player->GetHadoukenMParams());
+	SaveOneAttack("Param_HadoukenH.ini", player->GetHadoukenHParams());
+
+	DebugLog::log(DebugLog::INFO_LOG, "設定を分割ファイルとして保存しました。");
 }
 
 void SceneDebug::Init()
@@ -168,102 +164,7 @@ void SceneDebug::Init()
 	player->SetInputType(PlayerInputType::AI);
 
 	// --- 設定ファイルからパラメータ読み込み ---
-	float moveSpeed = 2.0f;
-	DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-
-	std::ifstream ifs(SETTINGS_FILE_DEBUG);
-	if (ifs.is_open())
-	{
-		//  基本設定
-		ifs >> moveSpeed;
-		ifs >> scale.x >> scale.y >> scale.z;
-
-		// 立ち(Base)くらい判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxBase((HurtboxType)i, off, ext);
-		}
-
-		// しゃがみ(Crouch)くらい判定
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {
-			DirectX::XMFLOAT2 ext, off;
-			if (!ifs.eof()) ifs >> ext.x >> ext.y >> off.x >> off.y;
-			player->SetHurtboxCrouch((HurtboxType)i, off, ext);
-		}
-
-		// パラメータ読み込み用ラムダ
-		auto LoadOneParam = [&](AttackParams& p) {
-			if (ifs.eof()) return;
-			ifs >> p.totalDuration;
-			ifs >> p.hitboxStart >> p.hitboxEnd;
-
-			// 判定ボックス読み込み 
-			auto LoadAnimatedBoxes = [&](std::vector<AnimatedBox>& targetList) {
-				size_t boxCount = 0;
-				ifs >> boxCount;
-				targetList.clear();
-				for (size_t i = 0; i < boxCount; ++i)
-				{
-					AnimatedBox abox;
-					size_t keyframeCount = 0;
-					ifs >> keyframeCount;
-					for (size_t k = 0; k < keyframeCount; ++k)
-					{
-						BoxKeyframe key;
-						ifs >> key.frame;
-						ifs >> key.data.offset.x >> key.data.offset.y >> key.data.extents.x >> key.data.extents.y;
-						abox.keyframes.push_back(key);
-					}
-					targetList.push_back(abox);
-				}
-				};
-
-			LoadAnimatedBoxes(p.hitboxes);
-			LoadAnimatedBoxes(p.hurtboxes);
-
-
-			ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
-			ifs >> p.isDown;
-
-			ifs >> p.cancelEnabled >> p.cancelStart >> p.cancelEnd;
-			ifs >> p.cancelToLight >> p.cancelToMedium >> p.cancelToHeavyPunch >> p.cancelToMediumKick >> p.cancelToHeavy;
-
-			// 速度変化リスト読み込み
-			size_t count = 0;
-			if (!ifs.eof()) ifs >> count;
-			p.speedModifiers.clear();
-			for (size_t k = 0; k < count; ++k) {
-				AnimSpeedModifier mod;
-				ifs >> mod.startFrame >> mod.endFrame >> mod.speed;
-				p.speedModifiers.push_back(mod);
-			}
-
-			if (!ifs.eof()) {
-				ifs >> p.projectileSpeed >> p.projectileSize;
-			}
-			};
-
-		// 各技読み込み
-		LoadOneParam(player->GetLightPunchParams());
-		LoadOneParam(player->GetMediumPunchParams());
-		LoadOneParam(player->GetHeavyPunchParams());
-		LoadOneParam(player->GetMediumKickParams());
-		LoadOneParam(player->GetHeavyKickParams());
-		LoadOneParam(player->GetHadoukenLParams());
-		LoadOneParam(player->GetHadoukenMParams());
-		LoadOneParam(player->GetHadoukenHParams());
-
-		ifs.close();
-		// 読み込み成功時は上書き
-		player->SetMoveSpeed(moveSpeed);
-		player->SetScale(scale);
-	}
-	else
-	{
-		// 失敗時は何もしない
-		DebugLog::log(DebugLog::WARNING_LOG, "設定ファイルなし。初期値を使用。");
-	}
+	PlayerParameterLoader::LoadSettings(player);
 
 	// --- モデル・アニメーションロード ---
 	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);

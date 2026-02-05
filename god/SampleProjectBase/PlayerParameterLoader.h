@@ -10,9 +10,11 @@ public:
 	/**
 	 * @brief 指定されたファイルからパラメータを読み込み、プレイヤーに適用する
 	 * @param player 設定を適用するプレイヤー
-	 * @param filePath 設定ファイルのパス (.ini)
 	 */
-	static void LoadSettings(Player* player, const char* filePath);
+	static void LoadSettings(Player* player);
+
+	static void LoadCommonSettings(Player* player, const char* filePath);
+	static void LoadAttackParams(AttackParams& params, const char* filePath);
 
 	/**
 	 * @brief 基準となるプレイヤー(src)から、別のプレイヤー(dst)へパラメータをコピーする
@@ -21,4 +23,4 @@ public:
 	 * @param dst コピー先 (P2)
 	 */
 	static void CopyParameters(Player* src, Player* dst);
-}; 
+};
