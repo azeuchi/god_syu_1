@@ -354,22 +354,40 @@ void SceneDebug::Draw()
 
 		player->Draw();
 
+		// ----------------------------------------------------
+		// 判定ボックスの表示制御
+		// ----------------------------------------------------
 		bool isEditingAttack = (s_currentAttackType <= 4 || s_currentAttackType >= 7);
+		bool showHitbox = false;
 
 		if (isEditingAttack) {
-			player->SetActiveHitbox(true);
-			player->UpdateAttackBoxes();
+			// 現在のフレームがHitboxの発生期間内かチェック
+			AttackParams* pParams = player->GetCurrentAttackParams();
+			if (pParams) {
+				float currentTime = (float)m_currentFrame * FRAME_TIME_60FPS;
+				if (currentTime >= pParams->hitboxStart && currentTime < pParams->hitboxEnd) {
+					showHitbox = true;
+				}
+			}
+
+			// 期間内なら有効化、期間外なら無効化
+			player->SetActiveHitbox(showHitbox);
+
+			// 表示する場合のみボックス位置を更新
+			if (showHitbox) {
+				player->UpdateAttackBoxes();
+			}
+		}
+		else {
+			// 攻撃編集中でなければHitboxは出さない
+			player->SetActiveHitbox(false);
 		}
 
 		player->DrawBoundingBox();
 
-		if (isEditingAttack)
+		if (showHitbox)
 		{
 			player->DrawHitbox();
-		}
-
-		if (!m_isAttacking) {
-			player->SetActiveHitbox(false);
 		}
 	}
 
