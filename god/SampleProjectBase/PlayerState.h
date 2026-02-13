@@ -39,6 +39,12 @@ public:
 	 */
 	virtual bool IsInvincible() const { return false; }
 
+	/**
+	 * @brief この状態は死亡状態か？
+	 * 上書き防止チェックのために追加
+	 */
+	virtual bool IsDeathState() const { return false; }
+
 protected:
 	/**
 	 * @brief キャンセル処理の共通化

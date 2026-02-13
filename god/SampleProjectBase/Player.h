@@ -138,6 +138,7 @@ public:
 	void PlayAnimation(const char* name, bool forceRestart = false);
 	void SetAnimPause(bool pause);
 	void SetAnimationSpeed(float speed);
+	bool IsAnimEnd() const;
 
 	float GetForwardMoveDot() const;
 

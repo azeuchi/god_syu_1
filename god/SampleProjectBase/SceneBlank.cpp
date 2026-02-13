@@ -144,13 +144,15 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
+	player->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
+
 
 	// 初期位置設定
 	ResetRound();
 
 
 	// ==================================================
-	// 5. プレイヤー2の生成 
+	// プレイヤー2の生成 
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -181,6 +183,7 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
+	player2->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 
 	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
@@ -345,7 +348,7 @@ void SceneBlank::Update(float tick)
 	Player* player2 = GetObj<Player>("Player2");
 
 	// ==========================================================
-	// 0. ラウンド開始演出 (フェーズ管理)
+	// ラウンド開始演出 (フェーズ管理)
 	// ラウンド中(PLAYING)でもなく、KO演出中(KO_CALL)でもない場合は
 	// 開始前演出（READY/ROUND/FIGHT）を行う
 	// ==========================================================
@@ -449,7 +452,22 @@ void SceneBlank::Update(float tick)
 		{
 			// 通常のラウンド終了後待機（フェードアウトなど）
 			// スローが終わってからフェード処理を開始する
-			m_roundEndTimer += tick;
+
+			bool isDeathAnimFinished = true;
+			if (player && player->GetHpRatio() <= 0.0f) {
+				int total = player->GetModel()->GetAnimationTotalFrame("Death");
+				if (player->Debug_GetFrame() < total - 1) isDeathAnimFinished = false;
+			}
+			if (player2 && player2->GetHpRatio() <= 0.0f) {
+				int total = player2->GetModel()->GetAnimationTotalFrame("Death");
+				if (player2->Debug_GetFrame() < total - 1) isDeathAnimFinished = false;
+			}
+
+			// アニメーションが終わってから初めてタイマーを進める
+			if (isDeathAnimFinished)
+			{
+				m_roundEndTimer += tick;
+			}
 
 			// フェード処理
 			if (!isGameSet && m_uiManager)
@@ -522,7 +540,7 @@ void SceneBlank::Update(float tick)
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
 
-			// ★★★ スローモーション演出開始 ★★★
+			// スローモーション演出開始 
 			m_isSlowMotion = true;
 			m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
 			m_slowMotionTimer = m_slowMotionDuration;
@@ -541,7 +559,7 @@ void SceneBlank::Update(float tick)
 				float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
 				float centerY = (p1Pos.y + p2Pos.y) * 0.5f + 0.9f; // 注視点は胸の高さあたり
 
-			
+
 				// 現在のカメラ位置(StartPos)から、注視点(TargetLook)への方向ベクトルを求める
 				XMVECTOR vStartPos = XMLoadFloat3(&m_cameraZoomStartPos);
 				XMVECTOR vTargetLook = XMVectorSet(centerX, centerY, 0.0f, 0.0f);
@@ -550,7 +568,7 @@ void SceneBlank::Update(float tick)
 				vDir = XMVector3Normalize(vDir);
 
 				// 注視点から一定距離（2.5f）離れた位置をターゲットとする
-			
+
 				float zoomDist = 2.5f;
 				XMVECTOR vTargetPos = XMVectorAdd(vTargetLook, XMVectorScale(vDir, zoomDist));
 

@@ -18,6 +18,7 @@
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"
 #include "Hadouken.h"
+#include "PlayerStateDeath.h"
 
 #include "Projectile.h"
 
@@ -455,7 +456,22 @@ void Player::SetState(PlayerState* newState)
 {
 	if (newState != nullptr)
 	{
+		// ★ここを修正しました：
+		// HPが0になったら、次に遷移しようとしているステートが「Death」でない限り、
+		// 一切の遷移を許可しないようにしました。
+		// これにより、Deathステートになる前にダメージステートなどが割り込んでくるのを防ぎます。
+		if (m_hp <= 0 && !newState->IsDeathState())
+		{
+			delete newState;
+			return;
+		}
+
 		if (m_currentState) {
+			// すでにDeath状態なら、他の状態への上書きもブロック
+			if (m_currentState->IsDeathState() && m_hp <= 0) {
+				delete newState;
+				return;
+			}
 			delete m_currentState;
 		}
 		m_currentState = newState;
@@ -497,6 +513,12 @@ void Player::SetAnimationSpeed(float speed)
 void Player::SetAnimPause(bool pause)
 {
 	m_isAnimPaused = pause;
+}
+
+bool Player::IsAnimEnd() const
+{
+	int total = m_model->GetAnimationTotalFrame(m_currentAnim.name);
+	return (m_currentAnim.frame >= total - 1);
 }
 
 float Player::GetForwardMoveDot() const
@@ -780,7 +802,7 @@ void Player::UpdateAttackBoxes()
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 
-	
+
 	float currentFrame = m_attackTimer;
 
 	// 攻撃判定(Hitbox)の更新 (補間あり)
@@ -852,7 +874,12 @@ void Player::DrawHitbox()
 void Player::ReceiveDamage(int damage)
 {
 	m_hp -= damage;
-	if (m_hp < 0) m_hp = 0;
+	if (m_hp <= 0)
+	{
+		m_hp = 0;
+		// HPが0になったらDeath状態へ
+		SetState(new PlayerStateDeath());
+	}
 }
 
 float Player::GetHpRatio() const

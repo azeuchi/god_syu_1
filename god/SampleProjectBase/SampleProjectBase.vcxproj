@@ -204,6 +204,7 @@
     <ClCompile Include="PlayerStateAir.cpp" />
     <ClCompile Include="PlayerStateCrouch.cpp" />
     <ClCompile Include="PlayerStateDamage.cpp" />
+    <ClCompile Include="PlayerStateDeath.cpp" />
     <ClCompile Include="PlayerStateDown.cpp" />
     <ClCompile Include="PlayerStateGround.cpp" />
     <ClCompile Include="PlayerStateIdle.cpp" />
@@ -270,6 +271,7 @@
     <ClInclude Include="PlayerStateAir.h" />
     <ClInclude Include="PlayerStateCrouch.h" />
     <ClInclude Include="PlayerStateDamage.h" />
+    <ClInclude Include="PlayerStateDeath.h" />
     <ClInclude Include="PlayerStateDown.h" />
     <ClInclude Include="PlayerStateGround.h" />
     <ClInclude Include="PlayerStateIdle.h" />
