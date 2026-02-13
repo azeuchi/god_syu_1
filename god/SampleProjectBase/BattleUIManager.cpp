@@ -37,13 +37,13 @@ void BattleUIManager::Init()
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, m_barHeight);
 
 	m_enemyhpBar = new Image2D();
-	m_enemyhpBar->Load("Assets/Texture/hp.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, m_barHeight);
+	m_enemyhpBar->Load("Assets/Texture/hp2.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, m_barHeight);
 
 	m_hpFrame = new Image2D();
 	m_hpFrame->Load("Assets/Texture/hpframe.png", 330.0f, 80.0f, 550.0f, 80.0f);
 
 	m_enemyhpFrame = new Image2D();
-	m_enemyhpFrame->Load("Assets/Texture/hpframe.png", 950.0f, 80.0f, 550.0f, 80.0f);
+	m_enemyhpFrame->Load("Assets/Texture/hpframe2.png", 950.0f, 80.0f, 550.0f, 80.0f);
 
 	// フェード用画像
 	m_fadeBlack = new Image2D();
