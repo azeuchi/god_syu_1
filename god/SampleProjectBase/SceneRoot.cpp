@@ -122,10 +122,6 @@ void SceneRoot::Init()
 	pLight->SetHSV(setting.lightH, setting.lightSV);
 	pLight->UpdateParam();
 
-	// モデルの読み込み
-	CreateObj<Model>("Model");
-	GetObj<Model>("Model")->Load("Assets/Model/spot/spot.fbx", 1.0f, true);
-
 	// カメラのリセット
 	pCamera->SetPos(DirectX::XMFLOAT3(0.0f, 1.0f, -5.0f));
 	pCamera->SetLook(DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f));
