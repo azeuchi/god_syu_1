@@ -61,6 +61,13 @@ void SceneBlank::Init()
 	m_isRoundOver = false;
 	m_roundEndTimer = 0.0f;
 	s_isGameSet = false;
+	m_isKOStage = false;
+
+	// スロー演出用初期化
+	m_isSlowMotion = false;
+	m_slowMotionTimer = 0.0f;
+	m_cameraZoomStartPos = { 0,0,0 };
+	m_cameraZoomTargetPos = { 0,0,0 };
 
 	// ==================================================
 	// シェーダーの読み込み
@@ -276,6 +283,12 @@ void SceneBlank::ResetRound()
 	m_hitStopTimer = 0.0f;
 	m_shakeTimerP1 = 0.0f;
 	m_shakeTimerP2 = 0.0f;
+	m_isKOStage = false;
+
+	// スロー演出リセット
+	m_isSlowMotion = false;
+	m_slowMotionTimer = 0.0f;
+
 
 	// フェーズ初期化
 	if (m_winCountP1 == 0 && m_winCountP2 == 0)
@@ -333,8 +346,10 @@ void SceneBlank::Update(float tick)
 
 	// ==========================================================
 	// 0. ラウンド開始演出 (フェーズ管理)
+	// ラウンド中(PLAYING)でもなく、KO演出中(KO_CALL)でもない場合は
+	// 開始前演出（READY/ROUND/FIGHT）を行う
 	// ==========================================================
-	if (m_currentPhase != RoundPhase::PLAYING)
+	if (m_currentPhase != RoundPhase::PLAYING && m_currentPhase != RoundPhase::KO_CALL)
 	{
 		m_phaseTimer += tick;
 
@@ -381,32 +396,84 @@ void SceneBlank::Update(float tick)
 
 
 	// ==========================================================
-	// ラウンド終了後の待機処理
+	// ラウンド終了後の待機処理 (スローモーション演出含む)
 	// ==========================================================
 	if (m_isRoundOver)
 	{
-		m_roundEndTimer += tick;
-
 		bool isGameSet = (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN);
 
-		if (!isGameSet && m_uiManager)
+		// スローモーション演出処理
+		if (m_isSlowMotion)
 		{
-			if (m_roundEndTimer < WAIT_BEFORE_FADE)
+			// 時間進行（実時間はそのまま進む）
+			m_slowMotionTimer -= tick;
+
+			// プレイヤーの更新はゆっくりにする (通常の10%)
+			float slowTick = tick * 0.1f;
+			if (player) player->Update(slowTick);
+			if (player2) player2->Update(slowTick);
+
+			// カメラのズーム演出 (線形補間)
+			CameraBase* pCamera = GetObj<CameraBase>("Camera");
+			if (pCamera && m_slowMotionDuration > 0.0f)
 			{
-				m_uiManager->SetFadeAlpha(0.0f);
+				float t = 1.0f - (m_slowMotionTimer / m_slowMotionDuration); // 0.0 -> 1.0
+				if (t > 1.0f) t = 1.0f;
+
+				// イージング（少し滑らかに）
+				float easeT = t * t * (3.0f - 2.0f * t);
+
+				XMVECTOR vStartPos = XMLoadFloat3(&m_cameraZoomStartPos);
+				XMVECTOR vTargetPos = XMLoadFloat3(&m_cameraZoomTargetPos);
+				XMVECTOR vCurrentPos = XMVectorLerp(vStartPos, vTargetPos, easeT);
+
+				XMVECTOR vStartLook = XMLoadFloat3(&m_cameraZoomStartLook);
+				XMVECTOR vTargetLook = XMLoadFloat3(&m_cameraZoomTargetLook);
+				XMVECTOR vCurrentLook = XMVectorLerp(vStartLook, vTargetLook, easeT);
+
+				XMFLOAT3 newPos, newLook;
+				XMStoreFloat3(&newPos, vCurrentPos);
+				XMStoreFloat3(&newLook, vCurrentLook);
+				pCamera->SetPos(newPos);
+				pCamera->SetLook(newLook);
 			}
-			else
+
+			// スローモーション終了判定
+			if (m_slowMotionTimer <= 0.0f)
 			{
-				float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
-				if (progress > 1.0f) progress = 1.0f;
-				float alpha = 0.1f + (progress * 0.9f);
-				m_uiManager->SetFadeAlpha(alpha);
+				m_isSlowMotion = false;
+				// スロー終了後、カメラはズームしたままにするなら何もしない
 			}
 		}
+		else
+		{
+			// 通常のラウンド終了後待機（フェードアウトなど）
+			// スローが終わってからフェード処理を開始する
+			m_roundEndTimer += tick;
 
-		if (player) player->Update(tick);
-		if (player2) player2->Update(tick);
+			// フェード処理
+			if (!isGameSet && m_uiManager)
+			{
+				if (m_roundEndTimer < WAIT_BEFORE_FADE)
+				{
+					m_uiManager->SetFadeAlpha(0.0f);
+				}
+				else
+				{
+					float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
+					if (progress > 1.0f) progress = 1.0f;
+					float alpha = 0.1f + (progress * 0.9f);
+					m_uiManager->SetFadeAlpha(alpha);
+				}
+			}
 
+			// 倒れた後の動きは通常速度に戻すか、停止させるか。ここでは通常速度で少し動かす
+			if (player) player->Update(tick);
+			if (player2) player2->Update(tick);
+		}
+
+		// リセット処理へ移行
+		// フェードが終わるまで待つ
 		if (m_roundEndTimer >= ROUND_WAIT_TIME)
 		{
 			if (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN)
@@ -451,6 +518,45 @@ void SceneBlank::Update(float tick)
 			m_isRoundOver = true;
 			m_winCountP1 += result.winCountP1ToAdd;
 			m_winCountP2 += result.winCountP2ToAdd;
+
+			// KOフェーズへ移行（UI描画用）
+			m_currentPhase = RoundPhase::KO_CALL;
+
+			// ★★★ スローモーション演出開始 ★★★
+			m_isSlowMotion = true;
+			m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
+			m_slowMotionTimer = m_slowMotionDuration;
+
+			// カメラのズームターゲット計算
+			CameraBase* pCamera = GetObj<CameraBase>("Camera");
+			if (pCamera)
+			{
+				m_cameraZoomStartPos = pCamera->GetPos();
+				m_cameraZoomStartLook = pCamera->GetLook();
+
+				XMFLOAT3 p1Pos = player->GetPosition();
+				XMFLOAT3 p2Pos = player2->GetPosition();
+
+				// 中間地点を計算
+				float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
+				float centerY = (p1Pos.y + p2Pos.y) * 0.5f + 0.9f; // 注視点は胸の高さあたり
+
+			
+				// 現在のカメラ位置(StartPos)から、注視点(TargetLook)への方向ベクトルを求める
+				XMVECTOR vStartPos = XMLoadFloat3(&m_cameraZoomStartPos);
+				XMVECTOR vTargetLook = XMVectorSet(centerX, centerY, 0.0f, 0.0f);
+
+				XMVECTOR vDir = XMVectorSubtract(vStartPos, vTargetLook); // 注視点 -> カメラ へのベクトル
+				vDir = XMVector3Normalize(vDir);
+
+				// 注視点から一定距離（2.5f）離れた位置をターゲットとする
+			
+				float zoomDist = 2.5f;
+				XMVECTOR vTargetPos = XMVectorAdd(vTargetLook, XMVectorScale(vDir, zoomDist));
+
+				XMStoreFloat3(&m_cameraZoomTargetPos, vTargetPos);
+				XMStoreFloat3(&m_cameraZoomTargetLook, { centerX, centerY, 0.0f });
+			}
 		}
 
 		if (result.hitStopTimer > 0.0f)
@@ -494,58 +600,72 @@ void SceneBlank::Update(float tick)
 		effect->Update(tick);
 	}
 
-	// カメラ制御
-	CameraBase* pCamera = GetObj<CameraBase>("Camera");
-	if (pCamera && player && player2)
+	// カメラ制御 (通常時のみ。スローモーション中は上で制御するためスキップ)
+	if (!m_isSlowMotion)
 	{
-		XMFLOAT3 p1Pos = player->GetPosition();
-		XMFLOAT3 p2Pos = player2->GetPosition();
-
-		float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
-		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
-
-		float maxY = (p1Pos.y > p2Pos.y) ? p1Pos.y : p2Pos.y;
-		float targetLookY = 1.4f + (maxY * 0.2f);
-		float targetPosY = 1.5f + (maxY * 0.1f);
-
-		float distX = fabsf(p1Pos.x - p2Pos.x);
-		float zoomFactorX = 0.45f;
-		float zoomFactorY = 0.8f;
-		float zoomAmount = 0.0f;
-		float reqZoomX = (distX - 1.5f) * zoomFactorX;
-		float reqZoomY = maxY * zoomFactorY;
-		if (reqZoomX > reqZoomY) zoomAmount = reqZoomX;
-		else zoomAmount = reqZoomY;
-		if (zoomAmount < 0.0f) zoomAmount = 0.0f;
-
-		float baseZ = -3.5f;
-		float targetZ = baseZ - zoomAmount;
-		if (targetZ < -9.0f) targetZ = -9.0f;
-
-		XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
-		XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
-
-		float smoothSpeed = 4.0f * tick;
-		XMFLOAT3 currentPos = pCamera->GetPos();
-		XMFLOAT3 currentLook = pCamera->GetLook();
-
-		XMVECTOR vCurPos = XMLoadFloat3(&currentPos);
-		XMVECTOR vTarPos = XMLoadFloat3(&targetPos);
-		XMVECTOR vNewPos = XMVectorLerp(vCurPos, vTarPos, smoothSpeed);
-		XMVECTOR vCurLook = XMLoadFloat3(&currentLook);
-		XMVECTOR vTarLook = XMLoadFloat3(&targetLook);
-		XMVECTOR vNewLook = XMVectorLerp(vCurLook, vTarLook, smoothSpeed);
-
-		XMFLOAT3 newPos, newLook;
-		XMStoreFloat3(&newPos, vNewPos);
-		XMStoreFloat3(&newLook, vNewLook);
-
-		pCamera->SetPos(newPos);
-		pCamera->SetLook(newLook);
-
-		if (m_skyDome)
+		CameraBase* pCamera = GetObj<CameraBase>("Camera");
+		if (pCamera && player && player2)
 		{
-			// スカイドームの描画はDraw内で行うため、ここではカメラ位置の更新のみ
+			XMFLOAT3 p1Pos = player->GetPosition();
+			XMFLOAT3 p2Pos = player2->GetPosition();
+
+			float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
+			centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
+
+			float maxY = (p1Pos.y > p2Pos.y) ? p1Pos.y : p2Pos.y;
+			float targetLookY = 1.4f + (maxY * 0.2f);
+			float targetPosY = 1.5f + (maxY * 0.1f);
+
+			float distX = fabsf(p1Pos.x - p2Pos.x);
+			float zoomFactorX = 0.45f;
+			float zoomFactorY = 0.8f;
+			float zoomAmount = 0.0f;
+			float reqZoomX = (distX - 1.5f) * zoomFactorX;
+			float reqZoomY = maxY * zoomFactorY;
+			if (reqZoomX > reqZoomY) zoomAmount = reqZoomX;
+			else zoomAmount = reqZoomY;
+			if (zoomAmount < 0.0f) zoomAmount = 0.0f;
+
+			float baseZ = -3.5f;
+			float targetZ = baseZ - zoomAmount;
+			if (targetZ < -9.0f) targetZ = -9.0f;
+
+			XMFLOAT3 targetPos = { centerX, targetPosY, targetZ };
+			XMFLOAT3 targetLook = { centerX, targetLookY, 0.0f };
+
+			float smoothSpeed = 4.0f * tick;
+			// ラウンド終了後の待機中はカメラをゆっくり動かす（スロー後）
+			if (m_isRoundOver) smoothSpeed = 1.0f * tick;
+
+			XMFLOAT3 currentPos = pCamera->GetPos();
+			XMFLOAT3 currentLook = pCamera->GetLook();
+
+			XMVECTOR vCurPos = XMLoadFloat3(&currentPos);
+			XMVECTOR vTarPos = XMLoadFloat3(&targetPos);
+			XMVECTOR vNewPos = XMVectorLerp(vCurPos, vTarPos, smoothSpeed);
+			XMVECTOR vCurLook = XMLoadFloat3(&currentLook);
+			XMVECTOR vTarLook = XMLoadFloat3(&targetLook);
+			XMVECTOR vNewLook = XMVectorLerp(vCurLook, vTarLook, smoothSpeed);
+
+			XMFLOAT3 newPos, newLook;
+			XMStoreFloat3(&newPos, vNewPos);
+			XMStoreFloat3(&newLook, vNewLook);
+
+			pCamera->SetPos(newPos);
+			pCamera->SetLook(newLook);
+
+			if (m_skyDome)
+			{
+				m_skyDome->Update(pCamera->GetPos());
+			}
+		}
+	}
+	else
+	{
+		// スローモーション中でもスカイドームの位置更新は必要
+		CameraBase* pCamera = GetObj<CameraBase>("Camera");
+		if (m_skyDome && pCamera)
+		{
 			m_skyDome->Update(pCamera->GetPos());
 		}
 	}

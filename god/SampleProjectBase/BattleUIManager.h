@@ -8,7 +8,8 @@ enum class RoundPhase {
 	READY,      // 開始前の溜め (ラウンド1のみ使用)
 	ROUND_CALL, // ラウンド数表示
 	FIGHT_CALL, // FIGHT表示
-	PLAYING     // 試合中
+	PLAYING,    // 試合中
+	KO_CALL     // KO表示
 };
 
 class BattleUIManager
@@ -58,6 +59,7 @@ private:
 	Image2D* m_imgRound2;
 	Image2D* m_imgFinalRound;
 	Image2D* m_imgFight;
+	Image2D* m_imgKO;
 
 	// 描画設定
 	ID3D11DepthStencilState* m_pDepthStateUI; // UI用 (Depth ON, ALWAYS)

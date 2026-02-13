@@ -61,4 +61,18 @@ private:
 	int m_winCountP2 = 0;      // 2Pの勝利ラウンド数
 	bool m_isRoundOver = false; // ラウンドが終わったかどうかのフラグ
 	float m_roundEndTimer = 0.0f; // ラウンド終了後の待機タイマー (2秒)
+
+	// KO演出用
+	bool m_isKOStage = false; // 現在KO演出フェーズかどうか
+
+	// スローモーション演出用
+	bool m_isSlowMotion = false;        // スローモーション中か
+	float m_slowMotionTimer = 0.0f;     // スローモーション残り時間
+	float m_slowMotionDuration = 0.0f;  // スローモーションの全体時間（補間計算用）
+
+	// KO時のカメラズーム用
+	DirectX::XMFLOAT3 m_cameraZoomStartPos;  // ズーム開始地点
+	DirectX::XMFLOAT3 m_cameraZoomStartLook; // ズーム開始時の注視点
+	DirectX::XMFLOAT3 m_cameraZoomTargetPos; // ズーム目標地点
+	DirectX::XMFLOAT3 m_cameraZoomTargetLook;// ズーム目標注視点
 };

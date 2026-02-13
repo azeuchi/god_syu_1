@@ -7,10 +7,10 @@
 BattleUIManager::BattleUIManager()
 	: m_hpBar(nullptr), m_enemyhpBar(nullptr), m_fadeBlack(nullptr)
 	, m_hpFrame(nullptr), m_enemyhpFrame(nullptr)
-	, m_imgRound1(nullptr), m_imgRound2(nullptr), m_imgFinalRound(nullptr), m_imgFight(nullptr)
+	, m_imgRound1(nullptr), m_imgRound2(nullptr), m_imgFinalRound(nullptr), m_imgFight(nullptr), m_imgKO(nullptr)
 	, m_pDepthStateUI(nullptr), m_pBlendState(nullptr)
 	, m_barMaxWidth(400.0f)
-	,m_barHeight(40.0f)
+	, m_barHeight(40.0f)
 	, m_currentFadeAlpha(0.0f)
 {
 	m_hpBarPos = { 330.0f, 80.0f };
@@ -63,6 +63,10 @@ void BattleUIManager::Init()
 	m_imgFight = new Image2D();
 	m_imgFight->Load("Assets/Texture/FIGHT.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
+	// KO画像
+	m_imgKO = new Image2D();
+	m_imgKO->Load("Assets/Texture/KO.png", 640.0f, 360.0f, 800.0f, 350.0f);
+
 	// UI用の深度ステート
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
 	depthDescUI.DepthEnable = TRUE;
@@ -100,6 +104,7 @@ void BattleUIManager::Uninit()
 	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }
 	if (m_imgFinalRound) { delete m_imgFinalRound; m_imgFinalRound = nullptr; }
 	if (m_imgFight) { delete m_imgFight; m_imgFight = nullptr; }
+	if (m_imgKO) { delete m_imgKO; m_imgKO = nullptr; }
 
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
@@ -191,6 +196,10 @@ void BattleUIManager::Draw(RoundPhase currentPhase, int winCountP1, int winCount
 	else if (currentPhase == RoundPhase::FIGHT_CALL)
 	{
 		if (m_imgFight) m_imgFight->Draw();
+	}
+	else if (currentPhase == RoundPhase::KO_CALL)
+	{
+		if (m_imgKO) m_imgKO->Draw();
 	}
 
 	// --- フェード画像の描画登録 ---
