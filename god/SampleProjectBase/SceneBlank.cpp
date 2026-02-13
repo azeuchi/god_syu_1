@@ -144,6 +144,8 @@ void SceneBlank::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
+
+	// Deathアニメーションの読み込み
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 
 
@@ -152,7 +154,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// プレイヤー2の生成 
+	// 5. プレイヤー2の生成 
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -183,6 +185,8 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
+
+	// Deathアニメーションの読み込み
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 
 	// 初期位置設定
@@ -348,7 +352,7 @@ void SceneBlank::Update(float tick)
 	Player* player2 = GetObj<Player>("Player2");
 
 	// ==========================================================
-	// ラウンド開始演出 (フェーズ管理)
+	// 0. ラウンド開始演出 (フェーズ管理)
 	// ラウンド中(PLAYING)でもなく、KO演出中(KO_CALL)でもない場合は
 	// 開始前演出（READY/ROUND/FIGHT）を行う
 	// ==========================================================
@@ -446,6 +450,9 @@ void SceneBlank::Update(float tick)
 			{
 				m_isSlowMotion = false;
 				// スロー終了後、カメラはズームしたままにするなら何もしない
+
+				// ★KO表示を消すためにフェーズをPLAYING（UI表示なし）に戻す
+				m_currentPhase = RoundPhase::PLAYING;
 			}
 		}
 		else
@@ -454,6 +461,7 @@ void SceneBlank::Update(float tick)
 			// スローが終わってからフェード処理を開始する
 
 			bool isDeathAnimFinished = true;
+			// ★修正: Debug_GetFrame() で判定
 			if (player && player->GetHpRatio() <= 0.0f) {
 				int total = player->GetModel()->GetAnimationTotalFrame("Death");
 				if (player->Debug_GetFrame() < total - 1) isDeathAnimFinished = false;
@@ -540,7 +548,7 @@ void SceneBlank::Update(float tick)
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
 
-			// スローモーション演出開始 
+			// ★★★ スローモーション演出開始 ★★★
 			m_isSlowMotion = true;
 			m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
 			m_slowMotionTimer = m_slowMotionDuration;

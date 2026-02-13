@@ -1,7 +1,6 @@
 #pragma once
 
 class Player;
-// AttackParams‚ğˆø”‚Åg‚¤‚½‚ß‘O•ûéŒ¾
 struct AttackParams;
 
 /**

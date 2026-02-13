@@ -14,7 +14,7 @@ void PlayerStateDamage::OnEnter(Player* player)
 {
 	player->PlayAnimation("Damage", true);
 
-	// --- 速度計算の修正 ---
+	// --- 速度計算 ---
 	int originalFrames = player->GetModel()->GetAnimationTotalFrame("Damage");
 
 	// 硬直時間(秒) をフレーム数に換算

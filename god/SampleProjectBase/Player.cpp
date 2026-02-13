@@ -456,10 +456,7 @@ void Player::SetState(PlayerState* newState)
 {
 	if (newState != nullptr)
 	{
-		// ★ここを修正しました：
-		// HPが0になったら、次に遷移しようとしているステートが「Death」でない限り、
-		// 一切の遷移を許可しないようにしました。
-		// これにより、Deathステートになる前にダメージステートなどが割り込んでくるのを防ぎます。
+	
 		if (m_hp <= 0 && !newState->IsDeathState())
 		{
 			delete newState;
