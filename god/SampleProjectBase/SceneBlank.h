@@ -39,13 +39,37 @@ private:
 	float m_phaseTimer = 0.0f;
 
 	// 描画設定
-	ID3D11DepthStencilState* m_pDepthState = nullptr;   // スカイドーム用
-	ID3D11BlendState* m_pBlendState = nullptr;          // 半透明用
+	ID3D11DepthStencilState* m_pDepthState = nullptr;         // スカイドーム用（Z書き込みあり）
+	ID3D11DepthStencilState* m_pDepthStateNoWrite = nullptr; // 影・床用（Z書き込みなし）
+	ID3D11BlendState* m_pBlendState = nullptr;                // 半透明用
 
 	// アウトライン・カリング設定用ラスタライザーステート
 	ID3D11RasterizerState* m_pCullFront = nullptr;      // 表面カリング（P1アウトライン、P2通常用）
 	ID3D11RasterizerState* m_pCullBack = nullptr;       // 裏面カリング（P1通常、P2アウトライン用）
 	ID3D11RasterizerState* m_pCullNone = nullptr;       // カリングなし（スカイドーム用）
+
+	// シャドウマップ・床用設定
+	ID3D11Texture2D* m_shadowMapTex = nullptr;
+	ID3D11RenderTargetView* m_shadowRTV = nullptr;
+	ID3D11ShaderResourceView* m_shadowSRV = nullptr;
+	ID3D11Texture2D* m_shadowDepthTex = nullptr;
+	ID3D11DepthStencilView* m_shadowDSV = nullptr;
+	ID3D11SamplerState* m_pSamplerState = nullptr;      // 影用サンプラー
+	D3D11_VIEWPORT m_shadowViewport = {};
+	ID3D11BlendState* m_pMultiplyBlend = nullptr;
+
+	ID3D11Buffer* m_quadVB = nullptr; // 床のポリゴン用
+
+	struct SpriteParam {
+		DirectX::XMFLOAT4 offset_size;
+		DirectX::XMFLOAT4 uvPos_scale;
+		DirectX::XMFLOAT4 color;
+	};
+
+	struct ShadowVertex {
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT2 uv;
+	};
 
 	// ヒットストップ演出用タイマー
 	float m_hitStopTimer = 0.0f;

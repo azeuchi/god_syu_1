@@ -95,6 +95,76 @@ void SceneBlank::Init()
 		}
 	}
 
+	CreateObj<VertexShader>("VS_SpriteShadow");
+	GetObj<VertexShader>("VS_SpriteShadow")->Load("Assets/Shader/VS_SpriteShadow.cso");
+	CreateObj<PixelShader>("PS_WriteDepth");
+	GetObj<PixelShader>("PS_WriteDepth")->Load("Assets/Shader/PS_WriteDepth.cso");
+	CreateObj<PixelShader>("PS_Shadow");
+	GetObj<PixelShader>("PS_Shadow")->Load("Assets/Shader/PS_Shadow.cso");
+
+	// ==================================================
+	// シャドウマップ・床の初期化
+	// ==================================================
+	D3D11_TEXTURE2D_DESC texDesc = {};
+	texDesc.Width = 2048;
+	texDesc.Height = 2048;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+	texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	GetDevice()->CreateTexture2D(&texDesc, nullptr, &m_shadowMapTex);
+	GetDevice()->CreateRenderTargetView(m_shadowMapTex, nullptr, &m_shadowRTV);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = texDesc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	GetDevice()->CreateShaderResourceView(m_shadowMapTex, &srvDesc, &m_shadowSRV);
+
+	D3D11_TEXTURE2D_DESC depthDescS = {};
+	depthDescS.Width = 2048;
+	depthDescS.Height = 2048;
+	depthDescS.MipLevels = 1;
+	depthDescS.ArraySize = 1;
+	depthDescS.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthDescS.SampleDesc.Count = 1;
+	depthDescS.Usage = D3D11_USAGE_DEFAULT;
+	depthDescS.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	GetDevice()->CreateTexture2D(&depthDescS, nullptr, &m_shadowDepthTex);
+	GetDevice()->CreateDepthStencilView(m_shadowDepthTex, nullptr, &m_shadowDSV);
+
+	m_shadowViewport.TopLeftX = 0.0f;
+	m_shadowViewport.TopLeftY = 0.0f;
+	m_shadowViewport.Width = 2048.0f;
+	m_shadowViewport.Height = 2048.0f;
+	m_shadowViewport.MinDepth = 0.0f;
+	m_shadowViewport.MaxDepth = 1.0f;
+
+	// 影用サンプラーステートの作成
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	GetDevice()->CreateSamplerState(&sampDesc, &m_pSamplerState);
+
+	ShadowVertex vertices[] = {
+		{ {-1.0f, 0.01f,  1.0f}, {0.0f, 0.0f} },
+		{ { 1.0f, 0.01f,  1.0f}, {1.0f, 0.0f} },
+		{ {-1.0f, 0.01f, -1.0f}, {0.0f, 1.0f} },
+		{ { 1.0f, 0.01f, -1.0f}, {1.0f, 1.0f} },
+	};
+	D3D11_BUFFER_DESC bd = {};
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(ShadowVertex) * 4;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = vertices;
+	GetDevice()->CreateBuffer(&bd, &initData, &m_quadVB);
+
+
 	// ==================================================
 	// 背景（スカイドーム）の読み込み
 	// ==================================================
@@ -154,7 +224,7 @@ void SceneBlank::Init()
 
 
 	// ==================================================
-	// 5. プレイヤー2の生成 
+	// プレイヤー2の生成 
 	// ==================================================
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
@@ -185,8 +255,6 @@ void SceneBlank::Init()
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
-
-	// Deathアニメーションの読み込み
 	player2->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 
 	// 初期位置設定
@@ -218,6 +286,10 @@ void SceneBlank::Init()
 	depthDesc.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthState);
 
+	// 影（床ポリゴン）用に深度書き込みをオフにしたステートを作成
+	depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	GetDevice()->CreateDepthStencilState(&depthDesc, &m_pDepthStateNoWrite);
+
 	// 半透明合成用ブレンドステート 
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = TRUE;
@@ -231,6 +303,17 @@ void SceneBlank::Init()
 	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
+
+	D3D11_BLEND_DESC mulBlendDesc = {};
+	mulBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+	mulBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO;
+	mulBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_SRC_COLOR;
+	mulBlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	mulBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+	mulBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	mulBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	mulBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	GetDevice()->CreateBlendState(&mulBlendDesc, &m_pMultiplyBlend);
 
 	// ----------------------------------------------------
 	// アウトライン用ラスタライザーステートの作成
@@ -256,7 +339,7 @@ void SceneBlank::Init()
 
 	// スカイドーム用：カリングなし
 	rsDesc.CullMode = D3D11_CULL_NONE;
-	rsDesc.DepthClipEnable = FALSE; // スカイドーム用は深度クリップも切っておくと安全
+	rsDesc.DepthClipEnable = FALSE; 
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
 }
 
@@ -273,10 +356,20 @@ void SceneBlank::Uninit()
 
 	// 描画設定の解放
 	if (m_pDepthState) { m_pDepthState->Release(); m_pDepthState = nullptr; }
+	if (m_pDepthStateNoWrite) { m_pDepthStateNoWrite->Release(); m_pDepthStateNoWrite = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
+	if (m_pMultiplyBlend) { m_pMultiplyBlend->Release(); m_pMultiplyBlend = nullptr; }
 	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
 	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
+
+	if (m_shadowMapTex) { m_shadowMapTex->Release(); m_shadowMapTex = nullptr; }
+	if (m_shadowRTV) { m_shadowRTV->Release(); m_shadowRTV = nullptr; }
+	if (m_shadowSRV) { m_shadowSRV->Release(); m_shadowSRV = nullptr; }
+	if (m_shadowDepthTex) { m_shadowDepthTex->Release(); m_shadowDepthTex = nullptr; }
+	if (m_shadowDSV) { m_shadowDSV->Release(); m_shadowDSV = nullptr; }
+	if (m_pSamplerState) { m_pSamplerState->Release(); m_pSamplerState = nullptr; }
+	if (m_quadVB) { m_quadVB->Release(); m_quadVB = nullptr; }
 }
 
 /**
@@ -352,7 +445,7 @@ void SceneBlank::Update(float tick)
 	Player* player2 = GetObj<Player>("Player2");
 
 	// ==========================================================
-	// 0. ラウンド開始演出 (フェーズ管理)
+	// ラウンド開始演出 (フェーズ管理)
 	// ラウンド中(PLAYING)でもなく、KO演出中(KO_CALL)でもない場合は
 	// 開始前演出（READY/ROUND/FIGHT）を行う
 	// ==========================================================
@@ -451,7 +544,7 @@ void SceneBlank::Update(float tick)
 				m_isSlowMotion = false;
 				// スロー終了後、カメラはズームしたままにするなら何もしない
 
-				// ★KO表示を消すためにフェーズをPLAYING（UI表示なし）に戻す
+				// KO表示を消すためにフェーズをPLAYING（UI表示なし）に戻す
 				m_currentPhase = RoundPhase::PLAYING;
 			}
 		}
@@ -461,7 +554,7 @@ void SceneBlank::Update(float tick)
 			// スローが終わってからフェード処理を開始する
 
 			bool isDeathAnimFinished = true;
-			// ★修正: Debug_GetFrame() で判定
+			
 			if (player && player->GetHpRatio() <= 0.0f) {
 				int total = player->GetModel()->GetAnimationTotalFrame("Death");
 				if (player->Debug_GetFrame() < total - 1) isDeathAnimFinished = false;
@@ -548,7 +641,7 @@ void SceneBlank::Update(float tick)
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
 
-			// ★★★ スローモーション演出開始 ★★★
+			// スローモーション演出開始 
 			m_isSlowMotion = true;
 			m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
 			m_slowMotionTimer = m_slowMotionDuration;
@@ -698,6 +791,86 @@ void SceneBlank::Update(float tick)
 }
 void SceneBlank::Draw()
 {
+	Player* player = GetObj<Player>("Player");
+	Player* player2 = GetObj<Player>("Player2");
+	CameraBase* pCamera = GetObj<CameraBase>("Camera");
+	LightBase* pLight = GetObj<LightBase>("Light");
+
+	// ==========================================================
+	// シャドウマップ生成パス
+	// ==========================================================
+	ID3D11RenderTargetView* oldRTV = nullptr;
+	ID3D11DepthStencilView* oldDSV = nullptr;
+	GetContext()->OMGetRenderTargets(1, &oldRTV, &oldDSV);
+	UINT numViewports = 1;
+	D3D11_VIEWPORT oldViewport[1];
+	GetContext()->RSGetViewports(&numViewports, oldViewport);
+
+	GetContext()->OMSetRenderTargets(1, &m_shadowRTV, m_shadowDSV);
+	GetContext()->RSSetViewports(1, &m_shadowViewport);
+
+	// 前フレームのUI描画等で深度テストがオフになっているのを防ぐ
+	float clearBlend[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GetContext()->OMSetBlendState(nullptr, clearBlend, 0xffffffff);
+	if (m_pDepthState) {
+		GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
+	}
+	else {
+		GetContext()->OMSetDepthStencilState(nullptr, 0);
+	}
+	if (m_pCullNone) {
+		GetContext()->RSSetState(m_pCullNone);
+	}
+
+	float clearColorDepth[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GetContext()->ClearRenderTargetView(m_shadowRTV, clearColorDepth);
+	GetContext()->ClearDepthStencilView(m_shadowDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	DirectX::XMFLOAT4X4 LView, LProj;
+
+	XMVECTOR vLightDir = XMVectorSet(0.0f, -1.0f, 0.2f, 0.0f);
+	vLightDir = XMVector3Normalize(vLightDir);
+	XMVECTOR vLightPos = XMVectorScale(vLightDir, -20.0f); // 描画範囲を確保するため遠ざける
+	XMVECTOR vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMMATRIX matLView = XMMatrixLookAtLH(vLightPos, XMVectorZero(), vUp);
+	XMMATRIX matLProj = XMMatrixOrthographicLH(20.0f, 20.0f, 1.0f, 50.0f);
+
+	XMStoreFloat4x4(&LView, XMMatrixTranspose(matLView));
+	XMStoreFloat4x4(&LProj, XMMatrixTranspose(matLProj));
+
+	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
+	Shader* psDepth = GetObj<Shader>("PS_WriteDepth");
+
+	auto DrawShadowPass = [&](Player* p) {
+		if (!p) return;
+		XMFLOAT3 pos = p->GetPosition();
+		XMFLOAT3 rot = p->GetRotation();
+		XMFLOAT3 pScale = p->GetScale();
+		Matrix pS = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
+		Matrix pM = p->GetModel()->GetScaleBaseMatrix();
+		Matrix pR = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+		Matrix pT = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+		Matrix world = pM * pS * pR * pT;
+
+		DirectX::XMFLOAT4X4 matWVP[3];
+		XMStoreFloat4x4(&matWVP[0], XMMatrixTranspose(world));
+		matWVP[1] = LView;
+		matWVP[2] = LProj;
+		vsSkin->WriteBuffer(0, matWVP);
+		p->SetVertexShader(vsSkin);
+		p->SetPixelShader(psDepth);
+		p->Draw();
+		};
+
+	DrawShadowPass(player);
+	DrawShadowPass(player2);
+
+	GetContext()->OMSetRenderTargets(1, &oldRTV, oldDSV);
+	GetContext()->RSSetViewports(numViewports, oldViewport);
+	if (oldRTV) oldRTV->Release();
+	if (oldDSV) oldDSV->Release();
+
+
 	// ==========================================================
 	// 描画設定のリセット・初期化
 	// ==========================================================
@@ -713,10 +886,6 @@ void SceneBlank::Draw()
 	{
 		GetContext()->OMSetDepthStencilState(nullptr, 0);
 	}
-
-
-	CameraBase* pCamera = GetObj<CameraBase>("Camera");
-	LightBase* pLight = GetObj<LightBase>("Light");
 
 	DirectX::XMFLOAT4X4 mat[3];
 	DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixIdentity());
@@ -751,8 +920,66 @@ void SceneBlank::Draw()
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
 	}
 
-	Player* player = GetObj<Player>("Player");
-	Player* player2 = GetObj<Player>("Player2");
+	// ==================================================
+	// 床への影描画 (乗算ブレンド)
+	// ==================================================
+	if (m_pMultiplyBlend)
+	{
+		GetContext()->OMSetBlendState(m_pMultiplyBlend, blendFactor, 0xffffffff);
+	}
+	if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
+
+	//  影受け用の板ポリゴンが、背後のグリッドを隠さないように深度の書き込みをオフにする
+	if (m_pDepthStateNoWrite)
+	{
+		GetContext()->OMSetDepthStencilState(m_pDepthStateNoWrite, 0);
+	}
+
+	Shader* vsShadow = GetObj<Shader>("VS_SpriteShadow");
+	Shader* psShadow = GetObj<Shader>("PS_Shadow");
+
+	DirectX::XMFLOAT4X4 matWVPFloor[3];
+	XMMATRIX matFloorWorld = XMMatrixScaling(20.0f, 1.0f, 20.0f);
+	XMStoreFloat4x4(&matWVPFloor[0], XMMatrixTranspose(matFloorWorld));
+	matWVPFloor[1] = mat[1];
+	matWVPFloor[2] = mat[2];
+	vsShadow->WriteBuffer(0, matWVPFloor);
+
+	SpriteParam pram = {
+		{0.0f, 0.0f, 1.0f, 1.0f},
+		{0.0f, 0.0f, 1.0f, 1.0f},
+		{1.0f, 1.0f, 1.0f, 1.0f}
+	};
+	vsShadow->WriteBuffer(1, &pram);
+
+	DirectX::XMFLOAT4X4 lightMatFloor[3];
+	lightMatFloor[0] = matWVPFloor[0];
+	lightMatFloor[1] = LView;
+	lightMatFloor[2] = LProj;
+	vsShadow->WriteBuffer(2, lightMatFloor);
+
+	vsShadow->Bind();
+	psShadow->Bind();
+
+	// サンプラーとシャドウマップをセット
+	GetContext()->PSSetSamplers(0, 1, &m_pSamplerState);
+	GetContext()->PSSetShaderResources(0, 1, &m_shadowSRV);
+
+	UINT stride = sizeof(ShadowVertex);
+	UINT offsetVB = 0;
+	GetContext()->IASetVertexBuffers(0, 1, &m_quadVB, &stride, &offsetVB);
+	GetContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	GetContext()->Draw(4, 0);
+
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+	GetContext()->PSSetShaderResources(0, 1, &nullSRV);
+	ID3D11SamplerState* nullSamp = nullptr;
+	GetContext()->PSSetSamplers(0, 1, &nullSamp);
+
+	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
+
+	// プレイヤー等の描画に影響が出ないよう、通常の深度設定（書き込みあり）に戻す
+	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
 	// ==================================================
 	// アウトライン描画パス
