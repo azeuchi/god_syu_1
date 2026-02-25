@@ -6,7 +6,6 @@
 #include <vector>
 #include "Geometory.h"
 
-// 前方宣言
 class PlayerState;
 class Shader;
 class Projectile;
@@ -18,7 +17,6 @@ enum class PlayerInputType
 	AI        // AI
 };
 
-//ステート
 struct PlayerInputs
 {
 	bool moveLeft = false;
@@ -47,6 +45,13 @@ enum class HurtboxType
 	COUNT
 };
 
+enum class AttackLevel
+{
+	HIGH,
+	MID,
+	LOW
+};
+
 struct AnimSpeedModifier
 {
 	float startFrame = 0.0f;
@@ -73,18 +78,16 @@ struct AnimatedBox
 
 struct AttackParams
 {
-	// --- タイミング (秒) ---
 	float totalDuration = 0.5f;
 	float hitboxStart = 0.1f;
 	float hitboxEnd = 0.2f;
 
-	// 複数の攻撃判定 (赤枠) のリスト
 	std::vector<AnimatedBox> hitboxes;
 
-	// 攻撃中のくらい判定 (緑枠) のリスト
 	std::vector<AnimatedBox> hurtboxes;
 
-	// --- ゲームプレイ用パラメータ ---
+	AttackLevel attackLevel = AttackLevel::HIGH;
+
 	int damage = 10;
 	int hitFrame = 5;
 	int blockFrame = -2;
@@ -93,7 +96,6 @@ struct AttackParams
 	float knockback = 0.5f;
 	bool isDown = false;
 
-	// --- キャンセル設定 ---
 	bool cancelEnabled = false;
 	float cancelStart = 0.0f;
 	float cancelEnd = 0.0f;
@@ -106,7 +108,6 @@ struct AttackParams
 
 	std::vector<AnimSpeedModifier> speedModifiers;
 
-	// --- 飛び道具用パラメータ ---
 	float projectileSpeed = 5.0f;
 	float projectileSize = 1.0f;
 };
@@ -152,7 +153,6 @@ public:
 	void ForceJumpState(bool isJumping);
 	bool GetIsJumping() const;
 
-	// --- 当たり判定 (Hurtbox) ---
 	void SetHurtboxBase(HurtboxType type, const DirectX::XMFLOAT2& offset, const DirectX::XMFLOAT2& extents);
 	DirectX::XMFLOAT2 GetHurtboxBaseOffset(HurtboxType type) const;
 	DirectX::XMFLOAT2 GetHurtboxBaseExtents(HurtboxType type) const;
@@ -176,14 +176,12 @@ public:
 	DirectX::XMFLOAT2 GetBoundingBoxOffset() const;
 	DirectX::BoundingBox GetBoundingBox() const;
 
-	// --- 攻撃判定 (Hitbox) 用 ---
 	const std::vector<DirectX::BoundingBox>& GetActiveHitboxes() const;
 	const std::vector<DirectX::BoundingBox>& GetActiveHurtboxes() const;
 
 	bool IsAttacking() const;
 	void SetActiveHitbox(bool isActive);
 
-	// パラメータに基づいてボックスを更新する関数
 	void UpdateAttackBoxes();
 
 	void DrawHitbox();
@@ -204,7 +202,6 @@ public:
 	AttackParams& GetMediumKickParams() { return m_mediumKickParams; }
 	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
 
-	// 波動拳用パラメータ
 	AttackParams& GetHadoukenLParams() { return m_hadoukenLParams; }
 	AttackParams& GetHadoukenMParams() { return m_hadoukenMParams; }
 	AttackParams& GetHadoukenHParams() { return m_hadoukenHParams; }
@@ -223,10 +220,9 @@ public:
 		m_currentAnim.frame = (float)frame;
 	}
 
-	// 攻撃タイマー設定
 	void SetAttackTimer(float timer) { m_attackTimer = timer; }
 
-	void ReceiveDamage(int damage);
+	void ReceiveDamage(int damage, AttackLevel atkLevel = AttackLevel::HIGH);
 	float GetHpRatio() const;
 
 	void Reset();
@@ -234,16 +230,18 @@ public:
 	bool HasHit() const { return m_hasHit; }
 	void OnHit() { m_hasHit = true; }
 
-	// 飛び道具制御
 	Projectile* GetProjectile() { return m_projectile; }
 	bool CanFireProjectile() const;
 
-	// コマンド判定
 	void UpdateCommandTimer(float tick);
 	bool CheckHadoukenCommand() const;
 
+	bool IsGuarding() const;
+	bool IsGuardingHigh() const;
+	bool IsGuardingLow() const;
+	bool TryGuard(AttackLevel atkLevel) const;
+
 private:
-	// 初期パラメータ設定用関数
 	void InitDefaultParameters();
 
 	void UpdatePhysics(float tick);
@@ -266,7 +264,6 @@ private:
 	bool m_isColliding = false;
 	bool m_isCrouching = false;
 
-	// 複数の攻撃判定を保持
 	std::vector<DirectX::BoundingBox> m_activeHitboxes;
 	std::vector<DirectX::BoundingBox> m_activeHurtboxes;
 
@@ -290,24 +287,20 @@ private:
 	AttackParams m_mediumKickParams;
 	AttackParams m_heavyKickParams;
 
-	// 波動拳パラメータ
 	AttackParams m_hadoukenLParams;
 	AttackParams m_hadoukenMParams;
 	AttackParams m_hadoukenHParams;
 
 	AttackParams* m_pActiveAttackParams = nullptr;
 
-	//  攻撃の経過時間を正確に測るタイマー
 	float m_attackTimer = 0.0f;
 
 	int m_hp;
 	const int m_maxHp = 10000;
 	bool m_hasHit = false;
 
-	// 飛び道具インスタンス
 	Projectile* m_projectile = nullptr;
 
-	// コマンドバッファ
 	float m_cmdTimerDown = 0.0f;
 	float m_cmdTimerDownForward = 0.0f;
 	const float CMD_WINDOW = 0.3f;
