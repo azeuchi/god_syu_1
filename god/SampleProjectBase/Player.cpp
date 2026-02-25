@@ -396,7 +396,7 @@ void Player::PollInputs()
 void Player::UpdatePhysics(float tick)
 {
 	if (m_isJumping) {
-		m_velocity.y -= 18.0f * tick; // 重力
+		m_velocity.y -= 55.0f * tick; // 重力
 	}
 
 	m_position.x += m_velocity.x * tick;
@@ -408,6 +408,7 @@ void Player::UpdatePhysics(float tick)
 		m_position.y = 0.0f;
 		if (m_isJumping) {
 			m_velocity.y = 0.0f;
+			m_velocity.x = 0.0f;
 			m_isJumping = false;
 		}
 	}
@@ -645,7 +646,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
 	if (!m_isJumping) {
-		m_velocity.y = 10.0f; // ジャンプ初速
+		m_velocity.y = 19.0f; // ジャンプ初速
 		m_isJumping = true;
 	}
 }

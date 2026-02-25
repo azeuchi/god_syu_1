@@ -8,18 +8,6 @@ void PlayerStateJump::OnEnter(Player* player)
 	// ジャンプアニメーションを再生
 	player->PlayAnimation("Jump", true);
 	m_elapsedTime = 0.0f;
-}
-
-void PlayerStateJump::UpdateBehavior(Player* player, float tick)
-{
-	// ---  着地チェック ---
-	
-	// --- アニメーション制御 (最後まで再生したら止める) ---
-	m_elapsedTime += tick;
-	if (m_elapsedTime >= JUMP_ANIM_DURATION)
-	{
-		player->SetAnimPause(true); // 最後のポーズで固定
-	}
 
 	// --- 空中制御  ---
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
@@ -37,4 +25,16 @@ void PlayerStateJump::UpdateBehavior(Player* player, float tick)
 	}
 
 	player->SetVelocity(vel);
+}
+
+void PlayerStateJump::UpdateBehavior(Player* player, float tick)
+{
+	// ---  着地チェック ---
+
+	// --- アニメーション制御 (最後まで再生したら止める) ---
+	m_elapsedTime += tick;
+	if (m_elapsedTime >= JUMP_ANIM_DURATION)
+	{
+		player->SetAnimPause(true); // 最後のポーズで固定
+	}
 }
