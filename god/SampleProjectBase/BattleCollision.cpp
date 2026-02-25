@@ -84,25 +84,14 @@ void BattleCollision::ResolvePushback(Player* p1, Player* p2, float stageLimitX)
 		float sumExtentsX = box1.Extents.x + box2.Extents.x;
 		float overlapX = sumExtentsX - abs(deltaX);
 
-		float deltaY = box1.Center.y - box2.Center.y;
-		float sumExtentsY = box1.Extents.y + box2.Extents.y;
-		float overlapY = sumExtentsY - abs(deltaY);
+		// 押し出し方向と量の計算 (X軸のみ)
+		float pushAmount = overlapX / 2.0f;
+		float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
 
-		DirectX::XMFLOAT3 pushVector = { 0.0f, 0.0f, 0.0f };
+		// 互いに外側へ押し出す
+		pos1.x += direction * pushAmount;
+		pos2.x -= direction * pushAmount;
 
-		if (overlapX < overlapY) {
-			float pushAmount = overlapX / 2.0f;
-			float direction = (deltaX > 0.0f) ? 1.0f : -1.0f;
-			pushVector.x = direction * pushAmount;
-		}
-		else {
-			float pushAmount = overlapY / 2.0f;
-			float direction = (deltaY > 0.0f) ? 1.0f : -1.0f;
-			pushVector.y = direction * pushAmount;
-		}
-
-		pos1.x += pushVector.x; pos2.x -= pushVector.x;
-		pos1.y += pushVector.y; pos2.y -= pushVector.y;
 		pos1.x = std::clamp(pos1.x, -stageLimitX, stageLimitX);
 		pos2.x = std::clamp(pos2.x, -stageLimitX, stageLimitX);
 		p1->SetPosition(pos1);
