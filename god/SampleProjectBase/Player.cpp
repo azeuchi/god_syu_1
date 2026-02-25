@@ -329,6 +329,8 @@ void Player::Update(float tick)
 
 	UpdateModelBlend();
 
+	UpdateAttackBoxes();
+
 	if (m_projectile) {
 		m_projectile->Update(tick);
 	}
@@ -426,9 +428,6 @@ void Player::UpdateAnimation(float tick)
 			}
 			else
 			{
-				// 攻撃中なら、絶対時間タイマーを進める
-				m_attackTimer += tick * 60.0f;
-
 				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
 				{
 					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
@@ -441,6 +440,11 @@ void Player::UpdateAnimation(float tick)
 		}
 
 		m_currentAnim.frame += currentSpeed * tick * 60.0f;
+
+		if (m_pActiveAttackParams)
+		{
+			m_attackTimer = m_currentAnim.frame;
+		}
 	}
 }
 
@@ -456,7 +460,7 @@ void Player::SetState(PlayerState* newState)
 {
 	if (newState != nullptr)
 	{
-	
+
 		if (m_hp <= 0 && !newState->IsDeathState())
 		{
 			delete newState;
@@ -793,34 +797,43 @@ AttackParams* Player::GetCurrentAttackParams() const
 
 void Player::UpdateAttackBoxes()
 {
-	if (!m_pActiveAttackParams) return;
+	if (!m_pActiveAttackParams)
+	{
+		m_activeHitboxes.clear();
+		m_activeHurtboxes.clear();
+		return;
+	}
 
 	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 
+	float currentFrame = m_currentAnim.frame;
 
-	float currentFrame = m_attackTimer;
+	float startFrame = m_pActiveAttackParams->hitboxStart * 60.0f;
+	float endFrame = m_pActiveAttackParams->hitboxEnd * 60.0f;
+	bool isHitActive = (currentFrame >= startFrame && currentFrame < endFrame);
 
-	// 攻撃判定(Hitbox)の更新 (補間あり)
-	for (const auto& animBox : m_pActiveAttackParams->hitboxes)
+	if (isHitActive || m_isAttacking)
 	{
-		BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
+		for (const auto& animBox : m_pActiveAttackParams->hitboxes)
+		{
+			BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
 
-		DirectX::XMFLOAT3 center = {
-			m_position.x + (currentBox.offset.x * direction),
-			m_position.y + currentBox.offset.y,
-			m_position.z
-		};
-		DirectX::XMFLOAT3 boxExtents = {
-			currentBox.extents.x,
-			currentBox.extents.y,
-			0.1f
-		};
-		m_activeHitboxes.push_back(DirectX::BoundingBox(center, boxExtents));
+			DirectX::XMFLOAT3 center = {
+				m_position.x + (currentBox.offset.x * direction),
+				m_position.y + currentBox.offset.y,
+				m_position.z
+			};
+			DirectX::XMFLOAT3 boxExtents = {
+				currentBox.extents.x,
+				currentBox.extents.y,
+				0.1f
+			};
+			m_activeHitboxes.push_back(DirectX::BoundingBox(center, boxExtents));
+		}
 	}
 
-	// 攻撃中のくらい判定(Hurtbox)の更新 (補間あり)
 	for (const auto& animBox : m_pActiveAttackParams->hurtboxes)
 	{
 		BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
@@ -931,3 +944,4 @@ bool Player::CheckHadoukenCommand() const
 	// 下 -> 斜め前 -> 前 + パンチ
 	return (m_cmdTimerDownForward > 0 && forward && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }
+

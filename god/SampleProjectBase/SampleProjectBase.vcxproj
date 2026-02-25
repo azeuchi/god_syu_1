@@ -216,7 +216,7 @@
     <ClCompile Include="Projectile.cpp" />
     <ClCompile Include="SceneAnimation.cpp" />
     <ClCompile Include="SceneBase.cpp" />
-    <ClCompile Include="SceneBlank.cpp" />
+    <ClCompile Include="SceneGame.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
     <ClCompile Include="SceneResult.cpp" />
     <ClCompile Include="SceneTitle.cpp" />
@@ -283,7 +283,7 @@
     <ClInclude Include="Projectile.h" />
     <ClInclude Include="SceneAnimation.h" />
     <ClInclude Include="SceneBase.hpp" />
-    <ClInclude Include="SceneBlank.h" />
+    <ClInclude Include="SceneGame.h" />
     <ClInclude Include="SceneDebug.h" />
     <ClInclude Include="SceneResult.h" />
     <ClInclude Include="SceneRoot.h" />

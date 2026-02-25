@@ -8,7 +8,7 @@
 
 // 各シーンのインクルード
 #include "SceneVisual.h"
-#include "SceneBlank.h"
+#include "SceneGame.h"
 #include "SceneDebug.h" 
 #include "SceneTitle.h" 
 #include	"SceneResult.h"
@@ -39,7 +39,7 @@ void SceneRoot::ChangeScene()
 		break;
 
 	case SCENE_GAME:
-		AddSubScene<SceneBlank>();
+		AddSubScene<SceneGame>();
 		m_sceneName = "SCENE_GAME";
 		break;
 
@@ -190,10 +190,10 @@ void SceneRoot::Update(float tick)
 			}	
 
 		// ゲームセットになったらリザルトへ (静的フラグをチェック)
-		if (SceneBlank::s_isGameSet)
+		if (SceneGame::s_isGameSet)
 		{
 			Transition(SCENE_RESULT);
-			SceneBlank::s_isGameSet = false; // フラグを戻しておく
+			SceneGame::s_isGameSet = false; // フラグを戻しておく
 		}
 
 		break;

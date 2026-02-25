@@ -11,7 +11,7 @@
  * @brief メインのゲームシーン
  * 格闘ゲームの本番動作用シーン
  */
-class SceneBlank : public SceneBase
+class SceneGame : public SceneBase
 {
 public:
 	void Init();   // 初期化

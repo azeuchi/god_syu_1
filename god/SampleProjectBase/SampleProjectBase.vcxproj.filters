@@ -123,7 +123,7 @@
     <ClCompile Include="Ball.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
-    <ClCompile Include="SceneBlank.cpp">
+    <ClCompile Include="SceneGame.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
     <ClCompile Include="SceneAnimation.cpp">
@@ -293,7 +293,7 @@
     <ClInclude Include="SpotLight.h">
       <Filter>ヘッダー ファイル\App</Filter>
     </ClInclude>
-    <ClInclude Include="SceneBlank.h">
+    <ClInclude Include="SceneGame.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
     </ClInclude>
     <ClInclude Include="SceneAnimation.h">

@@ -1,5 +1,5 @@
 ﻿#include "math.h"
-#include "SceneBlank.h"
+#include "SceneGame.h"
 #include "Geometory.h"
 #include "DebugLog.h"
 #include "Model.h"
@@ -40,13 +40,13 @@ const float FADE_DURATION = 2.0f;    // フェードにかける時間
 const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 (3.0秒)
 
 // 静的メンバ変数の実体定義
-bool SceneBlank::s_isGameSet = false;
+bool SceneGame::s_isGameSet = false;
 
 /**
  * @brief シーンの初期化処理
  * シェーダー、モデル、UI、プレイヤーの生成と設定ロードを行う
  */
-void SceneBlank::Init()
+void SceneGame::Init()
 {
 	// 初期化
 	m_hitStopTimer = 0.0f;
@@ -343,7 +343,7 @@ void SceneBlank::Init()
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
 }
 
-void SceneBlank::Uninit()
+void SceneGame::Uninit()
 {
 	if (m_uiManager)
 	{
@@ -376,7 +376,7 @@ void SceneBlank::Uninit()
  * @brief ラウンド開始・リセット処理
  * 位置、HP、向き、状態を初期状態に戻す
  */
-void SceneBlank::ResetRound()
+void SceneGame::ResetRound()
 {
 	m_isRoundOver = false;
 	m_roundEndTimer = 0.0f;
@@ -439,7 +439,7 @@ void SceneBlank::ResetRound()
 }
 
 
-void SceneBlank::Update(float tick)
+void SceneGame::Update(float tick)
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
@@ -789,7 +789,7 @@ void SceneBlank::Update(float tick)
 		}
 	}
 }
-void SceneBlank::Draw()
+void SceneGame::Draw()
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
