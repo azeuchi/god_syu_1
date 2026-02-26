@@ -101,6 +101,7 @@ Player::Player()
 	, m_velocity(0.0f, 0.0f, 0.0f)
 	, m_isJumping(false)
 	, m_moveSpeed(2.0f)
+	, m_jumpSpeed(2.5f)
 	, m_currentState(nullptr)
 	, m_inputType(PlayerInputType::AI)
 	, m_blendFactor(1.0f)
@@ -138,6 +139,7 @@ Player::~Player()
 void Player::InitDefaultParameters()
 {
 	m_moveSpeed = 2.102f;
+	m_jumpSpeed = 2.5f;
 	m_scale = { 1.0f, 1.0f, 1.0f };
 
 	// óßÇøèÛë‘ÇÃäÓñ{Ç≠ÇÁÇ¢îªíË (Head, Body, Legs)
@@ -802,6 +804,8 @@ DirectX::BoundingBox Player::GetBoundingBox() const { return GetHurtbox(HurtboxT
 
 void Player::SetMoveSpeed(float speed) { m_moveSpeed = speed; }
 float Player::GetMoveSpeed() const { return m_moveSpeed; }
+void Player::SetJumpSpeed(float speed) { m_jumpSpeed = speed; }
+float Player::GetJumpSpeed() const { return m_jumpSpeed; }
 void Player::SetScale(const DirectX::XMFLOAT3& scale) { m_scale = scale; }
 DirectX::XMFLOAT3 Player::GetScale() const { return m_scale; }
 

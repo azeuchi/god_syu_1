@@ -9,16 +9,18 @@ void PlayerStateJump::OnEnter(Player* player)
 	player->PlayAnimation("Jump", true);
 	m_elapsedTime = 0.0f;
 
-	// --- 空中制御  ---
+	// --- 空中制御 (ジャンプした瞬間の入力で軌道を固定) ---
 	DirectX::XMFLOAT3 vel = player->GetVelocity();
 	const PlayerInputs& inputs = player->GetInputs();
-	float moveSpeed = player->GetMoveSpeed();
+
+	// ここで歩き速度ではなく、新しく作ったジャンプ速度を取得します
+	float jumpSpeed = player->GetJumpSpeed();
 
 	if (inputs.moveLeft) {
-		vel.x = -moveSpeed;
+		vel.x = -jumpSpeed;
 	}
 	else if (inputs.moveRight) {
-		vel.x = moveSpeed;
+		vel.x = jumpSpeed;
 	}
 	else {
 		vel.x = 0.0f;

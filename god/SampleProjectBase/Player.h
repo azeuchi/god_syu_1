@@ -227,6 +227,8 @@ public:
 	bool GetIsColliding() const;
 	void SetMoveSpeed(float speed);
 	float GetMoveSpeed() const;
+	void SetJumpSpeed(float speed);
+	float GetJumpSpeed() const;
 	void SetScale(const DirectX::XMFLOAT3& scale);
 	DirectX::XMFLOAT3 GetScale() const;
 
@@ -301,6 +303,7 @@ private:
 
 	bool m_isJumping;
 	float m_moveSpeed;
+	float m_jumpSpeed;
 
 	// 立ち状態の部位ごとのくらい判定ベースオフセット・サイズ
 	DirectX::XMFLOAT2 m_baseHurtboxOffsets[(int)HurtboxType::COUNT];
