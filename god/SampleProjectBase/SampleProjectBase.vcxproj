@@ -217,6 +217,7 @@
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneGame.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
+    <ClCompile Include="SceneKeyConfig.cpp" />
     <ClCompile Include="SceneResult.cpp" />
     <ClCompile Include="SceneTitle.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -282,6 +283,7 @@
     <ClInclude Include="SceneBase.hpp" />
     <ClInclude Include="SceneGame.h" />
     <ClInclude Include="SceneDebug.h" />
+    <ClInclude Include="SceneKeyConfig.h" />
     <ClInclude Include="SceneResult.h" />
     <ClInclude Include="SceneRoot.h" />
     <ClInclude Include="SceneTitle.h" />

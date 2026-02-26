@@ -25,6 +25,9 @@
 #include <DirectXMath.h>
 #include <algorithm>
 
+KeyConfig g_keyConfigP1 = { 'W', 'S', 'A', 'D', 'U', 'I', 'O', 'K', 'L' };
+KeyConfig g_keyConfigP2 = { VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD3 };
+
 namespace {
 	// アニメーション中の指定フレームにおける当たり判定の位置とサイズを計算するヘルパー関数
 	BoxData CalculateInterpolatedBox(const AnimatedBox& animBox, float currentFrame)
@@ -360,31 +363,31 @@ void Player::PollInputs()
 	case PlayerInputType::PLAYER_1:
 		if (!IsKeyPress(VK_RBUTTON))
 		{
-			if (IsKeyPress('A')) m_inputs.moveLeft = true;
-			else if (IsKeyPress('D')) m_inputs.moveRight = true;
-			if (IsKeyPress('S')) m_inputs.moveDown = true;
-			if (IsKeyTrigger('W')) m_inputs.jump = true;
+			if (IsKeyPress(g_keyConfigP1.left)) m_inputs.moveLeft = true;
+			else if (IsKeyPress(g_keyConfigP1.right)) m_inputs.moveRight = true;
+			if (IsKeyPress(g_keyConfigP1.down)) m_inputs.moveDown = true;
+			if (IsKeyTrigger(g_keyConfigP1.up)) m_inputs.jump = true;
 		}
-		if (IsKeyTrigger('U')) m_inputs.LightPunch = true;
-		if (IsKeyTrigger('I')) m_inputs.MediumPunch = true;
-		if (IsKeyTrigger('O')) m_inputs.HeavyPunch = true;
-		if (IsKeyTrigger('K')) m_inputs.MediumKick = true;
-		if (IsKeyTrigger('L')) m_inputs.HeavyKick = true;
+		if (IsKeyTrigger(g_keyConfigP1.lightPunch)) m_inputs.LightPunch = true;
+		if (IsKeyTrigger(g_keyConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
+		if (IsKeyTrigger(g_keyConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
+		if (IsKeyTrigger(g_keyConfigP1.mediumKick)) m_inputs.MediumKick = true;
+		if (IsKeyTrigger(g_keyConfigP1.heavyKick)) m_inputs.HeavyKick = true;
 		break;
 
 	case PlayerInputType::PLAYER_2:
 		if (!IsKeyPress(VK_RBUTTON))
 		{
-			if (IsKeyPress(VK_LEFT)) m_inputs.moveLeft = true;
-			else if (IsKeyPress(VK_RIGHT)) m_inputs.moveRight = true;
-			if (IsKeyPress(VK_DOWN)) m_inputs.moveDown = true;
-			if (IsKeyTrigger(VK_UP)) m_inputs.jump = true;
+			if (IsKeyPress(g_keyConfigP2.left)) m_inputs.moveLeft = true;
+			else if (IsKeyPress(g_keyConfigP2.right)) m_inputs.moveRight = true;
+			if (IsKeyPress(g_keyConfigP2.down)) m_inputs.moveDown = true;
+			if (IsKeyTrigger(g_keyConfigP2.up)) m_inputs.jump = true;
 		}
-		if (IsKeyTrigger(VK_NUMPAD1)) m_inputs.LightPunch = true;
-		if (IsKeyTrigger(VK_NUMPAD2)) m_inputs.MediumPunch = true;
-		if (IsKeyTrigger(VK_NUMPAD4)) m_inputs.HeavyPunch = true;
-		if (IsKeyTrigger(VK_NUMPAD5)) m_inputs.MediumKick = true;
-		if (IsKeyTrigger(VK_NUMPAD3)) m_inputs.HeavyKick = true;
+		if (IsKeyTrigger(g_keyConfigP2.lightPunch)) m_inputs.LightPunch = true;
+		if (IsKeyTrigger(g_keyConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
+		if (IsKeyTrigger(g_keyConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
+		if (IsKeyTrigger(g_keyConfigP2.mediumKick)) m_inputs.MediumKick = true;
+		if (IsKeyTrigger(g_keyConfigP2.heavyKick)) m_inputs.HeavyKick = true;
 		break;
 
 	case PlayerInputType::AI:

@@ -10,7 +10,8 @@
 #include "SceneGame.h"
 #include "SceneDebug.h" 
 #include "SceneTitle.h" 
-#include	"SceneResult.h"
+#include "SceneResult.h"
+#include "SceneKeyConfig.h"
 #include "DebugLog.h"
 
 #define STR(var) #var
@@ -19,6 +20,7 @@
 enum SceneKind
 {
 	SCENE_TITLE,    // タイトル
+	SCENE_KEYCONFIG,// キーコンフィグ
 	SCENE_GAME,		// ゲーム本編
 	SCENE_RESULT,   // リザルト
 	SCENE_DEBUG,    // デバッグ
@@ -35,6 +37,11 @@ void SceneRoot::ChangeScene()
 	case SCENE_TITLE:
 		AddSubScene<SceneTitle>();
 		m_sceneName = "SCENE_TITLE";
+		break;
+
+	case SCENE_KEYCONFIG:
+		AddSubScene<SceneKeyConfig>();
+		m_sceneName = "SCENE_KEYCONFIG";
 		break;
 
 	case SCENE_GAME:
@@ -173,20 +180,27 @@ void SceneRoot::Update(float tick)
 	{
 		//  タイトル画面の時
 	case SCENE_TITLE:
-		// エンターキーでゲーム本編へ
 		if (IsKeyTrigger(VK_RETURN))
 		{
+			Transition(SCENE_KEYCONFIG);
+		}
+		break;
+
+	case SCENE_KEYCONFIG:
+		if (SceneKeyConfig::s_isConfigSet)
+		{
 			Transition(SCENE_GAME);
+			SceneKeyConfig::s_isConfigSet = false;
 		}
 		break;
 
 		// ゲーム本編の時
 	case SCENE_GAME:
 		// Nキーでデバッグ画面
-			if (IsKeyTrigger('N'))
-			{
-				Transition(SCENE_DEBUG);
-			}	
+		if (IsKeyTrigger('N'))
+		{
+			Transition(SCENE_DEBUG);
+		}
 
 		// ゲームセットになったらリザルトへ (静的フラグをチェック)
 		if (SceneGame::s_isGameSet)

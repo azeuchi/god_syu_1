@@ -63,12 +63,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Startup.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>ソース ファイル\App</Filter>
-    </ClCompile>
     <ClCompile Include="Shader.cpp">
       <Filter>ソース ファイル\DirectX</Filter>
     </ClCompile>
@@ -102,9 +96,6 @@
     <ClCompile Include="LightBase.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
-    <ClCompile Include="MoveLight.cpp">
-      <Filter>ソース ファイル\App</Filter>
-    </ClCompile>
     <ClCompile Include="CameraDCC.cpp">
       <Filter>ソース ファイル\App\Camera</Filter>
     </ClCompile>
@@ -114,22 +105,10 @@
     <ClCompile Include="CameraWater.cpp">
       <Filter>ソース ファイル\App\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="PointLight.cpp">
-      <Filter>ソース ファイル\App</Filter>
-    </ClCompile>
-    <ClCompile Include="SpotLight.cpp">
-      <Filter>ソース ファイル\App</Filter>
-    </ClCompile>
     <ClCompile Include="Ball.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
     <ClCompile Include="SceneGame.cpp">
-      <Filter>ソース ファイル\App\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneAnimation.cpp">
-      <Filter>ソース ファイル\App\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneVisual.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Box.cpp">
@@ -189,9 +168,6 @@
     <ClCompile Include="Image2D.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
-    <ClCompile Include="SkyDome.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="PlayerStateDamage.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
@@ -250,13 +226,31 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClCompile>
     <ClCompile Include="PlayerStateDeath.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="SkyDome.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Startup.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="PointLight.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="MoveLight.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="SpotLight.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneKeyConfig.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Defines.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>ヘッダー ファイル\DirectX</Filter>
     </ClInclude>
@@ -266,17 +260,8 @@
     <ClInclude Include="MeshBuffer.h">
       <Filter>ヘッダー ファイル\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="Main.h">
-      <Filter>ヘッダー ファイル\App</Filter>
-    </ClInclude>
     <ClInclude Include="DirectX.h">
       <Filter>ヘッダー ファイル\DirectX</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneRoot.h">
-      <Filter>ヘッダー ファイル\App</Filter>
-    </ClInclude>
-    <ClInclude Include="MoveLight.h">
-      <Filter>ヘッダー ファイル\App</Filter>
     </ClInclude>
     <ClInclude Include="CameraDCC.h">
       <Filter>ヘッダー ファイル\App\Camera</Filter>
@@ -287,19 +272,7 @@
     <ClInclude Include="CameraWater.h">
       <Filter>ヘッダー ファイル\App\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="PointLight.h">
-      <Filter>ヘッダー ファイル\App</Filter>
-    </ClInclude>
-    <ClInclude Include="SpotLight.h">
-      <Filter>ヘッダー ファイル\App</Filter>
-    </ClInclude>
     <ClInclude Include="SceneGame.h">
-      <Filter>ヘッダー ファイル\App\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneAnimation.h">
-      <Filter>ヘッダー ファイル\App\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneVisual.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
     </ClInclude>
     <ClInclude Include="system\commontypes.h">
@@ -437,9 +410,6 @@
     <ClInclude Include="UISprite.h">
       <Filter>ソース ファイル\System</Filter>
     </ClInclude>
-    <ClInclude Include="SkyDome.h">
-      <Filter>ソース ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Projectile.h">
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
@@ -456,7 +426,31 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateDeath.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="Defines.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SkyDome.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Main.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="MoveLight.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="PointLight.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneRoot.h">
+      <Filter>ヘッダー ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SpotLight.h">
+      <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneKeyConfig.h">
+      <Filter>ソース ファイル\App\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

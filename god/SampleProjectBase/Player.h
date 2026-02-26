@@ -11,6 +11,21 @@ class PlayerState;
 class Shader;
 class Projectile;
 
+struct KeyConfig
+{
+	int up;
+	int down;
+	int left;
+	int right;
+	int lightPunch;
+	int mediumPunch;
+	int heavyPunch;
+	int mediumKick;
+	int heavyKick;
+};
+extern KeyConfig g_keyConfigP1;
+extern KeyConfig g_keyConfigP2;
+
 // プレイヤーの操作権限（1P、2P、AI）
 enum class PlayerInputType
 {
