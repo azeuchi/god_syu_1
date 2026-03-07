@@ -219,10 +219,6 @@ void SceneGame::Init()
 	player->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 
 
-	// 初期位置設定
-	ResetRound();
-
-
 	// ==================================================
 	// プレイヤー2の生成 
 	// ==================================================
@@ -339,8 +335,11 @@ void SceneGame::Init()
 
 	// スカイドーム用：カリングなし
 	rsDesc.CullMode = D3D11_CULL_NONE;
-	rsDesc.DepthClipEnable = FALSE; 
+	rsDesc.DepthClipEnable = FALSE;
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
+
+	// 初期位置設定
+	ResetRound();
 }
 
 void SceneGame::Uninit()
@@ -554,7 +553,7 @@ void SceneGame::Update(float tick)
 			// スローが終わってからフェード処理を開始する
 
 			bool isDeathAnimFinished = true;
-			
+
 			if (player && player->GetHpRatio() <= 0.0f) {
 				int total = player->GetModel()->GetAnimationTotalFrame("Death");
 				if (player->Debug_GetFrame() < total - 1) isDeathAnimFinished = false;
@@ -637,6 +636,9 @@ void SceneGame::Update(float tick)
 			m_isRoundOver = true;
 			m_winCountP1 += result.winCountP1ToAdd;
 			m_winCountP2 += result.winCountP2ToAdd;
+
+			if (player) player->SetInputType(PlayerInputType::AI);
+			if (player2) player2->SetInputType(PlayerInputType::AI);
 
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
