@@ -249,6 +249,9 @@
     <ClCompile Include="SceneKeyConfig.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="SimpleFont.cpp">
+      <Filter>ソース ファイル\System</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Texture.h">
@@ -451,6 +454,9 @@
     </ClInclude>
     <ClInclude Include="SceneKeyConfig.h">
       <Filter>ソース ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleFont.h">
+      <Filter>ソース ファイル\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

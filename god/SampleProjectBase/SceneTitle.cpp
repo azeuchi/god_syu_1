@@ -17,20 +17,33 @@ void SceneTitle::Init()
 	DebugLog::log(DebugLog::INFO_LOG, "--- Title Scene Init ---");
 
 	// シェーダーの読み込み
-	Shader* vsSkin = CreateObj<VertexShader>("VS_SkinMeshAnimation");
-	Shader* psColor = CreateObj<PixelShader>("PS_TexColor");
-	Shader* vsObj = CreateObj<VertexShader>("VS_Object");
+	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
+	if (!vsSkin)
+	{
+		vsSkin = CreateObj<VertexShader>("VS_SkinMeshAnimation");
+		vsSkin->Load("Assets/Shader/VS_SkinMeshAnimation.cso");
+	}
 
-	vsSkin->Load("Assets/Shader/VS_SkinMeshAnimation.cso");
-	psColor->Load("Assets/Shader/PS_TexColor.cso");
-	vsObj->Load("Assets/Shader/VS_Object.cso");
+	Shader* psColor = GetObj<Shader>("PS_TexColor");
+	if (!psColor)
+	{
+		psColor = CreateObj<PixelShader>("PS_TexColor");
+		psColor->Load("Assets/Shader/PS_TexColor.cso");
+	}
+
+	Shader* vsObj = GetObj<Shader>("VS_Object");
+	if (!vsObj)
+	{
+		vsObj = CreateObj<VertexShader>("VS_Object");
+		vsObj->Load("Assets/Shader/VS_Object.cso");
+	}
 
 	// スカイドームの生成
 	CreateObj<Model>("SkyModel");
 	Model* skyModel = GetObj<Model>("SkyModel");
 	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
 	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
-	skyModel->SetPixelShader(psColor);
+	skyModel->SetPixelShader((PixelShader*)psColor);
 	m_skyDome = new SkyDome();
 	m_skyDome->Init(skyModel);
 
@@ -38,11 +51,11 @@ void SceneTitle::Init()
 	m_pTitleModel = new Model();
 	if (m_pTitleModel->Load("Assets/Model/knight/Idle.fbx", 0.017f, true, false))
 	{
-	m_pTitleModel->LoadAnimation("Assets/Model/knight/Idle.fbx", "Idle", true);
-	m_pTitleModel->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	m_pTitleModel->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-	m_pTitleModel->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-	m_pTitleModel->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
+		m_pTitleModel->LoadAnimation("Assets/Model/knight/Idle.fbx", "Idle", true);
+		m_pTitleModel->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
+		m_pTitleModel->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
+		m_pTitleModel->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
+		m_pTitleModel->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
 	}
 	m_currentAnimName = "Idle";
 	m_currentFrame = 0.0f;
@@ -69,7 +82,7 @@ void SceneTitle::Init()
 	D3D11_BLEND_DESC blendDesc = {};
 
 	//  AlphaToCoverageを有効にする
-	
+
 	blendDesc.AlphaToCoverageEnable = TRUE;
 
 	blendDesc.IndependentBlendEnable = FALSE;
@@ -100,6 +113,20 @@ void SceneTitle::Init()
 	depthDesc3D.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 	depthDesc3D.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
+
+	// 4. スカイドーム用：カリングなしラスタライザーステート
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.CullMode = D3D11_CULL_NONE; // ここが重要
+	rsDesc.FrontCounterClockwise = FALSE;
+	rsDesc.DepthBias = 0;
+	rsDesc.SlopeScaledDepthBias = 0.0f;
+	rsDesc.DepthBiasClamp = 0.0f;
+	rsDesc.DepthClipEnable = FALSE;
+	rsDesc.ScissorEnable = FALSE;
+	rsDesc.MultisampleEnable = FALSE;
+	rsDesc.AntialiasedLineEnable = FALSE;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
 }
 
 void SceneTitle::Uninit()
@@ -126,6 +153,7 @@ void SceneTitle::Uninit()
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
 	if (m_pDepthState3D) { m_pDepthState3D->Release(); m_pDepthState3D = nullptr; }
+	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
 }
 
 void SceneTitle::Update(float tick)
@@ -250,10 +278,16 @@ void SceneTitle::Draw()
 	DirectX::XMFLOAT3 cPos = pCamera->GetPos();
 	DirectX::XMFLOAT4 camParam[] = { {cPos.x, cPos.y, cPos.z, 0.0f} };
 
-	// スカイドームとモデルの描画
+	// スカイドームの描画
 	if (m_skyDome)
 	{
+		// スカイドーム用にカリングなしを設定
+		if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
+
 		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), vsObj);
+
+		// プレイヤーモデル等の描画前にデフォルト(裏面カリング)に戻す
+		GetContext()->RSSetState(nullptr);
 	}
 
 	if (m_pTitleModel)

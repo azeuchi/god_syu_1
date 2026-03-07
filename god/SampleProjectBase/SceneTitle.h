@@ -55,6 +55,7 @@ private:
 	ID3D11BlendState* m_pBlendState = nullptr;
 	ID3D11DepthStencilState* m_pDepthStateUI = nullptr;
 	ID3D11DepthStencilState* m_pDepthState3D = nullptr;
+	ID3D11RasterizerState* m_pCullNone = nullptr; // スカイドーム(カリングなし)用
 };
 
 #endif // __SCENE_TITLE_H__

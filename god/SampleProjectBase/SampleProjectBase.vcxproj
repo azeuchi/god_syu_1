@@ -217,10 +217,17 @@
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneGame.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
-    <ClCompile Include="SceneKeyConfig.cpp" />
+    <ClCompile Include="SceneKeyConfig.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="SceneResult.cpp" />
     <ClCompile Include="SceneTitle.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="SimpleFont.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="SimpleUI.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="SpotLight.cpp" />
@@ -283,11 +290,18 @@
     <ClInclude Include="SceneBase.hpp" />
     <ClInclude Include="SceneGame.h" />
     <ClInclude Include="SceneDebug.h" />
-    <ClInclude Include="SceneKeyConfig.h" />
+    <ClInclude Include="SceneKeyConfig.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="SceneResult.h" />
     <ClInclude Include="SceneRoot.h" />
     <ClInclude Include="SceneTitle.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="SimpleFont.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="SimpleUI.h" />
     <ClInclude Include="SkyDome.h" />
     <ClInclude Include="SpotLight.h" />

@@ -1,8 +1,6 @@
 #include "SceneKeyConfig.h"
-#include <system/imgui/imgui.h>
 #include "Input.h"
 #include "Player.h"
-#include <stdio.h>
 #include "CameraBase.h"
 #include "LightBase.h"
 #include "Shader.h"
@@ -12,12 +10,15 @@
 #include "HitEffect.h"
 #include "Projectile.h"
 #include "Geometory.h"
+#include "SimpleUI.h"
+#include "SimpleFont.h"
+#include <stdio.h>
 #include <algorithm>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// カメラの移動制限範囲
+// カメラの移動を制限する範囲
 const float CAMERA_LIMIT_X = 4.0f;
 
 bool SceneKeyConfig::s_isConfigSet = false;
@@ -26,27 +27,108 @@ void SceneKeyConfig::Init()
 {
 	s_isConfigSet = false;
 	m_waitBindKeyPtr = nullptr;
+	m_menuState = MenuState::TopMenu;
+	m_topSelectedIndex = 0;
+	m_configSelectedIndex = 0;
+	m_windowScaleY = 0.0f;
 
-	// ==================================================
-	// シェーダーの読み込み
-	// ==================================================
-	Shader* shader[] = {
-		CreateObj<VertexShader>("VS_SkinMeshAnimation"),
-		CreateObj<PixelShader>("PS_TexColor"),
+	// フォントシステムの初期化 (DirectWrite版)
+	SimpleFont::Init(GetDevice(), GetContext());
+
+	// トップメニューの項目を設定
+	m_topItems = {
+		{ L"Player 1 Config" },
+		{ L"Player 2 Config" },
+		{ L"Training Mode" },
+		{ L"Game Start" }
 	};
-	const char* file[] = {
-		"Assets/Shader/VS_SkinMeshAnimation.cso",
-		"Assets/Shader/PS_TexColor.cso",
+
+	// 1P用の設定項目と変更対象となる変数のポインタを紐付ける
+	m_p1Items = {
+		{ L"Up", &g_keyConfigP1.up },
+		{ L"Down", &g_keyConfigP1.down },
+		{ L"Left", &g_keyConfigP1.left },
+		{ L"Right", &g_keyConfigP1.right },
+		{ L"L Punch", &g_keyConfigP1.lightPunch },
+		{ L"M Punch", &g_keyConfigP1.mediumPunch },
+		{ L"H Punch", &g_keyConfigP1.heavyPunch },
+		{ L"M Kick", &g_keyConfigP1.mediumKick },
+		{ L"H Kick", &g_keyConfigP1.heavyKick },
+		{ L"Back", nullptr } // 戻るボタンはポインタにnullptrを割り当てる
 	};
-	for (int i = 0; i < 2; ++i)
+
+	// 2P用の設定項目
+	m_p2Items = {
+		{ L"Up", &g_keyConfigP2.up },
+		{ L"Down", &g_keyConfigP2.down },
+		{ L"Left", &g_keyConfigP2.left },
+		{ L"Right", &g_keyConfigP2.right },
+		{ L"L Punch", &g_keyConfigP2.lightPunch },
+		{ L"M Punch", &g_keyConfigP2.mediumPunch },
+		{ L"H Punch", &g_keyConfigP2.heavyPunch },
+		{ L"M Kick", &g_keyConfigP2.mediumKick },
+		{ L"H Kick", &g_keyConfigP2.heavyKick },
+		{ L"Back", nullptr }
+	};
+
+	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
+	if (!vsSkin)
 	{
-		if (FAILED(shader[i]->Load(file[i])))
+		vsSkin = CreateObj<VertexShader>("VS_SkinMeshAnimation");
+		if (FAILED(vsSkin->Load("Assets/Shader/VS_SkinMeshAnimation.cso")))
 		{
-			MessageBox(NULL, file[i], "Shader Error", MB_OK);
+			MessageBox(NULL, "Assets/Shader/VS_SkinMeshAnimation.cso", "Shader Error", MB_OK);
 		}
 	}
 
-	// 共通のアニメーション読み込みラムダ
+	Shader* psColor = GetObj<Shader>("PS_TexColor");
+	if (!psColor)
+	{
+		psColor = CreateObj<PixelShader>("PS_TexColor");
+		if (FAILED(psColor->Load("Assets/Shader/PS_TexColor.cso")))
+		{
+			MessageBox(NULL, "Assets/Shader/PS_TexColor.cso", "Shader Error", MB_OK);
+		}
+	}
+
+	Shader* vsOutline = GetObj<Shader>("VS_SkinMeshOutline");
+	if (!vsOutline)
+	{
+		vsOutline = CreateObj<VertexShader>("VS_SkinMeshOutline");
+		if (FAILED(vsOutline->Load("Assets/Shader/VS_SkinMeshOutline.cso")))
+		{
+			MessageBox(NULL, "Assets/Shader/VS_SkinMeshOutline.cso", "Shader Error", MB_OK);
+		}
+	}
+
+	Shader* psOutline = GetObj<Shader>("PS_Outline");
+	if (!psOutline)
+	{
+		psOutline = CreateObj<PixelShader>("PS_Outline");
+		if (FAILED(psOutline->Load("Assets/Shader/PS_Outline.cso")))
+		{
+			MessageBox(NULL, "Assets/Shader/PS_Outline.cso", "Shader Error", MB_OK);
+		}
+	}
+
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.FrontCounterClockwise = FALSE;
+	rsDesc.DepthBias = 0;
+	rsDesc.SlopeScaledDepthBias = 0.0f;
+	rsDesc.DepthBiasClamp = 0.0f;
+	rsDesc.DepthClipEnable = TRUE;
+	rsDesc.ScissorEnable = FALSE;
+	rsDesc.MultisampleEnable = FALSE;
+	rsDesc.AntialiasedLineEnable = FALSE;
+
+	rsDesc.CullMode = D3D11_CULL_FRONT;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullFront);
+
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
+
+	// プレイヤーのアニメーションを読み込む共通ラムダ式
 	auto LoadAnims = [](Player* p) {
 		p->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 		p->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
@@ -64,12 +146,10 @@ void SceneKeyConfig::Init()
 		p->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 		};
 
-	// ==================================================
-	// プレイヤー1の生成と設定ロード
-	// ==================================================
+	// プレイヤー1の生成と設定
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	player->SetInputType(PlayerInputType::PLAYER_1);
+	player->SetInputType(PlayerInputType::AI); // キャラが動かないようAI（待機）に固定
 	PlayerParameterLoader::LoadSettings(player);
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -80,16 +160,12 @@ void SceneKeyConfig::Init()
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 	player->Reset();
 
-	// ==================================================
-	// プレイヤー2の生成
-	// ==================================================
+	// プレイヤー2の生成と設定
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
-	player2->SetInputType(PlayerInputType::PLAYER_2);
+	player2->SetInputType(PlayerInputType::AI); // プレイヤーの操作を無効化
 	player2->SetMoveSpeed(player->GetMoveSpeed());
-	DirectX::XMFLOAT3 scaleP2 = player->GetScale();
-	scaleP2.x *= -1.0f; // X軸反転
-	player2->SetScale(scaleP2);
+	player2->SetScale(player->GetScale()); // スケールのマイナス反転を削除（モデルが壊れる原因）
 	PlayerParameterLoader::CopyParameters(player, player2);
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -97,17 +173,16 @@ void SceneKeyConfig::Init()
 	}
 	LoadAnims(player2);
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
-	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
+	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f }); // 回転だけで向きを調整する
 	player2->Reset();
 
-	// ==================================================
-	// エフェクト・カメラ初期化
-	// ==================================================
+	// エフェクトの初期化
 	for (int i = 0; i < 10; i++)
 	{
 		m_hitEffects.push_back(new HitEffect());
 	}
 
+	// カメラの初期設定
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -118,48 +193,153 @@ void SceneKeyConfig::Init()
 
 void SceneKeyConfig::Uninit()
 {
+	SimpleFont::Uninit();
+
 	for (auto effect : m_hitEffects)
 	{
 		delete effect;
 	}
 	m_hitEffects.clear();
+
+	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
+	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 }
 
 void SceneKeyConfig::Update(float tick)
 {
-	// キーバインド設定中の場合は入力を取得して割り当て
+	// いずれかのキー割り当てが選択され、入力を待っている状態
 	if (m_waitBindKeyPtr != nullptr)
 	{
 		for (int i = 8; i < 256; ++i)
 		{
+			// 何らかのキーが押されたら、そのキーコードをポインタ先の変数に保存する
 			if (IsKeyTrigger(i))
 			{
 				*m_waitBindKeyPtr = i;
-				m_waitBindKeyPtr = nullptr;
+				m_waitBindKeyPtr = nullptr; // 待機状態を解除
 				break;
 			}
 		}
-		// 設定中はキャラが変に動かないようフレームを進めないことも可能ですが、
-		// 動きが見えたほうが良いため以降の更新処理も継続します
+	}
+	else
+	{
+		// メニューの階層に応じた操作処理
+		if (m_menuState == MenuState::TopMenu)
+		{
+			// 上下キーでトップメニューのカーソルを移動
+			if (IsKeyTrigger(VK_DOWN))
+			{
+				m_topSelectedIndex = (m_topSelectedIndex + 1) % m_topItems.size();
+			}
+			if (IsKeyTrigger(VK_UP))
+			{
+				m_topSelectedIndex = (m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size();
+			}
+
+			// 決定キーで遷移
+			if (IsKeyTrigger(VK_RETURN))
+			{
+				if (m_topSelectedIndex == 0)
+				{
+					// 1P設定を開く。展開アニメーションのためにスケールを0にリセットする
+					m_menuState = MenuState::ConfigP1;
+					m_configSelectedIndex = 0;
+					m_windowScaleY = 0.0f;
+				}
+				else if (m_topSelectedIndex == 1)
+				{
+					// 2P設定を開く
+					m_menuState = MenuState::ConfigP2;
+					m_configSelectedIndex = 0;
+					m_windowScaleY = 0.0f;
+				}
+				else if (m_topSelectedIndex == 2)
+				{
+					// トレーニングモードに移行し、両プレイヤーの操作権限を与える
+					m_menuState = MenuState::TrainingMode;
+					if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::PLAYER_1);
+					if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::PLAYER_2);
+				}
+				else if (m_topSelectedIndex == 3)
+				{
+					// ゲームスタート
+					s_isConfigSet = true;
+				}
+			}
+		}
+		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
+		{
+			// コンフィグ画面が開く際のアニメーション処理（縦に伸びて展開する）
+			if (m_windowScaleY < 1.0f)
+			{
+				m_windowScaleY += tick * 15.0f;
+				if (m_windowScaleY > 1.0f) m_windowScaleY = 1.0f;
+			}
+			else
+			{
+				// 展開アニメーションが終わっている場合のみ操作を受け付ける
+				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
+
+				// 上下キーで設定項目のカーソルを移動
+				if (IsKeyTrigger(VK_DOWN))
+				{
+					m_configSelectedIndex = (m_configSelectedIndex + 1) % currentItems.size();
+				}
+				if (IsKeyTrigger(VK_UP))
+				{
+					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
+				}
+
+				// 決定キーで項目の変更待機状態へ
+				if (IsKeyTrigger(VK_RETURN))
+				{
+					if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
+					{
+						// Backが選ばれた場合はトップメニューに戻る
+						m_menuState = MenuState::TopMenu;
+					}
+					else
+					{
+						// キー割り当て待機状態に移行
+						m_waitBindKeyPtr = currentItems[m_configSelectedIndex].keyPtr;
+					}
+				}
+
+				// キャンセルキーでもトップメニューに戻る
+				if (IsKeyTrigger(VK_BACK) || IsKeyTrigger(VK_ESCAPE))
+				{
+					m_menuState = MenuState::TopMenu;
+				}
+			}
+		}
+		else if (m_menuState == MenuState::TrainingMode)
+		{
+			// トレーニングモード中、ESCキーが押されたらメニューに戻して操作を無効化する
+			if (IsKeyTrigger(VK_ESCAPE))
+			{
+				m_menuState = MenuState::TopMenu;
+				if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::AI);
+				if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::AI);
+			}
+		}
 	}
 
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// プレイヤー更新
+	// プレイヤーの更新
 	if (player) player->Update(tick);
 	if (player2) player2->Update(tick);
 
-	// 当たり判定処理（ゲーム本編と同様に押し合いや攻撃ヒットを処理）
+	// 当たり判定処理（攻撃のヒットやプレイヤー同士の押し合いを処理する）
 	BattleCollision::UpdateInteractions(player, player2, tick, m_hitEffects, 6.0f);
 
-	// ヒットエフェクト更新
 	for (auto effect : m_hitEffects)
 	{
 		effect->Update(tick);
 	}
 
-	// カメラ制御（ゲーム本編のロジック）
+	// プレイヤーの位置に合わせてカメラが追従・ズームする制御
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -173,6 +353,7 @@ void SceneKeyConfig::Update(float tick)
 		float targetLookY = 1.4f + (maxY * 0.2f);
 		float targetPosY = 1.5f + (maxY * 0.1f);
 
+		// キャラクター間の距離に基づいてカメラの引き具合を計算する
 		float distX = fabsf(p1Pos.x - p2Pos.x);
 		float zoomFactorX = 0.45f;
 		float zoomFactorY = 0.8f;
@@ -211,6 +392,67 @@ void SceneKeyConfig::Update(float tick)
 	}
 }
 
+void SceneKeyConfig::DrawRectPixel(float px, float py, float pw, float ph, DirectX::XMFLOAT4 color)
+{
+	// 元のSpriteクラスが「指定した座標を中心とする」仕様だったため、
+	// 左上(px, py)に描画されるよう中心座標を計算してからNDCに変換する
+	float centerX = px + pw * 0.5f;
+	float centerY = py + ph * 0.5f;
+
+	float ndcX = (centerX / 1280.0f) * 2.0f - 1.0f;
+	float ndcY = 1.0f - (centerY / 720.0f) * 2.0f;
+	float ndcW = (pw / 1280.0f) * 2.0f;
+	float ndcH = (ph / 720.0f) * 2.0f;
+
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, color, nullptr);
+}
+
+const wchar_t* SceneKeyConfig::GetKeyName(int vk)
+{
+	// アルファベットと数字はそのままワイド文字として返す
+	if (vk >= 'A' && vk <= 'Z')
+	{
+		static wchar_t buf[2] = { 0 };
+		buf[0] = (wchar_t)vk;
+		buf[1] = L'\0';
+		return buf;
+	}
+	if (vk >= '0' && vk <= '9')
+	{
+		static wchar_t buf[2] = { 0 };
+		buf[0] = (wchar_t)vk;
+		buf[1] = L'\0';
+		return buf;
+	}
+
+	// 特殊キーの名称対応
+	switch (vk)
+	{
+	case VK_UP: return L"UP";
+	case VK_DOWN: return L"DOWN";
+	case VK_LEFT: return L"LEFT";
+	case VK_RIGHT: return L"RIGHT";
+	case VK_SPACE: return L"SPACE";
+	case VK_RETURN: return L"ENTER";
+	case VK_BACK: return L"BACKSPACE";
+	case VK_ESCAPE: return L"ESCAPE";
+	case VK_NUMPAD1: return L"NUM 1";
+	case VK_NUMPAD2: return L"NUM 2";
+	case VK_NUMPAD3: return L"NUM 3";
+	case VK_NUMPAD4: return L"NUM 4";
+	case VK_NUMPAD5: return L"NUM 5";
+	case VK_NUMPAD6: return L"NUM 6";
+	case VK_NUMPAD7: return L"NUM 7";
+	case VK_NUMPAD8: return L"NUM 8";
+	case VK_NUMPAD9: return L"NUM 9";
+	}
+
+	// 上記以外は番号を出力する
+	static wchar_t buf[16];
+	swprintf_s(buf, L"Key %d", vk);
+	return buf;
+}
+
 void SceneKeyConfig::Draw()
 {
 	Player* player = GetObj<Player>("Player");
@@ -237,10 +479,71 @@ void SceneKeyConfig::Draw()
 	Shader* shader[] = {
 		GetObj<Shader>("VS_SkinMeshAnimation"),
 		GetObj<Shader>("PS_TexColor"),
+		GetObj<Shader>("VS_SkinMeshOutline"),
+		GetObj<Shader>("PS_Outline")
 	};
 
-	// プレイヤー1 描画
+	// アウトライン描画パス
 	if (player) {
+		bool isFlipped = (player->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+		else {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+
+		XMFLOAT3 pos = player->GetPosition();
+		XMFLOAT3 rot = player->GetRotation();
+		XMFLOAT3 pScale = player->GetScale();
+		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
+		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
+		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
+
+		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
+		shader[2]->WriteBuffer(0, mat);
+		player->SetVertexShader(shader[2]);
+		player->SetPixelShader(shader[3]);
+		player->Draw();
+	}
+
+	if (player2) {
+		bool isFlipped = (player2->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+		else {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+
+		XMFLOAT3 pos = player2->GetPosition();
+		XMFLOAT3 rot = player2->GetRotation();
+		XMFLOAT3 pScale = player2->GetScale();
+		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
+		Matrix modelBaseScaleMat = player2->GetModel()->GetScaleBaseMatrix();
+		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
+		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
+
+		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
+		shader[2]->WriteBuffer(0, mat);
+		player2->SetVertexShader(shader[2]);
+		player2->SetPixelShader(shader[3]);
+		player2->Draw();
+	}
+
+	// 通常モデル描画パス
+	if (player) {
+		bool isFlipped = (player->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+		else {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+
 		XMFLOAT3 pos = player->GetPosition();
 		XMFLOAT3 rot = player->GetRotation();
 		XMFLOAT3 pScale = player->GetScale();
@@ -260,8 +563,15 @@ void SceneKeyConfig::Draw()
 		player->Draw();
 	}
 
-	// プレイヤー2 描画
 	if (player2) {
+		bool isFlipped = (player2->GetScale().x < 0.0f);
+		if (isFlipped) {
+			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
+		}
+		else {
+			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+		}
+
 		XMFLOAT3 pos = player2->GetPosition();
 		XMFLOAT3 rot = player2->GetRotation();
 		XMFLOAT3 pScale = player2->GetScale();
@@ -281,7 +591,9 @@ void SceneKeyConfig::Draw()
 		player2->Draw();
 	}
 
-	// 飛び道具 描画
+	if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+
+	// 飛び道具の描画
 	if (player && player->GetProjectile())
 	{
 		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
@@ -291,7 +603,7 @@ void SceneKeyConfig::Draw()
 		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
 	}
 
-	// エフェクト 描画
+	// ヒットエフェクトの描画
 	DirectX::XMFLOAT4X4 view = pCamera->GetView();
 	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
 	for (auto effect : m_hitEffects)
@@ -299,106 +611,90 @@ void SceneKeyConfig::Draw()
 		effect->Draw(view, proj);
 	}
 
-	DrawImGui();
-}
-
-const char* SceneKeyConfig::GetKeyName(int vk)
-{
-	if (vk >= 'A' && vk <= 'Z')
+	// トレーニングモード以外の場合のみ、UIを描画する
+	if (m_menuState != MenuState::TrainingMode)
 	{
-		static char buf[2] = { 0 };
-		buf[0] = (char)vk;
-		buf[1] = '\0';
-		return buf;
-	}
-	if (vk >= '0' && vk <= '9')
-	{
-		static char buf[2] = { 0 };
-		buf[0] = (char)vk;
-		buf[1] = '\0';
-		return buf;
-	}
-	switch (vk)
-	{
-	case VK_UP: return "UP";
-	case VK_DOWN: return "DOWN";
-	case VK_LEFT: return "LEFT";
-	case VK_RIGHT: return "RIGHT";
-	case VK_SPACE: return "SPACE";
-	case VK_RETURN: return "ENTER";
-	case VK_NUMPAD1: return "NUM 1";
-	case VK_NUMPAD2: return "NUM 2";
-	case VK_NUMPAD3: return "NUM 3";
-	case VK_NUMPAD4: return "NUM 4";
-	case VK_NUMPAD5: return "NUM 5";
-	case VK_NUMPAD6: return "NUM 6";
-	case VK_NUMPAD7: return "NUM 7";
-	case VK_NUMPAD8: return "NUM 8";
-	case VK_NUMPAD9: return "NUM 9";
-	}
-	static char buf[16];
-	sprintf_s(buf, "Key %d", vk);
-	return buf;
-}
+		SimpleUI::Clear();
 
-void SceneKeyConfig::DrawKeyBindButton(const char* label, int* key)
-{
-	ImGui::Text("%s", label);
-	ImGui::SameLine(100);
+		// 画面上部にトップメニュー用の少し明るめのネイビーブルー背景を描画
+		DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
 
-	char btnLabel[32];
-	if (m_waitBindKeyPtr == key)
-	{
-		sprintf_s(btnLabel, "Press Any Key...");
-	}
-	else
-	{
-		sprintf_s(btnLabel, "%s", GetKeyName(*key));
-	}
+		if (m_menuState == MenuState::TopMenu)
+		{
+			// トップメニューの項目枠を描画
+			for (int i = 0; i < m_topItems.size(); ++i)
+			{
+				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
+				DrawRectPixel(50 + i * 250, 50, 200, 50, color);
+			}
+		}
+		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
+		{
+			// コンフィグ用のパネルを描画（中央から上下に伸びる演出計算）
+			float panelHeight = 500.0f * m_windowScaleY;
+			float panelY = 150.0f + (500.0f - panelHeight) / 2.0f;
 
-	ImGui::PushID(label);
-	if (ImGui::Button(btnLabel, ImVec2(150, 0)))
-	{
-		m_waitBindKeyPtr = key;
-	}
-	ImGui::PopID();
-}
+			DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
 
-void SceneKeyConfig::DrawImGui()
-{
-	ImGui::Begin("Key Config", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+			// 枠の展開アニメーションが終わってから中身の項目枠を描画する
+			if (m_windowScaleY >= 1.0f)
+			{
+				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
+				for (int i = 0; i < currentItems.size(); ++i)
+				{
+					DirectX::XMFLOAT4 color = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 0.7f, 0.0f, 0.9f) : XMFLOAT4(0.3f, 0.3f, 0.3f, 0.8f);
+					DrawRectPixel(70, 170 + i * 45, 360, 40, color);
+				}
+			}
+		}
 
-	ImGui::Text("Player 1 Config");
-	ImGui::Separator();
-	DrawKeyBindButton("Up", &g_keyConfigP1.up);
-	DrawKeyBindButton("Down", &g_keyConfigP1.down);
-	DrawKeyBindButton("Left", &g_keyConfigP1.left);
-	DrawKeyBindButton("Right", &g_keyConfigP1.right);
-	DrawKeyBindButton("L Punch", &g_keyConfigP1.lightPunch);
-	DrawKeyBindButton("M Punch", &g_keyConfigP1.mediumPunch);
-	DrawKeyBindButton("H Punch", &g_keyConfigP1.heavyPunch);
-	DrawKeyBindButton("M Kick", &g_keyConfigP1.mediumKick);
-	DrawKeyBindButton("H Kick", &g_keyConfigP1.heavyKick);
+		// 登録した四角形UIを一括描画
+		SimpleUI::DrawAll();
 
-	ImGui::Spacing();
-	ImGui::Text("Player 2 Config");
-	ImGui::Separator();
-	DrawKeyBindButton("Up 2", &g_keyConfigP2.up);
-	DrawKeyBindButton("Down 2", &g_keyConfigP2.down);
-	DrawKeyBindButton("Left 2", &g_keyConfigP2.left);
-	DrawKeyBindButton("Right 2", &g_keyConfigP2.right);
-	DrawKeyBindButton("L Punch 2", &g_keyConfigP2.lightPunch);
-	DrawKeyBindButton("M Punch 2", &g_keyConfigP2.mediumPunch);
-	DrawKeyBindButton("H Punch 2", &g_keyConfigP2.heavyPunch);
-	DrawKeyBindButton("M Kick 2", &g_keyConfigP2.mediumKick);
-	DrawKeyBindButton("H Kick 2", &g_keyConfigP2.heavyKick);
+		// ここからDirectWriteによるフォントの描画処理
+		SimpleFont::Begin();
 
-	ImGui::Spacing();
-	ImGui::Separator();
-	if (ImGui::Button("Game Start", ImVec2(-1, 40)))
-	{
-		s_isConfigSet = true;
+		if (m_menuState == MenuState::TopMenu)
+		{
+			for (int i = 0; i < m_topItems.size(); ++i)
+			{
+				DirectX::XMFLOAT4 textColor = (i == m_topSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
+				SimpleFont::Draw(m_topItems[i].label, 70 + i * 250, 60, 24.0f, textColor);
+			}
+		}
+		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
+		{
+			SimpleFont::Draw((m_menuState == MenuState::ConfigP1) ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
+
+			// 枠のアニメーション終了後に各項目のテキストを描画
+			if (m_windowScaleY >= 1.0f)
+			{
+				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
+				for (int i = 0; i < currentItems.size(); ++i)
+				{
+					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+
+					// アクション名を描画 (例: Light Punch)
+					SimpleFont::Draw(currentItems[i].label, 80, 175 + i * 45, 20.0f, textColor);
+
+					// 現在の割り当てキー、または待機中のメッセージを描画
+					if (currentItems[i].keyPtr != nullptr)
+					{
+						if (m_waitBindKeyPtr == currentItems[i].keyPtr)
+						{
+							SimpleFont::Draw(L"Press Any Key...", 250, 175 + i * 45, 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
+						}
+						else
+						{
+							SimpleFont::Draw(GetKeyName(*currentItems[i].keyPtr), 250, 175 + i * 45, 20.0f, textColor);
+						}
+					}
+				}
+			}
+		}
+
+		SimpleFont::End();
 	}
 
-	ImGui::End();
+	GetContext()->RSSetState(nullptr);
 }
