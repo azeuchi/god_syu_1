@@ -20,5 +20,6 @@ bool IsPadPress(int padNo, WORD button);
 bool IsPadTrigger(int padNo, WORD button);
 bool IsPadRelease(int padNo, WORD button);
 bool IsPadConnected(int padNo);
+bool IsPadXInput(int padNo);
 
 #endif // __INPUT_H__

@@ -572,15 +572,21 @@ const wchar_t* SceneKeyConfig::GetPadButtonName(int button)
 
 const wchar_t* SceneKeyConfig::GetDeviceName(InputDeviceType type)
 {
-	switch (type)
+	if (type == InputDeviceType::KEYBOARD) return L"Keyboard";
+
+	static wchar_t buf[64];
+	int padNo = (int)type - 1;
+
+	if (IsPadXInput(padNo))
 	{
-	case InputDeviceType::KEYBOARD: return L"Keyboard";
-	case InputDeviceType::PAD_0: return L"Controller 1";
-	case InputDeviceType::PAD_1: return L"Controller 2";
-	case InputDeviceType::PAD_2: return L"Controller 3";
-	case InputDeviceType::PAD_3: return L"Controller 4";
+		swprintf_s(buf, L"Controller %d (Xbox)", padNo + 1);
 	}
-	return L"";
+	else
+	{
+		swprintf_s(buf, L"Controller %d (XBOXˆÈŠO)", padNo + 1);
+	}
+
+	return buf;
 }
 
 void SceneKeyConfig::Draw()
