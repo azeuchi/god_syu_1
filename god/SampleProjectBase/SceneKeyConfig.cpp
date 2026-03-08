@@ -44,6 +44,16 @@ void SceneKeyConfig::Init()
 		{ L"Game Start" }
 	};
 
+	// 選択されているデバイスが接続されていない場合はキーボードに戻す
+	if (g_inputDeviceP1 != InputDeviceType::KEYBOARD && !IsPadConnected((int)g_inputDeviceP1 - 1))
+	{
+		g_inputDeviceP1 = InputDeviceType::KEYBOARD;
+	}
+	if (g_inputDeviceP2 != InputDeviceType::KEYBOARD && !IsPadConnected((int)g_inputDeviceP2 - 1))
+	{
+		g_inputDeviceP2 = InputDeviceType::KEYBOARD;
+	}
+
 	// 初期のデバイス状態に合わせてメニューのポインタを構築
 	RefreshConfigPointers();
 
@@ -141,7 +151,7 @@ void SceneKeyConfig::Init()
 	Player* player2 = GetObj<Player>("Player2");
 	player2->SetInputType(PlayerInputType::AI); // プレイヤーの操作を無効化
 	player2->SetMoveSpeed(player->GetMoveSpeed());
-	player2->SetScale(player->GetScale()); // スケールのマイナス反転を削除（モデルが壊れる原因）
+	player2->SetScale(player->GetScale());
 	PlayerParameterLoader::CopyParameters(player, player2);
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
@@ -215,6 +225,37 @@ void SceneKeyConfig::RefreshConfigPointers()
 
 void SceneKeyConfig::Update(float tick)
 {
+	auto isMenuUp = [&]() {
+		if (IsKeyTrigger(VK_UP)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_UP)) return true;
+		return false;
+		};
+	auto isMenuDown = [&]() {
+		if (IsKeyTrigger(VK_DOWN)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_DOWN)) return true;
+		return false;
+		};
+	auto isMenuLeft = [&]() {
+		if (IsKeyTrigger(VK_LEFT)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_LEFT)) return true;
+		return false;
+		};
+	auto isMenuRight = [&]() {
+		if (IsKeyTrigger(VK_RIGHT)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_RIGHT)) return true;
+		return false;
+		};
+	auto isMenuConfirm = [&]() {
+		if (IsKeyTrigger(VK_RETURN)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_A)) return true;
+		return false;
+		};
+	auto isMenuCancel = [&]() {
+		if (IsKeyTrigger(VK_BACK) || IsKeyTrigger(VK_ESCAPE)) return true;
+		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_B)) return true;
+		return false;
+		};
+
 	// いずれかのキー割り当てが選択され、入力を待っている状態
 	if (m_waitBindKeyPtr != nullptr)
 	{
@@ -258,18 +299,18 @@ void SceneKeyConfig::Update(float tick)
 		// メニューの階層に応じた操作処理
 		if (m_menuState == MenuState::TopMenu)
 		{
-			// 上下キーでトップメニューのカーソルを移動
-			if (IsKeyTrigger(VK_DOWN))
+			// 左右キーでトップメニューのカーソルを移動
+			if (isMenuRight())
 			{
 				m_topSelectedIndex = (m_topSelectedIndex + 1) % m_topItems.size();
 			}
-			if (IsKeyTrigger(VK_UP))
+			if (isMenuLeft())
 			{
 				m_topSelectedIndex = (m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size();
 			}
 
 			// 決定キーで遷移
-			if (IsKeyTrigger(VK_RETURN))
+			if (isMenuConfirm())
 			{
 				if (m_topSelectedIndex == 0)
 				{
@@ -313,29 +354,34 @@ void SceneKeyConfig::Update(float tick)
 				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
 
 				// 上下キーで設定項目のカーソルを移動
-				if (IsKeyTrigger(VK_DOWN))
+				if (isMenuDown())
 				{
 					m_configSelectedIndex = (m_configSelectedIndex + 1) % currentItems.size();
 				}
-				if (IsKeyTrigger(VK_UP))
+				if (isMenuUp())
 				{
 					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
 				}
 
 				// 決定キーの処理
-				if (IsKeyTrigger(VK_RETURN))
+				if (isMenuConfirm())
 				{
 					if (currentItems[m_configSelectedIndex].isDeviceSelect)
 					{
 						// デバイス切り替え
-						if (m_menuState == MenuState::ConfigP1)
-						{
-							g_inputDeviceP1 = (InputDeviceType)(((int)g_inputDeviceP1 + 1) % 5);
-						}
-						else
-						{
-							g_inputDeviceP2 = (InputDeviceType)(((int)g_inputDeviceP2 + 1) % 5);
-						}
+						InputDeviceType currentDevice = (m_menuState == MenuState::ConfigP1) ? g_inputDeviceP1 : g_inputDeviceP2;
+						InputDeviceType nextDevice = currentDevice;
+
+						// 有効なデバイスが見つかるまでループする（未接続のパッドをスキップ）
+						do {
+							nextDevice = (InputDeviceType)(((int)nextDevice + 1) % 5);
+							if (nextDevice == InputDeviceType::KEYBOARD) break; // キーボードは常に有効
+							if (IsPadConnected((int)nextDevice - 1)) break;     // 接続されているコントローラーなら有効
+						} while (nextDevice != currentDevice);
+
+						if (m_menuState == MenuState::ConfigP1) g_inputDeviceP1 = nextDevice;
+						else g_inputDeviceP2 = nextDevice;
+
 						RefreshConfigPointers(); // 表示とポインタを更新
 					}
 					else if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
@@ -351,7 +397,7 @@ void SceneKeyConfig::Update(float tick)
 				}
 
 				// キャンセルキーでもトップメニューに戻る
-				if (IsKeyTrigger(VK_BACK) || IsKeyTrigger(VK_ESCAPE))
+				if (isMenuCancel())
 				{
 					m_menuState = MenuState::TopMenu;
 				}
@@ -359,8 +405,12 @@ void SceneKeyConfig::Update(float tick)
 		}
 		else if (m_menuState == MenuState::TrainingMode)
 		{
-			// トレーニングモード中、ESCキーが押されたらメニューに戻して操作を無効化する
-			if (IsKeyTrigger(VK_ESCAPE))
+			// トレーニングモード中、ESCキーまたはBACKボタンで戻る
+			bool exitTraining = false;
+			if (IsKeyTrigger(VK_ESCAPE)) exitTraining = true;
+			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_BACK)) exitTraining = true;
+
+			if (exitTraining)
 			{
 				m_menuState = MenuState::TopMenu;
 				if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::AI);

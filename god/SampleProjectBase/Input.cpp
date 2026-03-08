@@ -95,3 +95,9 @@ bool IsPadRelease(int padNo, WORD button)
 	return ((g_padState[padNo].Gamepad.wButtons & button) == 0) &&
 		((g_oldPadState[padNo].Gamepad.wButtons & button) != 0);
 }
+
+bool IsPadConnected(int padNo)
+{
+	if (padNo < 0 || padNo >= 4) return false;
+	return g_padConnected[padNo];
+}
