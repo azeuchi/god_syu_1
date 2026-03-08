@@ -3,6 +3,7 @@
 #include <vector>
 #include <DirectXMath.h>
 #include <d3d11.h>
+#include "Player.h"
 
 class HitEffect;
 
@@ -26,6 +27,7 @@ struct ConfigItem
 {
 	const wchar_t* label; // 画面に表示するテキスト
 	int* keyPtr;          // 割り当てを変更するキー変数のポインタ
+	bool isDeviceSelect;  // デバイス切り替え用の項目かどうか
 };
 
 class SceneKeyConfig : public SceneBase
@@ -44,6 +46,15 @@ private:
 
 	// 仮想キーコードから表示用の文字列を取得する
 	const wchar_t* GetKeyName(int vk);
+
+	// コントローラーのボタンから表示用の文字列を取得する
+	const wchar_t* GetPadButtonName(int button);
+
+	// 選択中のデバイス名を取得する
+	const wchar_t* GetDeviceName(InputDeviceType type);
+
+	// 設定ポインタを現在のデバイスに合わせて更新する
+	void RefreshConfigPointers();
 
 	MenuState m_menuState;
 

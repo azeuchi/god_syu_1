@@ -5,6 +5,7 @@
 #include <fstream>
 #include "Shader.h"
 #include "Model.h"
+#include <Xinput.h>
 
 // ステートパターン用
 #include "PlayerState.h" 
@@ -27,6 +28,12 @@
 
 KeyConfig g_keyConfigP1 = { 'W', 'S', 'A', 'D', 'U', 'I', 'O', 'K', 'L' };
 KeyConfig g_keyConfigP2 = { VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD3 };
+
+PadConfig g_padConfigP1 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
+PadConfig g_padConfigP2 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
+
+InputDeviceType g_inputDeviceP1 = InputDeviceType::KEYBOARD;
+InputDeviceType g_inputDeviceP2 = InputDeviceType::PAD_0;
 
 namespace {
 	// アニメーション中の指定フレームにおける当たり判定の位置とサイズを計算するヘルパー関数
@@ -361,33 +368,67 @@ void Player::PollInputs()
 	switch (m_inputType)
 	{
 	case PlayerInputType::PLAYER_1:
-		if (!IsKeyPress(VK_RBUTTON))
+		if (g_inputDeviceP1 == InputDeviceType::KEYBOARD)
 		{
-			if (IsKeyPress(g_keyConfigP1.left)) m_inputs.moveLeft = true;
-			else if (IsKeyPress(g_keyConfigP1.right)) m_inputs.moveRight = true;
-			if (IsKeyPress(g_keyConfigP1.down)) m_inputs.moveDown = true;
-			if (IsKeyTrigger(g_keyConfigP1.up)) m_inputs.jump = true;
+			if (!IsKeyPress(VK_RBUTTON))
+			{
+				if (IsKeyPress(g_keyConfigP1.left)) m_inputs.moveLeft = true;
+				else if (IsKeyPress(g_keyConfigP1.right)) m_inputs.moveRight = true;
+				if (IsKeyPress(g_keyConfigP1.down)) m_inputs.moveDown = true;
+				if (IsKeyTrigger(g_keyConfigP1.up)) m_inputs.jump = true;
+			}
+			if (IsKeyTrigger(g_keyConfigP1.lightPunch)) m_inputs.LightPunch = true;
+			if (IsKeyTrigger(g_keyConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
+			if (IsKeyTrigger(g_keyConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsKeyTrigger(g_keyConfigP1.mediumKick)) m_inputs.MediumKick = true;
+			if (IsKeyTrigger(g_keyConfigP1.heavyKick)) m_inputs.HeavyKick = true;
 		}
-		if (IsKeyTrigger(g_keyConfigP1.lightPunch)) m_inputs.LightPunch = true;
-		if (IsKeyTrigger(g_keyConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
-		if (IsKeyTrigger(g_keyConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
-		if (IsKeyTrigger(g_keyConfigP1.mediumKick)) m_inputs.MediumKick = true;
-		if (IsKeyTrigger(g_keyConfigP1.heavyKick)) m_inputs.HeavyKick = true;
+		else
+		{
+			int padNo = (int)g_inputDeviceP1 - 1;
+			if (IsPadPress(padNo, g_padConfigP1.left)) m_inputs.moveLeft = true;
+			else if (IsPadPress(padNo, g_padConfigP1.right)) m_inputs.moveRight = true;
+			if (IsPadPress(padNo, g_padConfigP1.down)) m_inputs.moveDown = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.up)) m_inputs.jump = true;
+
+			if (IsPadTrigger(padNo, g_padConfigP1.lightPunch)) m_inputs.LightPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.mediumKick)) m_inputs.MediumKick = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.heavyKick)) m_inputs.HeavyKick = true;
+		}
 		break;
 
 	case PlayerInputType::PLAYER_2:
-		if (!IsKeyPress(VK_RBUTTON))
+		if (g_inputDeviceP2 == InputDeviceType::KEYBOARD)
 		{
-			if (IsKeyPress(g_keyConfigP2.left)) m_inputs.moveLeft = true;
-			else if (IsKeyPress(g_keyConfigP2.right)) m_inputs.moveRight = true;
-			if (IsKeyPress(g_keyConfigP2.down)) m_inputs.moveDown = true;
-			if (IsKeyTrigger(g_keyConfigP2.up)) m_inputs.jump = true;
+			if (!IsKeyPress(VK_RBUTTON))
+			{
+				if (IsKeyPress(g_keyConfigP2.left)) m_inputs.moveLeft = true;
+				else if (IsKeyPress(g_keyConfigP2.right)) m_inputs.moveRight = true;
+				if (IsKeyPress(g_keyConfigP2.down)) m_inputs.moveDown = true;
+				if (IsKeyTrigger(g_keyConfigP2.up)) m_inputs.jump = true;
+			}
+			if (IsKeyTrigger(g_keyConfigP2.lightPunch)) m_inputs.LightPunch = true;
+			if (IsKeyTrigger(g_keyConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
+			if (IsKeyTrigger(g_keyConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsKeyTrigger(g_keyConfigP2.mediumKick)) m_inputs.MediumKick = true;
+			if (IsKeyTrigger(g_keyConfigP2.heavyKick)) m_inputs.HeavyKick = true;
 		}
-		if (IsKeyTrigger(g_keyConfigP2.lightPunch)) m_inputs.LightPunch = true;
-		if (IsKeyTrigger(g_keyConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
-		if (IsKeyTrigger(g_keyConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
-		if (IsKeyTrigger(g_keyConfigP2.mediumKick)) m_inputs.MediumKick = true;
-		if (IsKeyTrigger(g_keyConfigP2.heavyKick)) m_inputs.HeavyKick = true;
+		else
+		{
+			int padNo = (int)g_inputDeviceP2 - 1;
+			if (IsPadPress(padNo, g_padConfigP2.left)) m_inputs.moveLeft = true;
+			else if (IsPadPress(padNo, g_padConfigP2.right)) m_inputs.moveRight = true;
+			if (IsPadPress(padNo, g_padConfigP2.down)) m_inputs.moveDown = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.up)) m_inputs.jump = true;
+
+			if (IsPadTrigger(padNo, g_padConfigP2.lightPunch)) m_inputs.LightPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.mediumKick)) m_inputs.MediumKick = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.heavyKick)) m_inputs.HeavyKick = true;
+		}
 		break;
 
 	case PlayerInputType::AI:

@@ -14,6 +14,7 @@
 #include "SimpleFont.h"
 #include <stdio.h>
 #include <algorithm>
+#include <Xinput.h>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -43,33 +44,8 @@ void SceneKeyConfig::Init()
 		{ L"Game Start" }
 	};
 
-	// 1P用の設定項目と変更対象となる変数のポインタを紐付ける
-	m_p1Items = {
-		{ L"Up", &g_keyConfigP1.up },
-		{ L"Down", &g_keyConfigP1.down },
-		{ L"Left", &g_keyConfigP1.left },
-		{ L"Right", &g_keyConfigP1.right },
-		{ L"L Punch", &g_keyConfigP1.lightPunch },
-		{ L"M Punch", &g_keyConfigP1.mediumPunch },
-		{ L"H Punch", &g_keyConfigP1.heavyPunch },
-		{ L"M Kick", &g_keyConfigP1.mediumKick },
-		{ L"H Kick", &g_keyConfigP1.heavyKick },
-		{ L"Back", nullptr } // 戻るボタンはポインタにnullptrを割り当てる
-	};
-
-	// 2P用の設定項目
-	m_p2Items = {
-		{ L"Up", &g_keyConfigP2.up },
-		{ L"Down", &g_keyConfigP2.down },
-		{ L"Left", &g_keyConfigP2.left },
-		{ L"Right", &g_keyConfigP2.right },
-		{ L"L Punch", &g_keyConfigP2.lightPunch },
-		{ L"M Punch", &g_keyConfigP2.mediumPunch },
-		{ L"H Punch", &g_keyConfigP2.heavyPunch },
-		{ L"M Kick", &g_keyConfigP2.mediumKick },
-		{ L"H Kick", &g_keyConfigP2.heavyKick },
-		{ L"Back", nullptr }
-	};
+	// 初期のデバイス状態に合わせてメニューのポインタを構築
+	RefreshConfigPointers();
 
 	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
 	if (!vsSkin)
@@ -205,19 +181,75 @@ void SceneKeyConfig::Uninit()
 	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 }
 
+void SceneKeyConfig::RefreshConfigPointers()
+{
+	m_p1Items = {
+		{ L"Device", nullptr, true },
+		{ L"Up", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.up : &g_padConfigP1.up, false },
+		{ L"Down", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.down : &g_padConfigP1.down, false },
+		{ L"Left", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.left : &g_padConfigP1.left, false },
+		{ L"Right", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.right : &g_padConfigP1.right, false },
+		{ L"L Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.lightPunch : &g_padConfigP1.lightPunch, false },
+		{ L"M Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.mediumPunch : &g_padConfigP1.mediumPunch, false },
+		{ L"H Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.heavyPunch : &g_padConfigP1.heavyPunch, false },
+		{ L"M Kick", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.mediumKick : &g_padConfigP1.mediumKick, false },
+		{ L"H Kick", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.heavyKick : &g_padConfigP1.heavyKick, false },
+		{ L"Back", nullptr, false }
+	};
+
+	m_p2Items = {
+		{ L"Device", nullptr, true },
+		{ L"Up", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.up : &g_padConfigP2.up, false },
+		{ L"Down", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.down : &g_padConfigP2.down, false },
+		{ L"Left", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.left : &g_padConfigP2.left, false },
+		{ L"Right", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.right : &g_padConfigP2.right, false },
+		{ L"L Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.lightPunch : &g_padConfigP2.lightPunch, false },
+		{ L"M Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.mediumPunch : &g_padConfigP2.mediumPunch, false },
+		{ L"H Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.heavyPunch : &g_padConfigP2.heavyPunch, false },
+		{ L"M Kick", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.mediumKick : &g_padConfigP2.mediumKick, false },
+		{ L"H Kick", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.heavyKick : &g_padConfigP2.heavyKick, false },
+		{ L"Back", nullptr, false }
+	};
+}
+
+
 void SceneKeyConfig::Update(float tick)
 {
 	// いずれかのキー割り当てが選択され、入力を待っている状態
 	if (m_waitBindKeyPtr != nullptr)
 	{
-		for (int i = 8; i < 256; ++i)
+		bool isP1 = (m_menuState == MenuState::ConfigP1);
+		InputDeviceType currentDevice = isP1 ? g_inputDeviceP1 : g_inputDeviceP2;
+
+		if (currentDevice == InputDeviceType::KEYBOARD)
 		{
-			// 何らかのキーが押されたら、そのキーコードをポインタ先の変数に保存する
-			if (IsKeyTrigger(i))
+			for (int i = 8; i < 256; ++i)
 			{
-				*m_waitBindKeyPtr = i;
-				m_waitBindKeyPtr = nullptr; // 待機状態を解除
-				break;
+				if (IsKeyTrigger(i))
+				{
+					*m_waitBindKeyPtr = i;
+					m_waitBindKeyPtr = nullptr;
+					break;
+				}
+			}
+		}
+		else
+		{
+			int padNo = (int)currentDevice - 1;
+			const int buttons[] = {
+				XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT,
+				XINPUT_GAMEPAD_START, XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_LEFT_THUMB, XINPUT_GAMEPAD_RIGHT_THUMB,
+				XINPUT_GAMEPAD_LEFT_SHOULDER, XINPUT_GAMEPAD_RIGHT_SHOULDER,
+				XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y
+			};
+			for (int b : buttons)
+			{
+				if (IsPadTrigger(padNo, b))
+				{
+					*m_waitBindKeyPtr = b;
+					m_waitBindKeyPtr = nullptr;
+					break;
+				}
 			}
 		}
 	}
@@ -290,10 +322,23 @@ void SceneKeyConfig::Update(float tick)
 					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
 				}
 
-				// 決定キーで項目の変更待機状態へ
+				// 決定キーの処理
 				if (IsKeyTrigger(VK_RETURN))
 				{
-					if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
+					if (currentItems[m_configSelectedIndex].isDeviceSelect)
+					{
+						// デバイス切り替え
+						if (m_menuState == MenuState::ConfigP1)
+						{
+							g_inputDeviceP1 = (InputDeviceType)(((int)g_inputDeviceP1 + 1) % 5);
+						}
+						else
+						{
+							g_inputDeviceP2 = (InputDeviceType)(((int)g_inputDeviceP2 + 1) % 5);
+						}
+						RefreshConfigPointers(); // 表示とポインタを更新
+					}
+					else if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
 					{
 						// Backが選ばれた場合はトップメニューに戻る
 						m_menuState = MenuState::TopMenu;
@@ -451,6 +496,41 @@ const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 	static wchar_t buf[16];
 	swprintf_s(buf, L"Key %d", vk);
 	return buf;
+}
+
+const wchar_t* SceneKeyConfig::GetPadButtonName(int button)
+{
+	switch (button)
+	{
+	case XINPUT_GAMEPAD_DPAD_UP: return L"D-PAD UP";
+	case XINPUT_GAMEPAD_DPAD_DOWN: return L"D-PAD DOWN";
+	case XINPUT_GAMEPAD_DPAD_LEFT: return L"D-PAD LEFT";
+	case XINPUT_GAMEPAD_DPAD_RIGHT: return L"D-PAD RIGHT";
+	case XINPUT_GAMEPAD_START: return L"START";
+	case XINPUT_GAMEPAD_BACK: return L"BACK";
+	case XINPUT_GAMEPAD_LEFT_THUMB: return L"L3";
+	case XINPUT_GAMEPAD_RIGHT_THUMB: return L"R3";
+	case XINPUT_GAMEPAD_LEFT_SHOULDER: return L"LB";
+	case XINPUT_GAMEPAD_RIGHT_SHOULDER: return L"RB";
+	case XINPUT_GAMEPAD_A: return L"A";
+	case XINPUT_GAMEPAD_B: return L"B";
+	case XINPUT_GAMEPAD_X: return L"X";
+	case XINPUT_GAMEPAD_Y: return L"Y";
+	}
+	return L"Unknown";
+}
+
+const wchar_t* SceneKeyConfig::GetDeviceName(InputDeviceType type)
+{
+	switch (type)
+	{
+	case InputDeviceType::KEYBOARD: return L"Keyboard";
+	case InputDeviceType::PAD_0: return L"Controller 1";
+	case InputDeviceType::PAD_1: return L"Controller 2";
+	case InputDeviceType::PAD_2: return L"Controller 3";
+	case InputDeviceType::PAD_3: return L"Controller 4";
+	}
+	return L"";
 }
 
 void SceneKeyConfig::Draw()
@@ -631,8 +711,8 @@ void SceneKeyConfig::Draw()
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
 			// コンフィグ用のパネルを描画（中央から上下に伸びる演出計算）
-			float panelHeight = 500.0f * m_windowScaleY;
-			float panelY = 150.0f + (500.0f - panelHeight) / 2.0f;
+			float panelHeight = 540.0f * m_windowScaleY; // 項目が増えたので枠を広げる
+			float panelY = 150.0f + (540.0f - panelHeight) / 2.0f;
 
 			DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
 
@@ -664,12 +744,15 @@ void SceneKeyConfig::Draw()
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
-			SimpleFont::Draw((m_menuState == MenuState::ConfigP1) ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
+			bool isP1 = (m_menuState == MenuState::ConfigP1);
+			SimpleFont::Draw(isP1 ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
 
 			// 枠のアニメーション終了後に各項目のテキストを描画
 			if (m_windowScaleY >= 1.0f)
 			{
-				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
+				std::vector<ConfigItem>& currentItems = isP1 ? m_p1Items : m_p2Items;
+				InputDeviceType currentDevice = isP1 ? g_inputDeviceP1 : g_inputDeviceP2;
+
 				for (int i = 0; i < currentItems.size(); ++i)
 				{
 					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
@@ -678,15 +761,20 @@ void SceneKeyConfig::Draw()
 					SimpleFont::Draw(currentItems[i].label, 80, 175 + i * 45, 20.0f, textColor);
 
 					// 現在の割り当てキー、または待機中のメッセージを描画
-					if (currentItems[i].keyPtr != nullptr)
+					if (currentItems[i].isDeviceSelect)
+					{
+						SimpleFont::Draw(GetDeviceName(currentDevice), 250, 175 + i * 45, 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
+					}
+					else if (currentItems[i].keyPtr != nullptr)
 					{
 						if (m_waitBindKeyPtr == currentItems[i].keyPtr)
 						{
-							SimpleFont::Draw(L"Press Any Key...", 250, 175 + i * 45, 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
+							SimpleFont::Draw(L"Press Any Button...", 250, 175 + i * 45, 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
 						}
 						else
 						{
-							SimpleFont::Draw(GetKeyName(*currentItems[i].keyPtr), 250, 175 + i * 45, 20.0f, textColor);
+							const wchar_t* btnName = (currentDevice == InputDeviceType::KEYBOARD) ? GetKeyName(*currentItems[i].keyPtr) : GetPadButtonName(*currentItems[i].keyPtr);
+							SimpleFont::Draw(btnName, 250, 175 + i * 45, 20.0f, textColor);
 						}
 					}
 				}

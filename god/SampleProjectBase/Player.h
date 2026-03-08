@@ -11,6 +11,16 @@ class PlayerState;
 class Shader;
 class Projectile;
 
+// デバイスのタイプ
+enum class InputDeviceType
+{
+	KEYBOARD,
+	PAD_0,
+	PAD_1,
+	PAD_2,
+	PAD_3
+};
+
 struct KeyConfig
 {
 	int up;
@@ -23,8 +33,28 @@ struct KeyConfig
 	int mediumKick;
 	int heavyKick;
 };
+
+struct PadConfig
+{
+	int up;
+	int down;
+	int left;
+	int right;
+	int lightPunch;
+	int mediumPunch;
+	int heavyPunch;
+	int mediumKick;
+	int heavyKick;
+};
+
 extern KeyConfig g_keyConfigP1;
 extern KeyConfig g_keyConfigP2;
+
+extern PadConfig g_padConfigP1;
+extern PadConfig g_padConfigP2;
+
+extern InputDeviceType g_inputDeviceP1;
+extern InputDeviceType g_inputDeviceP2;
 
 // プレイヤーの操作権限（1P、2P、AI）
 enum class PlayerInputType
