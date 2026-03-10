@@ -583,7 +583,7 @@ const wchar_t* SceneKeyConfig::GetDeviceName(InputDeviceType type)
 	}
 	else
 	{
-		swprintf_s(buf, L"Controller %d (XBOXˆÈŠO)", padNo + 1);
+		swprintf_s(buf, L"Controller %d (PS)", padNo + 1);
 	}
 
 	return buf;
