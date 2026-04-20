@@ -1,6 +1,7 @@
 #include "Projectile.h"
 #include "Player.h"
 #include "Sprite.h"
+#include "Geometory.h" // 当たり判定描画用に追加
 
 Texture* Projectile::s_texture = nullptr;
 
@@ -92,5 +93,18 @@ void Projectile::DrawHitbox(const DirectX::XMFLOAT4X4& view, const DirectX::XMFL
 {
 	if (!m_isActive) return;
 
+	using namespace DirectX;
+
+	// 飛び道具の判定はオレンジ色で描画して見分けやすくする
+	Geometory::SetColor(XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f));
+
+	XMFLOAT3 corners[8];
+	m_hitbox.GetCorners(corners);
+
+	// Playerのデバッグ描画と同様にZ軸手前の面(4頂点)を結んで四角形を描画
+	static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+	for (int i = 0; i < 4; ++i) {
+		Geometory::AddLine(corners[edge[i][0]], corners[edge[i][1]]);
+	}
 }
 #endif
