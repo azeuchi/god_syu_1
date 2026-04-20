@@ -23,6 +23,11 @@ public:
 	// 描画
 	void Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
 
+#ifdef _DEBUG
+	// デバッグ用当たり判定描画
+	void DrawHitbox(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
+#endif
+
 	bool IsActive() const { return m_isActive; }
 	void Deactivate() { m_isActive = false; }
 

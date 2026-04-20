@@ -68,7 +68,9 @@ void Projectile::Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4
 	Sprite::SetTexture(s_texture);
 
 	// 行列計算
-	DirectX::XMMATRIX mScale = DirectX::XMMatrixScaling(m_size, m_size, 1.0f);
+	// 左向きの場合はXスケールをマイナスにして画像を左右反転させる
+	float scaleX = m_isRight ? m_size : -m_size;
+	DirectX::XMMATRIX mScale = DirectX::XMMatrixScaling(scaleX, m_size, 1.0f);
 	DirectX::XMMATRIX mTrans = DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
 	DirectX::XMMATRIX mWorld = mScale * mTrans;
 
@@ -84,3 +86,11 @@ void Projectile::Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4
 
 	Sprite::Draw();
 }
+
+#ifdef _DEBUG
+void Projectile::DrawHitbox(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection)
+{
+	if (!m_isActive) return;
+
+}
+#endif

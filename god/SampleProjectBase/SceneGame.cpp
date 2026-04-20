@@ -1124,8 +1124,8 @@ void SceneGame::Draw()
 	//  飛び道具 & エフェクト描画 
 	// ------------------------------------------------
 
-	// 通常のカリング(CullBack)に戻す
-	if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
+	// 画像反転時のカリング落ちを防ぐためカリングなしに変更
+	if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
 
 	// ブレンド設定: AlphaToCoverage ON
 	if (m_pBlendState)
@@ -1137,10 +1137,16 @@ void SceneGame::Draw()
 	if (player && player->GetProjectile())
 	{
 		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
+#ifdef _DEBUG
+		player->GetProjectile()->DrawHitbox(pCamera->GetView(), pCamera->GetProj());
+#endif
 	}
 	if (player2 && player2->GetProjectile())
 	{
 		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
+#ifdef _DEBUG
+		player2->GetProjectile()->DrawHitbox(pCamera->GetView(), pCamera->GetProj());
+#endif
 	}
 
 	//カメラ行列の準備
