@@ -3,6 +3,10 @@
 
 #include "SceneBase.hpp"
 
+// 前方宣言（実体は Player.h で定義）
+class Player;
+struct AttackParams;
+
 /**
  * @brief デバッグ調整用シーン
  * * ゲームのステートマシン(FSM)を使わず、手動でアニメーションや判定を制御するシーン。
@@ -51,6 +55,14 @@ private:
 
 	// 調整用GUI (ImGui) の描画を行う
 	void DrawImGui();
+
+	// 現在ラジオボタンで選択されている技の AttackParams を返す
+	// (攻撃技以外を選択中の場合は nullptr)
+	AttackParams* GetSelectedParams(Player* player);
+
+	// 発生・持続・キャンセル窓・速度変化・再生位置を横軸で表示するタイムライン
+	// トラック上をクリック／ドラッグするとそのフレームへ移動する
+	void DrawTimeline(AttackParams* params);
 };
 
 #endif // __SCENE_DEBUG_H__

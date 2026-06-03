@@ -14,6 +14,7 @@
 #include <fstream> 
 #include <cmath> 
 #include <string>
+#include <cstdio>
 #include "PlayerParameterLoader.h"
 
 using namespace DirectX;
@@ -214,15 +215,7 @@ void SceneDebug::Update(float tick)
 	if (!player) return;
 
 	// --- パラメータの同期 ---
-	AttackParams* params = nullptr;
-	if (s_currentAttackType == 0) params = &player->GetLightPunchParams();
-	else if (s_currentAttackType == 1) params = &player->GetMediumPunchParams();
-	else if (s_currentAttackType == 2) params = &player->GetHeavyPunchParams();
-	else if (s_currentAttackType == 3) params = &player->GetMediumKickParams();
-	else if (s_currentAttackType == 4) params = &player->GetHeavyKickParams();
-	else if (s_currentAttackType == 7) params = &player->GetHadoukenLParams();
-	else if (s_currentAttackType == 8) params = &player->GetHadoukenMParams();
-	else if (s_currentAttackType == 9) params = &player->GetHadoukenHParams();
+	AttackParams* params = GetSelectedParams(player);
 
 	player->SetCurrentAttackParams(params);
 
@@ -475,17 +468,13 @@ void SceneDebug::DrawImGui()
 		{
 			ImGui::Text("Frame: %d", m_currentFrame);
 		}
+
+		// タイムライン (横軸でタイミングを確認し、クリック／ドラッグで頭出し)
+		ImGui::Separator();
+		DrawTimeline(GetSelectedParams(player));
 	}
 
-	AttackParams* pParams = nullptr;
-	if (s_currentAttackType == 0) pParams = &player->GetLightPunchParams();
-	else if (s_currentAttackType == 1) pParams = &player->GetMediumPunchParams();
-	else if (s_currentAttackType == 2) pParams = &player->GetHeavyPunchParams();
-	else if (s_currentAttackType == 3) pParams = &player->GetMediumKickParams();
-	else if (s_currentAttackType == 4) pParams = &player->GetHeavyKickParams();
-	else if (s_currentAttackType == 7) pParams = &player->GetHadoukenLParams();
-	else if (s_currentAttackType == 8) pParams = &player->GetHadoukenMParams();
-	else if (s_currentAttackType == 9) pParams = &player->GetHadoukenHParams();
+	AttackParams* pParams = GetSelectedParams(player);
 
 	if (pParams && ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -710,4 +699,167 @@ void SceneDebug::DrawImGui()
 	}
 
 	ImGui::End();
+}
+
+// 現在選択中の技に対応する AttackParams を返す
+// Update() と DrawImGui() の両方から呼ぶことで、技選択の対応表を一箇所にまとめる
+AttackParams* SceneDebug::GetSelectedParams(Player* player)
+{
+	if (!player) return nullptr;
+
+	switch (s_currentAttackType)
+	{
+	case 0: return &player->GetLightPunchParams();
+	case 1: return &player->GetMediumPunchParams();
+	case 2: return &player->GetHeavyPunchParams();
+	case 3: return &player->GetMediumKickParams();
+	case 4: return &player->GetHeavyKickParams();
+	case 7: return &player->GetHadoukenLParams();
+	case 8: return &player->GetHadoukenMParams();
+	case 9: return &player->GetHadoukenHParams();
+	default: return nullptr; // Down / WakeUp などフレームデータを持たない動作
+	}
+}
+
+void SceneDebug::DrawTimeline(AttackParams* params)
+{
+	// フレームデータを持たない動作 (Down/WakeUp) では何も出さない
+	if (!params)
+	{
+		ImGui::TextDisabled("(この動作にはフレームデータがありません)");
+		return;
+	}
+
+	// 内部パラメータは「秒」で保持しているので、60FPS基準でフレームへ換算する
+	const float toFrame = 1.0f / FRAME_TIME_60FPS; // = 60
+	int totalF = static_cast<int>(std::round(params->totalDuration * toFrame));
+	if (totalF < 1) totalF = 1;
+	int hitStartF = static_cast<int>(std::round(params->hitboxStart * toFrame));
+	int hitEndF = static_cast<int>(std::round(params->hitboxEnd * toFrame));
+
+	ImDrawList* dl = ImGui::GetWindowDrawList();
+
+	// 描画開始位置とトラックの寸法
+	const ImVec2 origin = ImGui::GetCursorScreenPos();
+	const float labelW = 64.0f;  // 左側のレーン名表示幅
+	const float laneH = 16.0f;  // 1レーンの高さ
+	const float laneGap = 4.0f;   // レーン間の隙間
+	const float rulerH = 16.0f;  // 目盛り行の高さ
+	float fullW = ImGui::GetContentRegionAvail().x;
+	float trackW = fullW - labelW;
+	if (trackW < 60.0f) trackW = 60.0f;
+	const float pxPerFrame = trackW / static_cast<float>(totalF);
+	const float trackX0 = origin.x + labelW;
+
+	// フレーム値をトラック上のスクリーンX座標へ変換する
+	auto FrameToX = [&](float f) { return trackX0 + f * pxPerFrame; };
+
+	// レーンの並び順 (上から)
+	enum Lane { LANE_PHASE, LANE_HIT, LANE_HURT, LANE_CANCEL, LANE_SPEED, LANE_COUNT };
+	auto LaneTop = [&](int lane) { return origin.y + rulerH + lane * (laneH + laneGap); };
+	const float bottomY = LaneTop(LANE_COUNT - 1) + laneH;
+	const float totalH = bottomY - origin.y;
+
+	// 色定義
+	const ImU32 colText = ImGui::GetColorU32(ImGuiCol_Text);
+	const ImU32 colTick = IM_COL32(150, 150, 150, 120);
+	const ImU32 colTrack = IM_COL32(255, 255, 255, 18);
+	const ImU32 colTrackEdge = IM_COL32(255, 255, 255, 40);
+	const ImU32 colStartup = IM_COL32(140, 140, 130, 200);
+	const ImU32 colActive = IM_COL32(226, 75, 74, 235);
+	const ImU32 colRecover = IM_COL32(240, 165, 60, 210);
+	const ImU32 colHit = IM_COL32(226, 75, 74, 235);
+	const ImU32 colHurt = IM_COL32(120, 190, 90, 150);
+	const ImU32 colCancel = IM_COL32(55, 138, 221, 200);
+	const ImU32 colSpeed = IM_COL32(140, 120, 230, 200);
+	const ImU32 colPlayhead = IM_COL32(80, 190, 255, 255);
+
+	// レイアウト分の領域を確保しつつ、クリック／ドラッグ判定も兼ねる
+	ImGui::InvisibleButton("##timeline", ImVec2(fullW, totalH));
+	if (ImGui::IsItemActive()) // 押している間（ドラッグ含む）はその位置へ頭出し
+	{
+		float mx = ImGui::GetIO().MousePos.x;
+		int f = static_cast<int>(std::round((mx - trackX0) / pxPerFrame));
+		if (f < 0) f = 0;
+		if (f > totalF) f = totalF;
+		m_currentFrame = f;
+		m_isPaused = true; // スクラブ中は自動再生を止めて位置を固定する
+	}
+
+	// レーンの下地と外枠をまとめて描く
+	auto DrawLaneBase = [&](int lane) {
+		float y0 = LaneTop(lane);
+		dl->AddRectFilled(ImVec2(trackX0, y0), ImVec2(trackX0 + trackW, y0 + laneH), colTrack, 3.0f);
+		dl->AddRect(ImVec2(trackX0, y0), ImVec2(trackX0 + trackW, y0 + laneH), colTrackEdge, 3.0f);
+		};
+	// 指定フレーム区間に色帯を描く
+	auto DrawBand = [&](int lane, float fStart, float fEnd, ImU32 col) {
+		if (fEnd <= fStart) return;
+		float y0 = LaneTop(lane);
+		dl->AddRectFilled(ImVec2(FrameToX(fStart), y0 + 1.0f),
+			ImVec2(FrameToX(fEnd), y0 + laneH - 1.0f), col, 3.0f);
+		};
+	// レーン名を左に描く
+	auto DrawLaneLabel = [&](int lane, const char* name) {
+		dl->AddText(ImVec2(origin.x, LaneTop(lane) + 1.0f), colText, name);
+		};
+
+	for (int i = 0; i < LANE_COUNT; ++i) DrawLaneBase(i);
+
+	// 目盛り（フレーム数が多いほど間引く）
+	int step = (totalF <= 20) ? 4 : (totalF <= 40 ? 5 : 10);
+	for (int f = 0; f <= totalF; f += step)
+	{
+		float x = FrameToX((float)f);
+		dl->AddLine(ImVec2(x, origin.y + rulerH - 4.0f), ImVec2(x, bottomY), colTick);
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%d", f);
+		dl->AddText(ImVec2(x + 2.0f, origin.y), colText, buf);
+	}
+
+	// Phase: 発生 / 持続 / 硬直
+	DrawLaneLabel(LANE_PHASE, "Phase");
+	DrawBand(LANE_PHASE, 0.0f, (float)hitStartF, colStartup);
+	DrawBand(LANE_PHASE, (float)hitStartF, (float)hitEndF, colActive);
+	DrawBand(LANE_PHASE, (float)hitEndF, (float)totalF, colRecover);
+
+	// Hitbox: 攻撃判定が出ている区間
+	DrawLaneLabel(LANE_HIT, "Hitbox");
+	DrawBand(LANE_HIT, (float)hitStartF, (float)hitEndF, colHit);
+
+	// Hurtbox: くらい判定（技中は全体的に存在する想定なので全域を薄く塗る）
+	DrawLaneLabel(LANE_HURT, "Hurtbox");
+	DrawBand(LANE_HURT, 0.0f, (float)totalF, colHurt);
+
+	// Cancel: 次の技へ移行できる窓（有効時のみ）
+	DrawLaneLabel(LANE_CANCEL, "Cancel");
+	if (params->cancelEnabled)
+	{
+		int cs = static_cast<int>(std::round(params->cancelStart * toFrame));
+		int ce = static_cast<int>(std::round(params->cancelEnd * toFrame));
+		DrawBand(LANE_CANCEL, (float)cs, (float)ce, colCancel);
+	}
+
+	// Speed: 再生速度変化の区間
+	DrawLaneLabel(LANE_SPEED, "Speed");
+	for (const auto& mod : params->speedModifiers)
+	{
+		DrawBand(LANE_SPEED, mod.startFrame, mod.endFrame, colSpeed);
+	}
+
+	// 再生位置（プレイヘッド）を全レーンを貫く縦線で描く
+	float px = FrameToX((float)m_currentFrame);
+	dl->AddLine(ImVec2(px, origin.y + rulerH - 6.0f), ImVec2(px, bottomY), colPlayhead, 2.0f);
+	dl->AddTriangleFilled(
+		ImVec2(px - 4.0f, origin.y + rulerH - 6.0f),
+		ImVec2(px + 4.0f, origin.y + rulerH - 6.0f),
+		ImVec2(px, origin.y + rulerH), colPlayhead);
+
+	// 現在フレーム数値をプレイヘッド付近に表示
+	char fbuf[24];
+	snprintf(fbuf, sizeof(fbuf), "%d / %dF", m_currentFrame, totalF);
+	dl->AddText(ImVec2(trackX0, bottomY + 2.0f), colText, fbuf);
+
+	// テキスト分の高さを確保して次のウィジェットと重ならないようにする
+	ImGui::Dummy(ImVec2(fullW, ImGui::GetTextLineHeight() + 2.0f));
 }
