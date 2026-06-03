@@ -2,6 +2,8 @@
 #include "DebugLog.h"
 #include <fstream>
 #include <vector>
+#include <string>
+#include <cstdlib>
 
 // 内部使用のヘルパー関数群
 namespace
@@ -75,13 +77,49 @@ void PlayerParameterLoader::LoadAttackParams(AttackParams& p, const char* filePa
 		return;
 	}
 
-	ifs >> p.totalDuration;
+	// 先頭トークンで新旧形式を判別する。
+	std::string tag;
+	ifs >> tag;
+
+	bool isNewFormat = (tag == "FGPARAM");
+	if (isNewFormat)
+	{
+		int version = 0;
+		ifs >> version;
+		ifs >> p.totalDuration;
+	}
+	else
+	{
+		// 旧形式: 読み取ったトークンが totalDuration の値
+		p.totalDuration = (float)atof(tag.c_str());
+	}
+
 	ifs >> p.hitboxStart >> p.hitboxEnd;
 
-	// 攻撃判定 (Hitbox)
+	// 攻撃判定 (Hitbox) はどちらの形式も従来通り
 	LoadAnimatedBoxes(ifs, p.hitboxes);
+
 	// くらい判定 (Hurtbox)
-	LoadAnimatedBoxes(ifs, p.hurtboxes);
+	p.moveHurtboxes.clear();
+	if (isNewFormat)
+	{
+		// 区間付きの固定ボックスとして読む
+		size_t hurtCount = 0;
+		ifs >> hurtCount;
+		for (size_t i = 0; i < hurtCount; ++i)
+		{
+			WindowedHurtbox wh;
+			ifs >> wh.offset.x >> wh.offset.y >> wh.extents.x >> wh.extents.y >> wh.startFrame >> wh.endFrame;
+			p.moveHurtboxes.push_back(wh);
+		}
+	}
+	else
+	{
+		//キーフレーム式のくらい判定ブロックを読み捨てる(値は破棄)。
+		// こうすることで後続のダメージ等が読みズレずに保持される
+		std::vector<AnimatedBox> discard;
+		LoadAnimatedBoxes(ifs, discard);
+	}
 
 	ifs >> p.damage >> p.hitFrame >> p.blockFrame >> p.hitStop >> p.knockback;
 	ifs >> p.isDown;

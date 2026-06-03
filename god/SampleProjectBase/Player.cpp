@@ -169,13 +169,10 @@ void Player::InitDefaultParameters()
 	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.116f, 0.308f };
 
 
-	// 攻撃モーション中もデフォルトで頭・体・足のくらい判定が存在するように初期化するヘルパー
-	auto InitDefaultHurtboxes = [&](std::vector<AnimatedBox>& boxes) {
+	// 追加くらい判定の初期化ヘルパー。基本のくらい判定(頭・体・足)は常時有効なので、
+	// 技固有の追加くらい判定はデフォルトでは無し(空)にしておく
+	auto InitDefaultHurtboxes = [&](std::vector<WindowedHurtbox>& boxes) {
 		boxes.clear();
-		boxes.resize(3);
-		boxes[0].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[0], m_baseHurtboxExtents[0]} });
-		boxes[1].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[1], m_baseHurtboxExtents[1]} });
-		boxes[2].keyframes.push_back({ 0.0f, {m_baseHurtboxOffsets[2], m_baseHurtboxExtents[2]} });
 		};
 
 
@@ -196,7 +193,7 @@ void Player::InitDefaultParameters()
 		p.isDown = false;
 		p.attackLevel = AttackLevel::HIGH; // 上段判定
 
-		InitDefaultHurtboxes(p.hurtboxes);
+		InitDefaultHurtboxes(p.moveHurtboxes);
 
 		// キャンセル可能タイミングの設定
 		p.cancelEnabled = true; p.cancelStart = 0.0666667f; p.cancelEnd = 0.166667f;
@@ -219,7 +216,7 @@ void Player::InitDefaultParameters()
 		p.isDown = false;
 		p.attackLevel = AttackLevel::HIGH;
 
-		InitDefaultHurtboxes(p.hurtboxes);
+		InitDefaultHurtboxes(p.moveHurtboxes);
 
 		p.cancelEnabled = true; p.cancelStart = 0.1f; p.cancelEnd = 0.333333f;
 		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = true; p.cancelToMediumKick = false; p.cancelToHeavy = true;
@@ -245,7 +242,7 @@ void Player::InitDefaultParameters()
 		p.isDown = false;
 		p.attackLevel = AttackLevel::HIGH;
 
-		InitDefaultHurtboxes(p.hurtboxes);
+		InitDefaultHurtboxes(p.moveHurtboxes);
 
 		p.cancelEnabled = true; p.cancelStart = 0.133333f; p.cancelEnd = 0.416667f;
 		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = true;
@@ -271,7 +268,7 @@ void Player::InitDefaultParameters()
 		p.isDown = false;
 		p.attackLevel = AttackLevel::MID; // 中段判定（しゃがみガード不可）
 
-		InitDefaultHurtboxes(p.hurtboxes);
+		InitDefaultHurtboxes(p.moveHurtboxes);
 
 		p.cancelEnabled = false;
 
@@ -296,7 +293,7 @@ void Player::InitDefaultParameters()
 		p.isDown = false;
 		p.attackLevel = AttackLevel::LOW; // 下段判定（立ちガード不可）
 
-		InitDefaultHurtboxes(p.hurtboxes);
+		InitDefaultHurtboxes(p.moveHurtboxes);
 
 		p.cancelEnabled = false;
 
@@ -309,19 +306,19 @@ void Player::InitDefaultParameters()
 
 	// --- 波動拳 (弱/中/強) の設定 ---
 	{
-		InitDefaultHurtboxes(m_hadoukenLParams.hurtboxes);
+		InitDefaultHurtboxes(m_hadoukenLParams.moveHurtboxes);
 		m_hadoukenLParams.totalDuration = 0.6f;
 		m_hadoukenLParams.projectileSpeed = 4.0f; // 弾速
 		m_hadoukenLParams.damage = 500;
 		m_hadoukenLParams.attackLevel = AttackLevel::HIGH;
 
-		InitDefaultHurtboxes(m_hadoukenMParams.hurtboxes);
+		InitDefaultHurtboxes(m_hadoukenMParams.moveHurtboxes);
 		m_hadoukenMParams.totalDuration = 0.6f;
 		m_hadoukenMParams.projectileSpeed = 6.5f;
 		m_hadoukenMParams.damage = 500;
 		m_hadoukenMParams.attackLevel = AttackLevel::HIGH;
 
-		InitDefaultHurtboxes(m_hadoukenHParams.hurtboxes);
+		InitDefaultHurtboxes(m_hadoukenHParams.moveHurtboxes);
 		m_hadoukenHParams.totalDuration = 0.6f;
 		m_hadoukenHParams.projectileSpeed = 9.0f;
 		m_hadoukenHParams.damage = 500;
@@ -787,33 +784,17 @@ void Player::DrawBoundingBox()
 	if (m_isColliding) Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 	else Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
 
-	if (m_isAttacking && !m_activeHurtboxes.empty())
+	// 基本のくらい判定(頭・体・足)は常時有効なので、常にこれを描画する。
+	// 技固有の追加くらい判定は別途 m_activeHurtboxes として描画される
+	for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 	{
-		// 攻撃中の専用くらい判定が存在する場合は、色を変えて描画
-		Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.5f, 1.0f));
-		for (const auto& box : m_activeHurtboxes)
-		{
-			XMFLOAT3 corners[8];
-			box.GetCorners(corners);
-			static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
-			for (int e = 0; e < 4; ++e) {
-				Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
-			}
-		}
-	}
-	else
-	{
-		// 通常の部位ごとのくらい判定を描画
-		for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
-		{
-			BoundingBox box = GetHurtbox((HurtboxType)i);
-			XMFLOAT3 corners[8];
-			box.GetCorners(corners);
+		BoundingBox box = GetHurtbox((HurtboxType)i);
+		XMFLOAT3 corners[8];
+		box.GetCorners(corners);
 
-			static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
-			for (int e = 0; e < 4; ++e) {
-				Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
-			}
+		static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+		for (int e = 0; e < 4; ++e) {
+			Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
 		}
 	}
 }
@@ -924,19 +905,21 @@ void Player::UpdateAttackBoxes()
 		}
 	}
 
-	// 攻撃中の専用くらい判定 (Hurtbox) の生成
-	for (const auto& animBox : m_pActiveAttackParams->hurtboxes)
+	// 攻撃中の追加くらい判定 (Hurtbox) の生成
+	// m_attackTimer は60FPS基準のゲームフレーム。区間内のものだけを固定サイズで生成する
+	float gameFrame = m_attackTimer;
+	for (const auto& wh : m_pActiveAttackParams->moveHurtboxes)
 	{
-		BoxData currentBox = CalculateInterpolatedBox(animBox, currentFrame);
+		if (gameFrame < (float)wh.startFrame || gameFrame >= (float)wh.endFrame) continue;
 
 		DirectX::XMFLOAT3 center = {
-			m_position.x + (currentBox.offset.x * direction),
-			m_position.y + currentBox.offset.y,
+			m_position.x + (wh.offset.x * direction),
+			m_position.y + wh.offset.y,
 			m_position.z
 		};
 		DirectX::XMFLOAT3 boxExtents = {
-			currentBox.extents.x,
-			currentBox.extents.y,
+			wh.extents.x,
+			wh.extents.y,
 			0.1f
 		};
 		m_activeHurtboxes.push_back(DirectX::BoundingBox(center, boxExtents));

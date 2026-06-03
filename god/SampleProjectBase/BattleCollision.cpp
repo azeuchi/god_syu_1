@@ -261,13 +261,17 @@ void BattleCollision::SpawnHitEffect(std::vector<HitEffect*>& effects, Player* t
 
 std::vector<DirectX::BoundingBox> BattleCollision::GetTargetHurtboxes(const Player* target)
 {
-	if (target->IsAttacking() && !target->GetActiveHurtboxes().empty()) {
-		return target->GetActiveHurtboxes();
-	}
-	// 攻撃中でないなら、頭・体・足の3つを返す
+	// 基本のくらい判定(頭・体・足)は常時有効
 	std::vector<DirectX::BoundingBox> boxes;
 	boxes.push_back(target->GetHurtbox(HurtboxType::HEAD));
 	boxes.push_back(target->GetHurtbox(HurtboxType::BODY));
 	boxes.push_back(target->GetHurtbox(HurtboxType::LEGS));
+
+	// 攻撃中は、その瞬間アクティブな技固有の追加くらい判定を加算する
+	if (target->IsAttacking())
+	{
+		const auto& extra = target->GetActiveHurtboxes();
+		boxes.insert(boxes.end(), extra.begin(), extra.end());
+	}
 	return boxes;
 }

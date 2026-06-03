@@ -132,6 +132,16 @@ struct AnimatedBox
 	std::vector<BoxKeyframe> keyframes;
 };
 
+// 技ごとの追加くらい判定（指定フレーム区間の間だけ出る固定サイズのボックス）
+// 基本のくらい判定は常時有効で、これはその上に区間限定で加算される
+struct WindowedHurtbox
+{
+	DirectX::XMFLOAT2 offset = { 0.0f, 1.0f };  // 中心オフセット
+	DirectX::XMFLOAT2 extents = { 0.3f, 0.3f }; // 半サイズ
+	int startFrame = 0; // 出現フレーム(60FPS基準)
+	int endFrame = 0;   // 消滅フレーム(60FPS基準)
+};
+
 // 攻撃技に関するすべてのパラメータをまとめた構造体
 struct AttackParams
 {
@@ -147,7 +157,8 @@ struct AttackParams
 	std::vector<AnimatedBox> hitboxes;
 
 	// 攻撃中のくらい判定 (緑枠) のリスト
-	std::vector<AnimatedBox> hurtboxes;
+	// 区間限定で出る追加のくらい判定。基本のくらい判定は常時有効なので別管理
+	std::vector<WindowedHurtbox> moveHurtboxes;
 
 	// 攻撃の属性（ガード方向の判定に使用）
 	AttackLevel attackLevel = AttackLevel::HIGH;
