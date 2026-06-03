@@ -40,7 +40,6 @@ static const char* GetCurrentAnimName()
 }
 
 // 判定ボックス(BoundingBox)のリストを、指定色のワイヤーフレームで描画する
-// 既存の DrawHitbox / DrawBoundingBox と同じく前面4辺だけを線で描く
 static void DrawBoxListWire(const std::vector<DirectX::BoundingBox>& boxes, const DirectX::XMFLOAT4& color)
 {
 	Geometory::SetColor(color);
@@ -61,7 +60,7 @@ void SceneDebug::SavePlayerSettings()
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
-	// 1. 共通設定の保存
+	// 共通設定の保存
 	{
 		std::ofstream ofs("Param_Common.ini");
 		if (ofs.is_open())
@@ -87,12 +86,12 @@ void SceneDebug::SavePlayerSettings()
 		}
 	}
 
-	// 2. 各攻撃パラメータの保存用ヘルパー関数
+	// 各攻撃パラメータの保存用ヘルパー関数
 	auto SaveOneAttack = [&](const char* filename, const AttackParams& params) {
 		std::ofstream ofs(filename);
 		if (!ofs.is_open()) return;
 
-		// 形式バージョン(新形式の目印)
+		// 形式バージョン
 		ofs << "FGPARAM 2" << std::endl;
 
 		// タイミング・判定
@@ -150,7 +149,7 @@ void SceneDebug::SavePlayerSettings()
 		ofs.close();
 		};
 
-	// 3. 各ファイルの保存実行
+	// 各ファイルの保存実行
 	SaveOneAttack("Param_LightPunch.ini", player->GetLightPunchParams());
 	SaveOneAttack("Param_MediumPunch.ini", player->GetMediumPunchParams());
 	SaveOneAttack("Param_HeavyPunch.ini", player->GetHeavyPunchParams());
@@ -375,13 +374,12 @@ void SceneDebug::Draw()
 
 		// ----------------------------------------------------
 		// 判定ボックスの表示制御
-		// ストリートファイターのトレーニングモードのように、現在フレームの
-		// くらい判定(緑)・攻撃判定(赤)を常に重ねて表示する。
+		// 現在フレームのくらい判定(緑)・攻撃判定(赤)を常に重ねて表示する。
 		// ----------------------------------------------------
 		bool isEditingAttack = (s_currentAttackType <= 4 || s_currentAttackType >= 7);
 
 		if (isEditingAttack) {
-			// 攻撃判定は発生期間内だけ「出ている」ものとして扱う
+			// 攻撃判定は発生期間内だけ出ているものとして扱う
 			bool showHitbox = false;
 			AttackParams* pParams = player->GetCurrentAttackParams();
 			if (pParams) {
@@ -616,7 +614,7 @@ void SceneDebug::DrawImGui()
 		ImGui::PopStyleColor();
 		if (hurtOpen)
 		{
-			ImGui::TextDisabled("基本のくらい判定は常時有効。ここは技固有の追加分だけ");
+		
 
 			for (int i = 0; i < (int)params.moveHurtboxes.size(); ++i)
 			{
@@ -792,7 +790,6 @@ void SceneDebug::DrawTimeline(AttackParams* params)
 	// フレームデータを持たない動作 (Down/WakeUp) では何も出さない
 	if (!params)
 	{
-		ImGui::TextDisabled("(この動作にはフレームデータがありません)");
 		return;
 	}
 
@@ -885,7 +882,7 @@ void SceneDebug::DrawTimeline(AttackParams* params)
 	DrawLaneLabel(LANE_HIT, "Hitbox");
 	DrawBand(LANE_HIT, (float)hitStartF, (float)hitEndF, colHit);
 
-	// Hurtbox: 基本判定は常時(薄く全域)、技固有の追加判定は区間だけ濃く描く
+	// Hurtbox: 基本判定は常時、技固有の追加判定は区間だけ濃く描く
 	DrawLaneLabel(LANE_HURT, "Hurtbox");
 	DrawBand(LANE_HURT, 0.0f, (float)totalF, colHurt);
 	for (const auto& wh : params->moveHurtboxes)
