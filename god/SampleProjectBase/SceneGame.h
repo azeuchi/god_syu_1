@@ -26,6 +26,10 @@ private:
 	// 次のラウンドのために位置やHPをリセットする関数
 	void ResetRound();
 
+	// カメラシェイク（Trauma方式）
+	void AddCameraTrauma(float amount, float dirX); // ヒット時に揺れを加える
+	void UpdateCameraShake(float tick);             // 毎フレームの減衰とオフセット計算
+
 private:
 	// UIマネージャ
 	BattleUIManager* m_uiManager;
@@ -79,6 +83,11 @@ private:
 	float m_shakeTimerP2 = 0.0f; // 2Pの振動残り時間
 	DirectX::XMFLOAT3 m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f }; // 1Pの描画ずらし量
 	DirectX::XMFLOAT3 m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f }; // 2Pの描画ずらし量
+
+	// カメラシェイク（Trauma方式）制御用
+	float m_cameraTrauma = 0.0f;                                 // 揺れの蓄積量（0.0から1.0）
+	float m_cameraShakeKickDir = 0.0f;                           // 初撃の横方向（-1/+1）
+	DirectX::XMFLOAT3 m_cameraShakeOffset = { 0.0f, 0.0f, 0.0f }; // 今フレームの揺れオフセット
 
 	// ラウンド管理用
 	int m_winCountP1 = 0;      // 1Pの勝利ラウンド数
