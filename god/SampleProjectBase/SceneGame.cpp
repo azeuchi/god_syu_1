@@ -1,5 +1,6 @@
 ﻿#include "math.h"
 #include "SceneGame.h"
+#include "CameraShake.h"
 #include "Geometory.h"
 #include "DebugLog.h"
 #include "Model.h"
@@ -30,12 +31,6 @@ const char* SETTINGS_FILE = "player_settings.ini";
 // ステージとカメラの移動制限範囲
 const float STAGE_LIMIT_X = 6.0f;
 const float CAMERA_LIMIT_X = 4.0f;
-
-// カメラシェイク（Trauma方式）調整値
-const float CAMERA_SHAKE_MAX_OFFSET = 0.22f; // 揺れ幅の最大（ワールド単位）
-const float CAMERA_SHAKE_DECAY      = 2.2f;  // traumaの減衰速度（毎秒）
-const float CAMERA_SHAKE_KICK_RATIO = 0.6f;  // 初撃の指向性の強さ（0=ノイズのみ 1=方向のみ）
-const float HITSTOP_TRAUMA_REF      = 0.18f; // この長さのヒットストップでtrauma=1相当にする
 
 // 定数定義
 const int ROUND_TO_WIN = 2;         // 2本先取で勝利
@@ -697,7 +692,7 @@ void SceneGame::Update(float tick)
 			m_hitStopTimer = result.hitStopTimer;
 
 			// 攻撃の強さ（ヒットストップ長）からカメラの揺れ量を決める
-			float strength = std::clamp(result.hitStopTimer / HITSTOP_TRAUMA_REF, 0.0f, 1.0f);
+			float strength = CameraShake::TraumaFromHitStop(result.hitStopTimer);
 			// のけぞる側に応じて横方向の初撃を決める
 			float kickDir = 0.0f;
 			if (result.shakeTimerP2 > 0.0f)      kickDir =  1.0f; // 2Pがのけぞる
@@ -818,35 +813,15 @@ void SceneGame::Update(float tick)
 // ヒット時にカメラの揺れ（trauma）を加える。amountは0.0から1.0、dirXは横方向の初撃（-1/0/+1）
 void SceneGame::AddCameraTrauma(float amount, float dirX)
 {
-	m_cameraTrauma = std::clamp(m_cameraTrauma + amount, 0.0f, 1.0f);
+	CameraShake::AddTrauma(m_cameraTrauma, amount);
 	m_cameraShakeKickDir = dirX;
 }
 
 // 毎フレームのカメラシェイク更新。traumaを減衰させ、今フレームの揺れオフセットを計算する
 void SceneGame::UpdateCameraShake(float tick)
 {
-	if (m_cameraTrauma <= 0.0f)
-	{
-		m_cameraShakeOffset = { 0.0f, 0.0f, 0.0f };
-		return;
-	}
-
-	// trauma^2 で立ち上がりを鋭く、終わり際をなめらかにする
-	float shake = m_cameraTrauma * m_cameraTrauma;
-	float amp = CAMERA_SHAKE_MAX_OFFSET * shake;
-
-	// ノイズ成分（-1.0から1.0）
-	float nx = (float)(rand() % 1000) / 500.0f - 1.0f;
-	float ny = (float)(rand() % 1000) / 500.0f - 1.0f;
-
-	// 横は初撃方向へ寄せ、縦はノイズ主体にする
-	float ox = amp * (nx * (1.0f - CAMERA_SHAKE_KICK_RATIO) + m_cameraShakeKickDir * CAMERA_SHAKE_KICK_RATIO);
-	float oy = amp * ny;
-	m_cameraShakeOffset = { ox, oy, 0.0f };
-
-	// 実時間で減衰
-	m_cameraTrauma -= CAMERA_SHAKE_DECAY * tick;
-	if (m_cameraTrauma < 0.0f) m_cameraTrauma = 0.0f;
+	// 揺れ計算は CameraShake に委譲（デバッグシーンと共有）
+	CameraShake::Tick(m_cameraTrauma, m_cameraShakeKickDir, tick, m_cameraShakeOffset);
 }
 void SceneGame::Draw()
 {

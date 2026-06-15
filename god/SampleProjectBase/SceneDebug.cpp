@@ -16,6 +16,7 @@
 #include <string>
 #include <cstdio>
 #include "PlayerParameterLoader.h"
+#include "CameraShake.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -26,6 +27,11 @@ const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
 // 0:LP, 1:MP, 2:HP, 3:MK, 4:HK, 5:Down, 6:WakeUp, 7:HadouL, 8:HadouM, 9:HadouH
 static int s_currentAttackType = 0;
+
+// カメラシェイク確認用（デバッグシーンでのプレビュー状態）
+static float s_dbgShakeTrauma = 0.0f;
+static float s_dbgShakeKickDir = 1.0f;
+static DirectX::XMFLOAT3 s_dbgShakeOffset = { 0.0f, 0.0f, 0.0f };
 
 static const char* GetCurrentAnimName()
 {
@@ -324,12 +330,25 @@ void SceneDebug::Update(float tick)
 		camera->SetPos(targetPos);
 		camera->SetLook(targetLook);
 	}
+
+	// カメラシェイク（プレビュー）の更新：traumaを減衰させ揺れオフセットを計算する
+	CameraShake::Tick(s_dbgShakeTrauma, s_dbgShakeKickDir, tick, s_dbgShakeOffset);
 }
 
 void SceneDebug::Draw()
 {
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	LightBase* pLight = GetObj<LightBase>("Light");
+
+	// カメラシェイク（プレビュー）：描画の間だけカメラをずらし、後で元へ戻す
+	XMFLOAT3 camShakeBasePos = pCamera->GetPos();
+	XMFLOAT3 camShakeBaseLook = pCamera->GetLook();
+	{
+		XMFLOAT3 sp = { camShakeBasePos.x + s_dbgShakeOffset.x, camShakeBasePos.y + s_dbgShakeOffset.y, camShakeBasePos.z };
+		XMFLOAT3 sl = { camShakeBaseLook.x + s_dbgShakeOffset.x, camShakeBaseLook.y + s_dbgShakeOffset.y, camShakeBaseLook.z };
+		pCamera->SetPos(sp);
+		pCamera->SetLook(sl);
+	}
 
 	DirectX::XMFLOAT4X4 mat[3];
 	DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixIdentity());
@@ -405,6 +424,10 @@ void SceneDebug::Draw()
 		}
 	}
 
+	// カメラシェイクを元に戻す（UI描画や次フレームへ揺れを残さない）
+	pCamera->SetPos(camShakeBasePos);
+	pCamera->SetLook(camShakeBaseLook);
+
 	if (m_showImGui)
 	{
 		DrawImGui();
@@ -421,6 +444,25 @@ void SceneDebug::DrawImGui()
 	if (!player) {
 		ImGui::End();
 		return;
+	}
+
+	if (ImGui::CollapsingHeader("Camera Shake"))
+	{
+		ImGui::SliderFloat("Max Offset", &CameraShake::s_maxOffset, 0.0f, 0.6f, "%.3f");
+		ImGui::SliderFloat("Decay (/sec)", &CameraShake::s_decay, 0.5f, 8.0f, "%.2f");
+		ImGui::SliderFloat("Kick Ratio", &CameraShake::s_kickRatio, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("HitStop Ref", &CameraShake::s_hitStopRef, 0.05f, 0.40f, "%.3f");
+		ImGui::SliderFloat("Test Kick Dir", &s_dbgShakeKickDir, -1.0f, 1.0f, "%.2f");
+
+		ImGui::Text("Trauma: %.2f", s_dbgShakeTrauma);
+
+		if (ImGui::Button("Test Light"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.08f)); }
+		ImGui::SameLine();
+		if (ImGui::Button("Test Medium")) { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.12f)); }
+		ImGui::SameLine();
+		if (ImGui::Button("Test Heavy"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.18f)); }
+
+		if (ImGui::Button("Reset Params")) { CameraShake::ResetParams(); }
 	}
 
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
