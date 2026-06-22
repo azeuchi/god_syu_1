@@ -465,6 +465,103 @@ void SceneDebug::DrawImGui()
 		if (ImGui::Button("Reset Params")) { CameraShake::ResetParams(); }
 	}
 
+	if (ImGui::CollapsingHeader("Combo / Frame Data"))
+	{
+		// 全攻撃技（名前と params ポインタ）
+		struct MoveEntry { const char* name; AttackParams* p; };
+		MoveEntry moves[] = {
+			{ "LP",      &player->GetLightPunchParams() },
+			{ "MP",      &player->GetMediumPunchParams() },
+			{ "HP",      &player->GetHeavyPunchParams() },
+			{ "MK",      &player->GetMediumKickParams() },
+			{ "HK",      &player->GetHeavyKickParams() },
+			{ "Hadou L", &player->GetHadoukenLParams() },
+			{ "Hadou M", &player->GetHadoukenMParams() },
+			{ "Hadou H", &player->GetHadoukenHParams() },
+		};
+		const int moveCount = 8;
+
+		// 秒 → フレーム（60FPS換算）
+		auto ToF = [](float sec) { return (int)std::lround(sec * 60.0f); };
+
+		auto Startup = [&](const AttackParams* p) { return ToF(p->hitboxStart); };
+		auto Active  = [&](const AttackParams* p) { return ToF(p->hitboxEnd) - ToF(p->hitboxStart); };
+		auto Recover = [&](const AttackParams* p) { return ToF(p->totalDuration) - ToF(p->hitboxEnd); };
+		auto Total   = [&](const AttackParams* p) { return ToF(p->totalDuration); };
+		// 純粋な有利フレーム（初段当て想定）＝ のけぞり硬直 −（持続 ＋ 硬直 − 1）
+		auto NetAdv  = [&](const AttackParams* p) { return p->hitFrame - (Active(p) + Recover(p) - 1); };
+
+		ImGui::TextDisabled("On Hit = net advantage (1st-active-frame hit)");
+
+		// --- フレームデータ表 ---
+		if (ImGui::BeginTable("FrameTable", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+		{
+			ImGui::TableSetupColumn("Move");
+			ImGui::TableSetupColumn("Startup");
+			ImGui::TableSetupColumn("Active");
+			ImGui::TableSetupColumn("Recovery");
+			ImGui::TableSetupColumn("Total");
+			ImGui::TableSetupColumn("On Hit");
+			ImGui::TableSetupColumn("On Block");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < moveCount; ++i)
+			{
+				AttackParams* p = moves[i].p;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted(moves[i].name);
+				ImGui::TableSetColumnIndex(1); ImGui::Text("%d", Startup(p));
+				ImGui::TableSetColumnIndex(2); ImGui::Text("%d", Active(p));
+				ImGui::TableSetColumnIndex(3); ImGui::Text("%d", Recover(p));
+				ImGui::TableSetColumnIndex(4); ImGui::Text("%d", Total(p));
+				ImGui::TableSetColumnIndex(5); ImGui::Text("%+d", NetAdv(p));
+				ImGui::TableSetColumnIndex(6); ImGui::Text("%+d", p->blockFrame);
+			}
+			ImGui::EndTable();
+		}
+
+		ImGui::Separator();
+
+		// --- 連結ビュー（始動技を選ぶと、つながる技を一覧）---
+		static int s_comboStarter = 0;
+		const char* starterNames[] = { "LP","MP","HP","MK","HK","Hadou L","Hadou M","Hadou H" };
+		ImGui::Combo("Starter", &s_comboStarter, starterNames, moveCount);
+
+		AttackParams* a = moves[s_comboStarter].p;
+		int adv = NetAdv(a);
+		ImGui::Text("%s : On Hit %+d", starterNames[s_comboStarter], adv);
+
+		// キャンセル可否（ターゲットのカテゴリ別フラグ。波動拳はフラグ対象外）
+		auto CanCancelTo = [&](const AttackParams* from, int targetIndex) -> bool {
+			if (!from->cancelEnabled) return false;
+			switch (targetIndex) {
+			case 0: return from->cancelToLight;
+			case 1: return from->cancelToMedium;
+			case 2: return from->cancelToHeavyPunch;
+			case 3: return from->cancelToMediumKick;
+			case 4: return from->cancelToHeavy;
+			default: return false;
+			}
+		};
+
+		ImGui::Text("Connects into:");
+		bool anyConnect = false;
+		for (int j = 0; j < moveCount; ++j)
+		{
+			AttackParams* b = moves[j].p;
+			int bStartup = Startup(b);
+			bool link = (adv >= bStartup);
+			bool cancel = CanCancelTo(a, j);
+			if (!link && !cancel) continue;
+
+			anyConnect = true;
+			std::string tag;
+			if (link)   { tag += "[Link +" + std::to_string(adv - bStartup) + "]"; }
+			if (cancel) { tag += (tag.empty() ? "" : " "); tag += "[Cancel]"; }
+			ImGui::BulletText("%s  %s  (startup %dF)", starterNames[j], tag.c_str(), bStartup);
+		}
+		if (!anyConnect) ImGui::BulletText("(none)");
+	}
+
 	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text("Select Action:");
