@@ -134,11 +134,19 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 		bool isDown = (params != nullptr) ? params->isDown : false;
 		AttackLevel atkLevel = (params != nullptr) ? params->attackLevel : AttackLevel::HIGH;
 		bool blocked = defender->TryGuard(atkLevel);
+		result.wasBlocked = blocked;
+		// hitFrameを正味の有利フレームにする：攻撃側の残り硬直を硬直時間に加算
+		if (params != nullptr)
+		{
+			float remainF = params->totalDuration * 60.0f - attacker->GetAttackTimer();
+			int extra = (remainF > 0.0f) ? (int)(remainF + 0.5f) : 0;
+			stun = params->hitFrame + extra;
+		}
 
 		defender->ReceiveDamage(dmg, atkLevel);
 		attacker->OnHit();
 
-		float kb = (params != nullptr) ? params->knockback : 0.0f;
+		float kb = blocked ? 0.0f : ((params != nullptr) ? params->knockback : 0.0f);
 		float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 
 		DirectX::XMFLOAT3 defPos = defender->GetPosition();
@@ -213,7 +221,9 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 			SpawnHitEffect(effects, defender);
 			defender->ReceiveDamage(proj->GetDamage(), AttackLevel::HIGH);
 
-			float kb = 0.5f; // 飛び道具は固定のノックバックとするかパラメータ化するか
+			bool blockedProj = defender->TryGuard(AttackLevel::HIGH);
+				result.wasBlocked = blockedProj;
+				float kb = blockedProj ? 0.0f : 0.5f; // 飛び道具は固定のノックバックとするかパラメータ化するか
 			float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
 			DirectX::XMFLOAT3 defPos = defender->GetPosition();
 			float originalX = defPos.x;

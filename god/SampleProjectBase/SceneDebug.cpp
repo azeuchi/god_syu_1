@@ -490,10 +490,10 @@ void SceneDebug::DrawImGui()
 		auto Active  = [&](const AttackParams* p) { return ToF(p->hitboxEnd) - ToF(p->hitboxStart); };
 		auto Recover = [&](const AttackParams* p) { return ToF(p->totalDuration) - ToF(p->hitboxEnd); };
 		auto Total   = [&](const AttackParams* p) { return ToF(p->totalDuration); };
-		// 純粋な有利フレーム（初段当て想定）＝ のけぞり硬直 −（持続 ＋ 硬直 − 1）
-		auto NetAdv  = [&](const AttackParams* p) { return p->hitFrame - (Active(p) + Recover(p) - 1); };
+		// hitFrame をそのまま正味の有利フレームとして扱う（エンジンが攻撃側の硬直を補正）
+		auto NetAdv  = [&](const AttackParams* p) { return p->hitFrame; };
 
-		ImGui::TextDisabled("On Hit = net advantage (1st-active-frame hit)");
+		ImGui::TextDisabled("On Hit = frame advantage (= hitFrame).  Links if On Hit >= opponent startup");
 
 		// --- フレームデータ表 ---
 		if (ImGui::BeginTable("FrameTable", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))

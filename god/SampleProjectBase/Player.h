@@ -227,6 +227,7 @@ public:
 	const PlayerInputs& GetInputs() const;
 	void SetInjectedInputs(const PlayerInputs& in);
 	void RefillHp() { m_hp = m_maxHp; }
+	void SetGuardAllLevels(bool b) { m_guardAllLevels = b; }
 
 	void PlayAnimation(const char* name, bool forceRestart = false);
 	void SetAnimPause(bool pause);
@@ -321,6 +322,7 @@ public:
 
 	// 攻撃タイマー設定
 	void SetAttackTimer(float timer) { m_attackTimer = timer; }
+	float GetAttackTimer() const { return m_attackTimer; }
 
 	void ReceiveDamage(int damage, AttackLevel atkLevel = AttackLevel::HIGH);
 	float GetHpRatio() const;
@@ -392,6 +394,7 @@ private:
 	// 現在の入力状況
 	PlayerInputs m_inputs;
 	PlayerInputs m_injectedInputs;
+	bool m_guardAllLevels = false;
 
 	// アニメーションブレンド用管理変数
 	AnimationState m_currentAnim;

@@ -94,6 +94,7 @@ void SceneTraining::Init()
 	CreateObj<Player>("Player2");
 	Player* p2 = GetObj<Player>("Player2");
 	p2->SetInputType(PlayerInputType::AI);
+	p2->SetGuardAllLevels(true); // トレーニングのダミーはガード中どの段でも防ぐ
 	p2->SetMoveSpeed(p1->GetMoveSpeed());
 	XMFLOAT3 scaleP2 = p1->GetScale();
 	scaleP2.x *= -1.0f; // X軸反転で向かい合わせ
@@ -188,6 +189,7 @@ void SceneTraining::ResetPositions()
 	}
 	m_dummyHitLatch = false;
 	m_dummyNeutralTimer = 0.0f;
+	m_dummyHomeX = 2.0f;
 }
 
 void SceneTraining::Update(float tick)
@@ -218,11 +220,21 @@ void SceneTraining::Update(float tick)
 		m_dummyHitLatch = true;
 		m_dummyNeutralTimer = 0.0f;
 		m_hitCount++;
+		m_lastBlocked = result.wasBlocked;
+		if (result.wasBlocked) m_blockCount++;
 	}
 	else
 	{
 		m_dummyNeutralTimer += tick;
 		if (m_dummyNeutralTimer > 0.7f) m_dummyHitLatch = false;
+	}
+
+	// ダミーの位置を固定（コンボ確認用：ノックバックや後ろ歩きで離れないように）
+	if (m_lockDummyPos)
+	{
+		XMFLOAT3 dp = p2->GetPosition();
+		dp.x = m_dummyHomeX;
+		p2->SetPosition(dp);
 	}
 
 	// エフェクト更新
@@ -327,15 +339,24 @@ void SceneTraining::DrawImGui()
 	ImGui::Combo("Dummy Guard", &m_dummyGuard, guards, _countof(guards));
 
 	ImGui::Checkbox("Infinite HP", &m_infiniteHp);
+	ImGui::Checkbox("Lock Dummy Pos", &m_lockDummyPos);
 
 	ImGui::Separator();
-	ImGui::Text("Hits on dummy: %d", m_hitCount);
+	Player* p1 = GetObj<Player>("Player");
+	Player* p2 = GetObj<Player>("Player2");
+	if (p1) { ImGui::Text("P1 HP"); ImGui::ProgressBar(p1->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
+	if (p2) { ImGui::Text("P2 (dummy) HP"); ImGui::ProgressBar(p2->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
+
+	ImGui::Text("Last hit: %s", m_lastBlocked ? "BLOCKED" : "HIT");
+	ImGui::Text("Connects: %d  (blocked: %d)", m_hitCount, m_blockCount);
 	ImGui::Text("Guard latch: %s", m_dummyHitLatch ? "ON" : "OFF");
+	ImGui::TextDisabled("(turn Infinite HP off to see chip damage)");
 
 	if (ImGui::Button("Reset Positions"))
 	{
 		ResetPositions();
 		m_hitCount = 0;
+		m_blockCount = 0;
 	}
 
 	ImGui::Separator();

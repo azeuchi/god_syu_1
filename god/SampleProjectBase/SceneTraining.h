@@ -47,13 +47,17 @@ private:
 	int m_dummyAction = 0;   // 0:なし 1:LP 2:MP 3:HP 4:MK 5:HK を繰り返す
 	int m_dummyGuard = 0;    // 0:しない 1:常時 2:最初の1発以降
 	bool m_infiniteHp = true;
+	bool m_lockDummyPos = true;   // ダミーの位置を固定（コンボ確認用：離れないように）
+	float m_dummyHomeX = 2.0f;    // 位置固定の基準X
 
 	// 「最初の1発以降ガード」用の内部状態
 	bool m_dummyHitLatch = false;       // 一度でも当てられたか
 	float m_dummyNeutralTimer = 0.0f;   // 連続当たりが途切れてからの時間（ラッチ解除用）
 
 	float m_repeatTimer = 0.0f;         // 攻撃を繰り返す間隔タイマー
-	int m_hitCount = 0;                 // ダミーに当てた回数
+	int m_hitCount = 0;                 // ダミーに当てた回数（ヒット/ガード合計）
+	int m_blockCount = 0;               // うちガードされた回数
+	bool m_lastBlocked = false;         // 直近の当たりがガードだったか
 };
 
 #endif // __SCENE_TRAINING_H__

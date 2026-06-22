@@ -1099,6 +1099,7 @@ bool Player::TryGuard(AttackLevel atkLevel) const
 {
 	if (!IsGuarding()) return false;
 
+	if (m_guardAllLevels) return true;
 	if (atkLevel == AttackLevel::MID)
 	{
 		// 中段攻撃は立ちガードのみ可能
