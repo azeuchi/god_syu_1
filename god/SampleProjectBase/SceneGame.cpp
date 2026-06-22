@@ -1126,6 +1126,7 @@ void SceneGame::Draw()
 #ifdef _DEBUG
 		player->DrawBoundingBox();
 		player->DrawHitbox();
+		player->DrawActiveHurtboxes();
 #endif
 	}
 
@@ -1160,6 +1161,7 @@ void SceneGame::Draw()
 #ifdef _DEBUG
 		player2->DrawBoundingBox();
 		player2->DrawHitbox();
+		player2->DrawActiveHurtboxes();
 #endif
 	}
 

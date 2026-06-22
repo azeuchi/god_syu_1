@@ -12,6 +12,7 @@
 #include "SceneTitle.h" 
 #include "SceneResult.h"
 #include "SceneKeyConfig.h"
+#include "SceneTraining.h"
 #include "DebugLog.h"
 
 #define STR(var) #var
@@ -24,6 +25,7 @@ enum SceneKind
 	SCENE_GAME,		// ゲーム本編
 	SCENE_RESULT,   // リザルト
 	SCENE_DEBUG,    // デバッグ
+	SCENE_TRAINING, // トレーニング
 	SCENE_MAX
 };
 
@@ -57,6 +59,11 @@ void SceneRoot::ChangeScene()
 	case SCENE_DEBUG:
 		AddSubScene<SceneDebug>();
 		m_sceneName = "SCENE_DEBUG";
+		break;
+
+	case SCENE_TRAINING:
+		AddSubScene<SceneTraining>();
+		m_sceneName = "SCENE_TRAINING";
 		break;
 
 	default:
@@ -217,6 +224,27 @@ void SceneRoot::Update(float tick)
 		if (IsKeyTrigger('N'))
 		{
 			Transition(SCENE_GAME);
+		}
+		// GUIボタン「Go to Training」でトレーニングへ
+		if (SceneTraining::s_requestEnter)
+		{
+			SceneTraining::s_requestEnter = false;
+			Transition(SCENE_TRAINING);
+		}
+		break;
+
+		// トレーニング画面の時
+	case SCENE_TRAINING:
+		// GUIボタンでゲーム/デバッグへ
+		if (SceneTraining::s_requestGoGame)
+		{
+			SceneTraining::s_requestGoGame = false;
+			Transition(SCENE_GAME);
+		}
+		if (SceneTraining::s_requestGoDebug)
+		{
+			SceneTraining::s_requestGoDebug = false;
+			Transition(SCENE_DEBUG);
 		}
 		break;
 

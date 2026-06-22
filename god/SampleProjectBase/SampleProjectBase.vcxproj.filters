@@ -159,6 +159,9 @@
     <ClCompile Include="SceneDebug.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="SceneTraining.cpp">
+      <Filter>ソース ファイル\App\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="UISprite.cpp">
       <Filter>ソース ファイル\System</Filter>
     </ClCompile>
@@ -336,6 +339,9 @@
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="SceneDebug.h">
+      <Filter>ヘッダー ファイル\App\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneTraining.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateDamage.h">

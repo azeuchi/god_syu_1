@@ -17,6 +17,7 @@
 #include <cstdio>
 #include "PlayerParameterLoader.h"
 #include "CameraShake.h"
+#include "SceneTraining.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -440,6 +441,7 @@ void SceneDebug::DrawImGui()
 
 	ImGui::Begin("Debug Settings");
 	ImGui::Text("FPS: %.1f", m_fps);
+	if (ImGui::Button("Go to Training")) { SceneTraining::s_requestEnter = true; }
 
 	if (!player) {
 		ImGui::End();

@@ -429,6 +429,7 @@ void Player::PollInputs()
 		break;
 
 	case PlayerInputType::AI:
+		m_inputs = m_injectedInputs;
 		// AIの入力ロジックは別途実装
 		break;
 	}
@@ -436,6 +437,11 @@ void Player::PollInputs()
 
 
 // 重力の適用と座標の移動処理
+void Player::SetInjectedInputs(const PlayerInputs& in)
+{
+	m_injectedInputs = in;
+}
+
 void Player::UpdatePhysics(float tick)
 {
 	if (m_isJumping) {
@@ -807,6 +813,22 @@ bool Player::CheckCollision(const Player* other) const
 	BoundingBox myBox = GetHurtbox(HurtboxType::BODY);
 	BoundingBox otherBox = other->GetHurtbox(HurtboxType::BODY);
 	return myBox.Intersects(otherBox);
+}
+
+void Player::DrawActiveHurtboxes()
+{
+	using namespace DirectX;
+	// move-specific extra hurtboxes (cyan)
+	Geometory::SetColor(XMFLOAT4(0.1f, 0.9f, 0.9f, 1.0f));
+	static const int edge[4][2] = { {0,1},{1,2},{2,3},{3,0} };
+	for (const auto& box : m_activeHurtboxes)
+	{
+		XMFLOAT3 corners[8];
+		box.GetCorners(corners);
+		for (int e = 0; e < 4; ++e) {
+			Geometory::AddLine(corners[edge[e][0]], corners[edge[e][1]]);
+		}
+	}
 }
 
 void Player::SetIsColliding(bool isColliding) { m_isColliding = isColliding; }

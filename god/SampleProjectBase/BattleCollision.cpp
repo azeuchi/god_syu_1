@@ -132,8 +132,10 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 		int dmg = (params != nullptr) ? params->damage : 0;
 		int stun = (params != nullptr) ? params->hitFrame : 30;
 		bool isDown = (params != nullptr) ? params->isDown : false;
+		AttackLevel atkLevel = (params != nullptr) ? params->attackLevel : AttackLevel::HIGH;
+		bool blocked = defender->TryGuard(atkLevel);
 
-		defender->ReceiveDamage(dmg);
+		defender->ReceiveDamage(dmg, atkLevel);
 		attacker->OnHit();
 
 		float kb = (params != nullptr) ? params->knockback : 0.0f;
@@ -157,7 +159,11 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 			attacker->SetPosition(atkPos);
 		}
 
-		if (isDown)
+		if (blocked)
+		{
+			// guard: block, no hitstun (chip only)
+		}
+		else if (isDown)
 		{
 			defender->SetState(new PlayerStateDown());
 		}
@@ -205,7 +211,7 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 		{
 			proj->Deactivate();
 			SpawnHitEffect(effects, defender);
-			defender->ReceiveDamage(proj->GetDamage());
+			defender->ReceiveDamage(proj->GetDamage(), AttackLevel::HIGH);
 
 			float kb = 0.5f; // 飛び道具は固定のノックバックとするかパラメータ化するか
 			float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
@@ -227,7 +233,10 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 				attacker->SetPosition(atkPos);
 			}
 
-			defender->SetState(new PlayerStateDamage(15));
+			if (!defender->TryGuard(AttackLevel::HIGH))
+			{
+				defender->SetState(new PlayerStateDamage(15));
+			}
 			result.hitStopTimer = 0.1f;
 
 			if (isP1Attacking) result.shakeTimerP2 = 0.1f;

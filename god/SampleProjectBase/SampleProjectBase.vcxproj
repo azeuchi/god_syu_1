@@ -217,6 +217,7 @@
     <ClCompile Include="SceneBase.cpp" />
     <ClCompile Include="SceneGame.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
+    <ClCompile Include="SceneTraining.cpp" />
     <ClCompile Include="SceneKeyConfig.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -290,6 +291,7 @@
     <ClInclude Include="SceneBase.hpp" />
     <ClInclude Include="SceneGame.h" />
     <ClInclude Include="SceneDebug.h" />
+    <ClInclude Include="SceneTraining.h" />
     <ClInclude Include="SceneKeyConfig.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

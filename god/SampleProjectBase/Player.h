@@ -225,6 +225,8 @@ public:
 	PlayerInputType GetInputType() const;
 
 	const PlayerInputs& GetInputs() const;
+	void SetInjectedInputs(const PlayerInputs& in);
+	void RefillHp() { m_hp = m_maxHp; }
 
 	void PlayAnimation(const char* name, bool forceRestart = false);
 	void SetAnimPause(bool pause);
@@ -276,6 +278,7 @@ public:
 
 	// パラメータに基づいてボックスを更新する関数
 	void UpdateAttackBoxes();
+	void DrawActiveHurtboxes();
 
 	void DrawHitbox();
 
@@ -388,6 +391,7 @@ private:
 	PlayerInputType m_inputType;
 	// 現在の入力状況
 	PlayerInputs m_inputs;
+	PlayerInputs m_injectedInputs;
 
 	// アニメーションブレンド用管理変数
 	AnimationState m_currentAnim;
