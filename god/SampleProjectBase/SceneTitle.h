@@ -47,6 +47,9 @@ private:
 	float m_currentFrame;
 	bool m_isLoop;
 	float m_actionTimer;
+	std::string m_prevAnimName; // blend: previous anim name
+	float m_prevFrame = 0.0f;   // blend: previous anim frame
+	float m_blendFactor = 1.0f; // blend: 0=prev 1=current
 
 	// ƒJƒƒ‰§Œä
 	float m_cameraAngle = 0.0f;

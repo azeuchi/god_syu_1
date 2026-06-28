@@ -61,6 +61,9 @@ void SceneTitle::Init()
 	m_currentFrame = 0.0f;
 	m_isLoop = true;
 	m_actionTimer = 2.0f;
+	m_prevAnimName = "Idle";
+	m_prevFrame = 0.0f;
+	m_blendFactor = 1.0f;
 
 	// Image2Dのインスタンス生成
 	m_pImage = new Image2D();
@@ -185,19 +188,36 @@ void SceneTitle::Update(float tick)
 				m_currentFrame = 0.0f;
 			}
 			else {
+				// ブレンド用に現在のアニメを「前」として保存
+				m_prevAnimName = m_currentAnimName;
+				m_prevFrame = m_currentFrame;
+				m_blendFactor = 0.0f;
+
 				m_currentAnimName = "Idle";
 				m_currentFrame = 0.0f;
 				m_isLoop = true;
 				m_actionTimer = 2.0f + (float)(rand() % 20) * 0.1f;
 			}
 		}
-		m_pTitleModel->UpdateAnimation(m_currentAnimName.c_str(), (int)m_currentFrame);
+		// ブレンド係数を進める（0→1）。アニメ切替直後だけ前アニメから補間される
+		const float TITLE_BLEND_TIME = 0.15f;
+		if (m_blendFactor < 1.0f)
+		{
+			m_blendFactor += tick / TITLE_BLEND_TIME;
+			if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
+		}
+		m_pTitleModel->UpdateWithBlend(m_currentAnimName.c_str(), (int)m_currentFrame, m_prevAnimName.c_str(), (int)m_prevFrame, m_blendFactor);
 
 		if (m_currentAnimName == "Idle")
 		{
 			m_actionTimer -= tick;
 			if (m_actionTimer <= 0.0f)
 			{
+				// ブレンド用に現在のアニメを「前」として保存
+				m_prevAnimName = m_currentAnimName;
+				m_prevFrame = m_currentFrame;
+				m_blendFactor = 0.0f;
+
 				int idx = rand() % ACTION_COUNT;
 				m_currentAnimName = ACTION_ANIMS[idx];
 				m_currentFrame = 0.0f;
