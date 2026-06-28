@@ -279,6 +279,7 @@ public:
 
 	// パラメータに基づいてボックスを更新する関数
 	void UpdateAttackBoxes();
+	void UpdateInputBuffer(float tick);
 	void DrawActiveHurtboxes();
 
 	void DrawHitbox();
@@ -323,6 +324,7 @@ public:
 	// 攻撃タイマー設定
 	void SetAttackTimer(float timer) { m_attackTimer = timer; }
 	float GetAttackTimer() const { return m_attackTimer; }
+	float GetAttackElapsedSec() const { return m_attackElapsedSec; }
 
 	void ReceiveDamage(int damage, AttackLevel atkLevel = AttackLevel::HIGH);
 	float GetHpRatio() const;
@@ -395,6 +397,8 @@ private:
 	PlayerInputs m_inputs;
 	PlayerInputs m_injectedInputs;
 	bool m_guardAllLevels = false;
+	float m_atkBuf[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float m_attackElapsedSec = 0.0f;
 
 	// アニメーションブレンド用管理変数
 	AnimationState m_currentAnim;

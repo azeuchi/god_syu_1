@@ -215,13 +215,27 @@ void SceneTraining::Update(float tick)
 	CollisionResult result = BattleCollision::UpdateInteractions(p1, p2, tick, m_hitEffects, STAGE_LIMIT_X);
 
 	// ダミーに当たった（ヒット/ガード問わず）らラッチ。途切れたら解除
+	m_comboTimer += tick;
 	if (result.shakeTimerP2 > 0.0f)
 	{
 		m_dummyHitLatch = true;
 		m_dummyNeutralTimer = 0.0f;
 		m_hitCount++;
+		m_lastStun = result.dbgStun;
 		m_lastBlocked = result.wasBlocked;
-		if (result.wasBlocked) m_blockCount++;
+		if (result.wasBlocked)
+		{
+			m_blockCount++;
+			m_comboCount = 0; // ガードされたらコンボ途切れ
+		}
+		else
+		{
+			// 直近ヒットから間が短ければコンボ継続、空けばリセット
+			if (m_comboTimer < 0.4f) m_comboCount++;
+			else m_comboCount = 1;
+			if (m_comboCount > m_maxCombo) m_maxCombo = m_comboCount;
+		}
+		m_comboTimer = 0.0f;
 	}
 	else
 	{
@@ -348,6 +362,8 @@ void SceneTraining::DrawImGui()
 	if (p2) { ImGui::Text("P2 (dummy) HP"); ImGui::ProgressBar(p2->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
 
 	ImGui::Text("Last hit: %s", m_lastBlocked ? "BLOCKED" : "HIT");
+	ImGui::Text("COMBO: %d   (max: %d)", m_comboCount, m_maxCombo);
+	ImGui::Text("Last hitstun applied: %d F", m_lastStun);
 	ImGui::Text("Connects: %d  (blocked: %d)", m_hitCount, m_blockCount);
 	ImGui::Text("Guard latch: %s", m_dummyHitLatch ? "ON" : "OFF");
 	ImGui::TextDisabled("(turn Infinite HP off to see chip damage)");
@@ -357,6 +373,8 @@ void SceneTraining::DrawImGui()
 		ResetPositions();
 		m_hitCount = 0;
 		m_blockCount = 0;
+		m_comboCount = 0;
+		m_maxCombo = 0;
 	}
 
 	ImGui::Separator();

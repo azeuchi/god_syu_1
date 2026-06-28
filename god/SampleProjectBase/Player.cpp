@@ -332,11 +332,13 @@ void Player::Update(float tick)
 	// 1. 入力の取得
 	PollInputs();
 	UpdateCommandTimer(tick);
+	UpdateInputBuffer(tick);
 
 	// 2. 現在のステート（状態）の更新
 	if (m_currentState) {
 		m_isCrouching = m_currentState->IsCrouch();
 		m_currentState->Update(this, tick);
+		if (m_pActiveAttackParams) m_attackElapsedSec += tick;
 	}
 
 	// 3. 物理・座標の更新
@@ -440,6 +442,22 @@ void Player::PollInputs()
 void Player::SetInjectedInputs(const PlayerInputs& in)
 {
 	m_injectedInputs = in;
+}
+
+void Player::UpdateInputBuffer(float tick)
+{
+	const float BUF = 0.1f; // about 6 frames of attack input buffer
+	bool raw[5] = { m_inputs.LightPunch, m_inputs.MediumPunch, m_inputs.HeavyPunch, m_inputs.MediumKick, m_inputs.HeavyKick };
+	for (int i = 0; i < 5; ++i)
+	{
+		if (raw[i]) m_atkBuf[i] = BUF;
+		else { m_atkBuf[i] -= tick; if (m_atkBuf[i] < 0.0f) m_atkBuf[i] = 0.0f; }
+	}
+	m_inputs.LightPunch  = (m_atkBuf[0] > 0.0f);
+	m_inputs.MediumPunch = (m_atkBuf[1] > 0.0f);
+	m_inputs.HeavyPunch  = (m_atkBuf[2] > 0.0f);
+	m_inputs.MediumKick  = (m_atkBuf[3] > 0.0f);
+	m_inputs.HeavyKick   = (m_atkBuf[4] > 0.0f);
 }
 
 void Player::UpdatePhysics(float tick)
@@ -877,7 +895,9 @@ bool Player::IsAttacking() const
 void Player::SetCurrentAttackParams(AttackParams* params)
 {
 	m_pActiveAttackParams = params;
+	for (int i = 0; i < 5; ++i) m_atkBuf[i] = 0.0f;
 	m_attackTimer = 0.0f;
+	m_attackElapsedSec = 0.0f;
 }
 
 AttackParams* Player::GetCurrentAttackParams() const

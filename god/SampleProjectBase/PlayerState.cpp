@@ -22,6 +22,9 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 		return false;
 	}
 
+	
+	if (!player->HasHit()) return false;
+
 	const PlayerInputs& inputs = player->GetInputs();
 
 	// 1. 弱パンチへのキャンセル

@@ -13,6 +13,7 @@ struct CollisionResult
 	float shakeTimerP1;
 	float shakeTimerP2;
 	bool wasBlocked;
+	int dbgStun;
 
 	CollisionResult()
 		: isRoundOver(false)
@@ -22,6 +23,7 @@ struct CollisionResult
 		, shakeTimerP1(0.0f)
 		, shakeTimerP2(0.0f)
 		, wasBlocked(false)
+		, dbgStun(0)
 	{
 	}
 };

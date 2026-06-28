@@ -135,10 +135,10 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 		AttackLevel atkLevel = (params != nullptr) ? params->attackLevel : AttackLevel::HIGH;
 		bool blocked = defender->TryGuard(atkLevel);
 		result.wasBlocked = blocked;
-		// hitFrame‚ð³–¡‚Ì—L—˜ƒtƒŒ[ƒ€‚É‚·‚éFUŒ‚‘¤‚ÌŽc‚èd’¼‚ðd’¼ŽžŠÔ‚É‰ÁŽZ
+		// make hitFrame the net frame advantage: add attacker remaining recovery to hitstun
 		if (params != nullptr)
 		{
-			float remainF = params->totalDuration * 60.0f - attacker->GetAttackTimer();
+			float remainF = (params->totalDuration - attacker->GetAttackElapsedSec()) * 60.0f;
 			int extra = (remainF > 0.0f) ? (int)(remainF + 0.5f) : 0;
 			stun = params->hitFrame + extra;
 		}
@@ -180,6 +180,7 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 			defender->SetState(new PlayerStateDamage(stun));
 		}
 
+		result.dbgStun = stun;
 		float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
 		result.hitStopTimer = stopTime;
 

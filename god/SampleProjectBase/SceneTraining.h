@@ -58,6 +58,10 @@ private:
 	int m_hitCount = 0;                 // ダミーに当てた回数（ヒット/ガード合計）
 	int m_blockCount = 0;               // うちガードされた回数
 	bool m_lastBlocked = false;         // 直近の当たりがガードだったか
+	int m_comboCount = 0;               // 現在のコンボ数（ヒット継続）
+	int m_maxCombo = 0;                 // 最大コンボ
+	float m_comboTimer = 0.0f;          // 直近ヒットからの経過（コンボ継続判定用）
+	int m_lastStun = 0;                 // 直近に与えたのけぞり硬直（確認用）
 };
 
 #endif // __SCENE_TRAINING_H__

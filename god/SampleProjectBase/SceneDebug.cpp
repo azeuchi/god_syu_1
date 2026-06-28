@@ -490,10 +490,10 @@ void SceneDebug::DrawImGui()
 		auto Active  = [&](const AttackParams* p) { return ToF(p->hitboxEnd) - ToF(p->hitboxStart); };
 		auto Recover = [&](const AttackParams* p) { return ToF(p->totalDuration) - ToF(p->hitboxEnd); };
 		auto Total   = [&](const AttackParams* p) { return ToF(p->totalDuration); };
-		// hitFrame をそのまま正味の有利フレームとして扱う（エンジンが攻撃側の硬直を補正）
+		// hitFrame をそのまま有利フレームとして表示（エンジンが攻撃側の硬直を補正）
 		auto NetAdv  = [&](const AttackParams* p) { return p->hitFrame; };
 
-		ImGui::TextDisabled("On Hit = frame advantage (= hitFrame).  Links if On Hit >= opponent startup");
+		ImGui::TextDisabled("On Hit = frame advantage (= hitFrame). Cancels combo regardless of this");
 
 		// --- フレームデータ表 ---
 		if (ImGui::BeginTable("FrameTable", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
