@@ -441,33 +441,33 @@ void SceneDebug::DrawImGui()
 
 	ImGui::Begin("Debug Settings");
 	ImGui::Text("FPS: %.1f", m_fps);
-	if (ImGui::Button("Go to Training")) { SceneTraining::s_requestEnter = true; }
+	if (ImGui::Button("トレーニングへ")) { SceneTraining::s_requestEnter = true; }
 
 	if (!player) {
 		ImGui::End();
 		return;
 	}
 
-	if (ImGui::CollapsingHeader("Camera Shake"))
+	if (ImGui::CollapsingHeader("カメラシェイク"))
 	{
-		ImGui::SliderFloat("Max Offset", &CameraShake::s_maxOffset, 0.0f, 0.6f, "%.3f");
-		ImGui::SliderFloat("Decay (/sec)", &CameraShake::s_decay, 0.5f, 8.0f, "%.2f");
-		ImGui::SliderFloat("Kick Ratio", &CameraShake::s_kickRatio, 0.0f, 1.0f, "%.2f");
-		ImGui::SliderFloat("HitStop Ref", &CameraShake::s_hitStopRef, 0.05f, 0.40f, "%.3f");
-		ImGui::SliderFloat("Test Kick Dir", &s_dbgShakeKickDir, -1.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("最大ずれ幅", &CameraShake::s_maxOffset, 0.0f, 0.6f, "%.3f");
+		ImGui::SliderFloat("減衰(毎秒)", &CameraShake::s_decay, 0.5f, 8.0f, "%.2f");
+		ImGui::SliderFloat("指向性", &CameraShake::s_kickRatio, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("硬直基準", &CameraShake::s_hitStopRef, 0.05f, 0.40f, "%.3f");
+		ImGui::SliderFloat("テスト方向", &s_dbgShakeKickDir, -1.0f, 1.0f, "%.2f");
 
-		ImGui::Text("Trauma: %.2f", s_dbgShakeTrauma);
+		ImGui::Text("トラウマ: %.2f", s_dbgShakeTrauma);
 
-		if (ImGui::Button("Test Light"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.08f)); }
+		if (ImGui::Button("弱テスト"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.08f)); }
 		ImGui::SameLine();
-		if (ImGui::Button("Test Medium")) { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.12f)); }
+		if (ImGui::Button("中テスト")) { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.12f)); }
 		ImGui::SameLine();
-		if (ImGui::Button("Test Heavy"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.18f)); }
+		if (ImGui::Button("強テスト"))  { CameraShake::AddTrauma(s_dbgShakeTrauma, CameraShake::TraumaFromHitStop(0.18f)); }
 
-		if (ImGui::Button("Reset Params")) { CameraShake::ResetParams(); }
+		if (ImGui::Button("値リセット")) { CameraShake::ResetParams(); }
 	}
 
-	if (ImGui::CollapsingHeader("Combo / Frame Data"))
+	if (ImGui::CollapsingHeader("コンボ / フレームデータ"))
 	{
 		// 全攻撃技（名前と params ポインタ）
 		struct MoveEntry { const char* name; AttackParams* p; };
@@ -477,9 +477,9 @@ void SceneDebug::DrawImGui()
 			{ "HP",      &player->GetHeavyPunchParams() },
 			{ "MK",      &player->GetMediumKickParams() },
 			{ "HK",      &player->GetHeavyKickParams() },
-			{ "Hadou L", &player->GetHadoukenLParams() },
-			{ "Hadou M", &player->GetHadoukenMParams() },
-			{ "Hadou H", &player->GetHadoukenHParams() },
+			{ "波動L", &player->GetHadoukenLParams() },
+			{ "波動M", &player->GetHadoukenMParams() },
+			{ "波動H", &player->GetHadoukenHParams() },
 		};
 		const int moveCount = 8;
 
@@ -493,18 +493,18 @@ void SceneDebug::DrawImGui()
 		// hitFrame をそのまま有利フレームとして表示（エンジンが攻撃側の硬直を補正）
 		auto NetAdv  = [&](const AttackParams* p) { return p->hitFrame; };
 
-		ImGui::TextDisabled("On Hit = frame advantage (= hitFrame). Cancels combo regardless of this");
+		ImGui::TextDisabled("On Hit=有利F(=hitFrame)。キャンセルは有利Fに関係なく繋がる");
 
 		// --- フレームデータ表 ---
 		if (ImGui::BeginTable("FrameTable", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
 		{
-			ImGui::TableSetupColumn("Move");
-			ImGui::TableSetupColumn("Startup");
-			ImGui::TableSetupColumn("Active");
-			ImGui::TableSetupColumn("Recovery");
-			ImGui::TableSetupColumn("Total");
-			ImGui::TableSetupColumn("On Hit");
-			ImGui::TableSetupColumn("On Block");
+			ImGui::TableSetupColumn("技");
+			ImGui::TableSetupColumn("発生");
+			ImGui::TableSetupColumn("持続");
+			ImGui::TableSetupColumn("硬直");
+			ImGui::TableSetupColumn("全体");
+			ImGui::TableSetupColumn("ヒット時");
+			ImGui::TableSetupColumn("ガード時");
 			ImGui::TableHeadersRow();
 			for (int i = 0; i < moveCount; ++i)
 			{
@@ -525,12 +525,12 @@ void SceneDebug::DrawImGui()
 
 		// --- 連結ビュー（始動技を選ぶと、つながる技を一覧）---
 		static int s_comboStarter = 0;
-		const char* starterNames[] = { "LP","MP","HP","MK","HK","Hadou L","Hadou M","Hadou H" };
-		ImGui::Combo("Starter", &s_comboStarter, starterNames, moveCount);
+		const char* starterNames[] = { "LP","MP","HP","MK","HK","波動L","波動M","波動H" };
+		ImGui::Combo("始動技", &s_comboStarter, starterNames, moveCount);
 
 		AttackParams* a = moves[s_comboStarter].p;
 		int adv = NetAdv(a);
-		ImGui::Text("%s : On Hit %+d", starterNames[s_comboStarter], adv);
+		ImGui::Text("%s : ヒット時 %+d", starterNames[s_comboStarter], adv);
 
 		// キャンセル可否（ターゲットのカテゴリ別フラグ。波動拳はフラグ対象外）
 		auto CanCancelTo = [&](const AttackParams* from, int targetIndex) -> bool {
@@ -545,7 +545,7 @@ void SceneDebug::DrawImGui()
 			}
 		};
 
-		ImGui::Text("Connects into:");
+		ImGui::Text("繋がる技:");
 		bool anyConnect = false;
 		for (int j = 0; j < moveCount; ++j)
 		{
@@ -564,27 +564,27 @@ void SceneDebug::DrawImGui()
 		if (!anyConnect) ImGui::BulletText("(none)");
 	}
 
-	if (ImGui::CollapsingHeader("Animation Control", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("アニメーション制御", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text("Select Action:");
+		ImGui::Text("技を選択:");
 
-		ImGui::Text("Punch:"); ImGui::SameLine();
+		ImGui::Text("パンチ:"); ImGui::SameLine();
 		ImGui::RadioButton("L##P", &s_currentAttackType, 0); ImGui::SameLine();
 		ImGui::RadioButton("M##P", &s_currentAttackType, 1); ImGui::SameLine();
 		ImGui::RadioButton("H##P", &s_currentAttackType, 2);
 
-		ImGui::Text("Kick :"); ImGui::SameLine();
+		ImGui::Text("キック:"); ImGui::SameLine();
 		ImGui::RadioButton("M##K", &s_currentAttackType, 3); ImGui::SameLine();
 		ImGui::RadioButton("H##K", &s_currentAttackType, 4);
 
-		ImGui::Text("Special:"); ImGui::SameLine();
-		ImGui::RadioButton("Hadou L", &s_currentAttackType, 7); ImGui::SameLine();
-		ImGui::RadioButton("Hadou M", &s_currentAttackType, 8); ImGui::SameLine();
-		ImGui::RadioButton("Hadou H", &s_currentAttackType, 9);
+		ImGui::Text("必殺技:"); ImGui::SameLine();
+		ImGui::RadioButton("波動L", &s_currentAttackType, 7); ImGui::SameLine();
+		ImGui::RadioButton("波動M", &s_currentAttackType, 8); ImGui::SameLine();
+		ImGui::RadioButton("波動H", &s_currentAttackType, 9);
 
-		ImGui::Text("Other:"); ImGui::SameLine();
-		ImGui::RadioButton("Down", &s_currentAttackType, 5); ImGui::SameLine();
-		ImGui::RadioButton("WakeUp", &s_currentAttackType, 6);
+		ImGui::Text("その他:"); ImGui::SameLine();
+		ImGui::RadioButton("ダウン", &s_currentAttackType, 5); ImGui::SameLine();
+		ImGui::RadioButton("起き上がり", &s_currentAttackType, 6);
 
 		if (!m_isAttacking)
 		{
@@ -599,22 +599,22 @@ void SceneDebug::DrawImGui()
 				player->SetIsCrouching(false);
 				};
 
-			if (ImGui::Button("Test Play")) StartAttack(false);
+			if (ImGui::Button("再生")) StartAttack(false);
 			ImGui::SameLine();
-			if (ImGui::Button("Step Play")) StartAttack(true);
+			if (ImGui::Button("コマ送り")) StartAttack(true);
 		}
 		else
 		{
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), ">> PLAYING <<");
 			ImGui::SameLine();
-			if (ImGui::Button("Stop")) {
+			if (ImGui::Button("停止")) {
 				m_isAttacking = false;
 				player->Debug_SetAnimation("Idle", true);
 			}
 		}
 
 		ImGui::SameLine();
-		ImGui::Checkbox("Pause", &m_isPaused);
+		ImGui::Checkbox("一時停止", &m_isPaused);
 
 		if (m_isPaused || !m_isAttacking)
 		{
@@ -623,12 +623,12 @@ void SceneDebug::DrawImGui()
 			ImGui::SameLine();
 			if (ImGui::Button("-1")) m_currentFrame--;
 
-			ImGui::InputInt("Frame", &m_currentFrame);
+			ImGui::InputInt("フレーム", &m_currentFrame);
 			if (m_currentFrame < 0) m_currentFrame = 0;
 		}
 		else
 		{
-			ImGui::Text("Frame: %d", m_currentFrame);
+			ImGui::Text("フレーム: %d", m_currentFrame);
 		}
 
 		// タイムライン (横軸でタイミングを確認し、クリック／ドラッグで頭出し)
@@ -638,7 +638,7 @@ void SceneDebug::DrawImGui()
 
 	AttackParams* pParams = GetSelectedParams(player);
 
-	if (pParams && ImGui::CollapsingHeader("Attack Parameters", ImGuiTreeNodeFlags_DefaultOpen))
+	if (pParams && ImGui::CollapsingHeader("攻撃パラメータ", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		AttackParams& params = *pParams;
 
@@ -647,26 +647,26 @@ void SceneDebug::DrawImGui()
 		int endFrames = static_cast<int>(std::round(params.hitboxEnd / FRAME_TIME_60FPS));
 		int hitStopFrames = static_cast<int>(std::round(params.hitStop / FRAME_TIME_60FPS));
 
-		if (ImGui::InputInt("Total Frames", &totalFrames)) {
+		if (ImGui::InputInt("全体フレーム", &totalFrames)) {
 			if (totalFrames < 1) totalFrames = 1;
 			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
 		}
 
 		if (s_currentAttackType <= 4) {
-			ImGui::Text("Hit Active Range (Ref):");
-			if (ImGui::InputInt("Start Frame", &startFrames)) {
+			ImGui::Text("攻撃判定区間(参考):");
+			if (ImGui::InputInt("開始フレーム", &startFrames)) {
 				if (startFrames < 0) startFrames = 0;
 				params.hitboxStart = startFrames * FRAME_TIME_60FPS;
 			}
-			if (ImGui::InputInt("End Frame", &endFrames)) {
+			if (ImGui::InputInt("終了フレーム", &endFrames)) {
 				if (endFrames < 0) endFrames = 0;
 				params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 			}
 		}
 		else {
-			ImGui::Text("Projectile Settings:");
-			ImGui::SliderFloat("Proj Speed", &params.projectileSpeed, 1.0f, 30.0f);
-			ImGui::SliderFloat("Proj Size", &params.projectileSize, 0.1f, 5.0f);
+			ImGui::Text("飛び道具設定:");
+			ImGui::SliderFloat("弾速", &params.projectileSpeed, 1.0f, 30.0f);
+			ImGui::SliderFloat("弾サイズ", &params.projectileSize, 0.1f, 5.0f);
 		}
 
 		auto EditAnimatedBoxList = [&](const char* label, std::vector<AnimatedBox>& boxList, bool isHurtbox) {
@@ -678,46 +678,46 @@ void SceneDebug::DrawImGui()
 					if (isHurtbox) {
 						const char* names[] = { "Head", "Body", "Legs" };
 						const char* name = (i < 3) ? names[i] : "Extra";
-						ImGui::Text("Box #%d (%s)", i, name);
+						ImGui::Text("ボックス #%d (%s)", i, name);
 					}
 					else {
-						ImGui::Text("Hitbox #%d", i);
+						ImGui::Text("攻撃判定 #%d", i);
 					}
 
 					ImGui::SameLine();
-					if (ImGui::Button("Del Group")) {
+					if (ImGui::Button("グループ削除")) {
 						boxList.erase(boxList.begin() + i);
 						ImGui::PopID();
 						break;
 					}
 
 					AnimatedBox& abox = boxList[i];
-					if (ImGui::TreeNode("Keyframes"))
+					if (ImGui::TreeNode("キーフレーム"))
 					{
 						for (int k = 0; k < (int)abox.keyframes.size(); ++k)
 						{
 							ImGui::PushID(k);
 							BoxKeyframe& key = abox.keyframes[k];
 
-							ImGui::Text("Key #%d", k);
+							ImGui::Text("キー #%d", k);
 							ImGui::SameLine();
-							if (ImGui::Button("Del Key")) {
+							if (ImGui::Button("キー削除")) {
 								abox.keyframes.erase(abox.keyframes.begin() + k);
 								ImGui::PopID();
 								break;
 							}
 
 							int frame = (int)key.frame;
-							if (ImGui::InputInt("Frame", &frame)) key.frame = (float)frame;
+							if (ImGui::InputInt("フレーム", &frame)) key.frame = (float)frame;
 
-							ImGui::SliderFloat2("Offset", &key.data.offset.x, -2.0f, 2.0f);
-							ImGui::SliderFloat2("Extents", &key.data.extents.x, 0.1f, 2.0f);
+							ImGui::SliderFloat2("オフセット", &key.data.offset.x, -2.0f, 2.0f);
+							ImGui::SliderFloat2("サイズ", &key.data.extents.x, 0.1f, 2.0f);
 
 							ImGui::Separator();
 							ImGui::PopID();
 						}
 
-						if (ImGui::Button("Add Keyframe"))
+						if (ImGui::Button("キー追加"))
 						{
 							BoxKeyframe newKey;
 							newKey.frame = (float)m_currentFrame;
@@ -734,7 +734,7 @@ void SceneDebug::DrawImGui()
 					ImGui::PopID();
 				}
 
-				if (ImGui::Button(isHurtbox ? "Add Hurtbox" : "Add Hitbox"))
+				if (ImGui::Button(isHurtbox ? "くらい判定追加" : "Add Hitbox"))
 				{
 					AnimatedBox newBox;
 					newBox.keyframes.push_back({ 0.0f, {{0.5f, 1.5f}, {0.3f, 0.3f}} });
@@ -751,7 +751,7 @@ void SceneDebug::DrawImGui()
 
 		// くらい判定(Hurtbox): 基本判定は常時有効。ここでは区間限定の追加判定を編集する
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.0f, 0.5f, 1.0f));
-		bool hurtOpen = ImGui::TreeNode("Move Hurtboxes (Green, additive)");
+		bool hurtOpen = ImGui::TreeNode("技中くらい判定(緑/追加)");
 		ImGui::PopStyleColor();
 		if (hurtOpen)
 		{
@@ -762,28 +762,28 @@ void SceneDebug::DrawImGui()
 				ImGui::PushID(i);
 				WindowedHurtbox& wh = params.moveHurtboxes[i];
 
-				ImGui::Text("Box #%d", i);
+				ImGui::Text("ボックス #%d", i);
 				ImGui::SameLine();
-				if (ImGui::Button("Delete")) {
+				if (ImGui::Button("削除")) {
 					params.moveHurtboxes.erase(params.moveHurtboxes.begin() + i);
 					ImGui::PopID();
 					break;
 				}
 
 				// 出現〜消滅の区間 (フレーム)
-				if (ImGui::SliderInt("Start F", &wh.startFrame, 0, totalFrames)) {
+				if (ImGui::SliderInt("開始F", &wh.startFrame, 0, totalFrames)) {
 					if (wh.startFrame > wh.endFrame) wh.endFrame = wh.startFrame;
 				}
-				if (ImGui::SliderInt("End F", &wh.endFrame, 0, totalFrames)) {
+				if (ImGui::SliderInt("終了F", &wh.endFrame, 0, totalFrames)) {
 					if (wh.endFrame < wh.startFrame) wh.startFrame = wh.endFrame;
 				}
-				ImGui::SliderFloat2("Offset", &wh.offset.x, -2.0f, 2.0f);
-				ImGui::SliderFloat2("Extents", &wh.extents.x, 0.1f, 2.0f);
+				ImGui::SliderFloat2("オフセット", &wh.offset.x, -2.0f, 2.0f);
+				ImGui::SliderFloat2("サイズ", &wh.extents.x, 0.1f, 2.0f);
 				ImGui::Separator();
 				ImGui::PopID();
 			}
 
-			if (ImGui::Button("Add Hurtbox"))
+			if (ImGui::Button("くらい判定追加"))
 			{
 				// 現在フレームを開始に、少しだけ持続する区間で追加する
 				WindowedHurtbox wh;
@@ -799,59 +799,59 @@ void SceneDebug::DrawImGui()
 
 
 		ImGui::Separator();
-		ImGui::Text("Game Data");
-		ImGui::InputInt("Damage", &params.damage);
-		ImGui::InputInt("Hit Adv", &params.hitFrame);
-		ImGui::InputInt("Block Adv", &params.blockFrame);
+		ImGui::Text("ゲームデータ");
+		ImGui::InputInt("ダメージ", &params.damage);
+		ImGui::InputInt("有利F(ヒット)", &params.hitFrame);
+		ImGui::InputInt("有利F(ガード)", &params.blockFrame);
 
-		if (ImGui::InputInt("Hit Stop (Frames)", &hitStopFrames)) {
+		if (ImGui::InputInt("ヒットストップ(F)", &hitStopFrames)) {
 			if (hitStopFrames < 0) hitStopFrames = 0;
 			params.hitStop = hitStopFrames * FRAME_TIME_60FPS;
 		}
 
-		ImGui::SliderFloat("Knockback", &params.knockback, 0.0f, 5.0f);
-		ImGui::Checkbox("Cause Down", &params.isDown);
+		ImGui::SliderFloat("ノックバック", &params.knockback, 0.0f, 5.0f);
+		ImGui::Checkbox("ダウンさせる", &params.isDown);
 
-		if (ImGui::TreeNode("Cancel Settings"))
+		if (ImGui::TreeNode("キャンセル設定"))
 		{
-			ImGui::Checkbox("Enable Cancel", &params.cancelEnabled);
+			ImGui::Checkbox("キャンセル有効", &params.cancelEnabled);
 			if (params.cancelEnabled) {
 				int cancelStartF = static_cast<int>(std::round(params.cancelStart / FRAME_TIME_60FPS));
 				int cancelEndF = static_cast<int>(std::round(params.cancelEnd / FRAME_TIME_60FPS));
-				if (ImGui::SliderInt("Start Frame", &cancelStartF, 0, totalFrames)) params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
-				if (ImGui::SliderInt("End Frame", &cancelEndF, 0, totalFrames)) params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
+				if (ImGui::SliderInt("開始フレーム", &cancelStartF, 0, totalFrames)) params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
+				if (ImGui::SliderInt("終了フレーム", &cancelEndF, 0, totalFrames)) params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
 
-				ImGui::Checkbox("-> Light P", &params.cancelToLight);
-				ImGui::SameLine(); ImGui::Checkbox("-> Medium P", &params.cancelToMedium);
-				ImGui::SameLine(); ImGui::Checkbox("-> Heavy P", &params.cancelToHeavyPunch);
-				ImGui::Checkbox("-> Medium K", &params.cancelToMediumKick);
-				ImGui::SameLine(); ImGui::Checkbox("-> Heavy K", &params.cancelToHeavy);
+				ImGui::Checkbox("→弱P", &params.cancelToLight);
+				ImGui::SameLine(); ImGui::Checkbox("→中P", &params.cancelToMedium);
+				ImGui::SameLine(); ImGui::Checkbox("→強P", &params.cancelToHeavyPunch);
+				ImGui::Checkbox("→中K", &params.cancelToMediumKick);
+				ImGui::SameLine(); ImGui::Checkbox("→強K", &params.cancelToHeavy);
 			}
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Speed Modifiers"))
+		if (ImGui::TreeNode("速度変化"))
 		{
 			for (int i = 0; i < (int)params.speedModifiers.size(); ++i)
 			{
 				ImGui::PushID(i);
 				AnimSpeedModifier& mod = params.speedModifiers[i];
-				ImGui::Text("Modifier #%d", i);
+				ImGui::Text("変化 #%d", i);
 				ImGui::SameLine();
-				if (ImGui::Button("Delete")) {
+				if (ImGui::Button("削除")) {
 					params.speedModifiers.erase(params.speedModifiers.begin() + i);
 					ImGui::PopID();
 					break;
 				}
 				int sFrame = (int)mod.startFrame;
 				int eFrame = (int)mod.endFrame;
-				if (ImGui::SliderInt("Start F", &sFrame, 0, totalFrames)) mod.startFrame = (float)sFrame;
-				if (ImGui::SliderInt("End F", &eFrame, 0, totalFrames)) mod.endFrame = (float)eFrame;
-				ImGui::SliderFloat("Speed x", &mod.speed, 0.1f, 5.0f);
+				if (ImGui::SliderInt("開始F", &sFrame, 0, totalFrames)) mod.startFrame = (float)sFrame;
+				if (ImGui::SliderInt("終了F", &eFrame, 0, totalFrames)) mod.endFrame = (float)eFrame;
+				ImGui::SliderFloat("速度倍率", &mod.speed, 0.1f, 5.0f);
 				ImGui::Separator();
 				ImGui::PopID();
 			}
-			if (ImGui::Button("Add Modifier"))
+			if (ImGui::Button("変化を追加"))
 			{
 				params.speedModifiers.push_back({ 0.0f, 5.0f, 1.0f });
 			}
@@ -859,11 +859,11 @@ void SceneDebug::DrawImGui()
 		}
 	}
 
-	if (ImGui::CollapsingHeader("Base Hurtbox Settings"))
+	if (ImGui::CollapsingHeader("基本くらい判定設定"))
 	{
 		const char* hurtboxNames[] = { "Head", "Body", "Legs" };
 
-		if (ImGui::TreeNode("Standing (Base)"))
+		if (ImGui::TreeNode("立ち(基本)"))
 		{
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 			{
@@ -872,15 +872,15 @@ void SceneDebug::DrawImGui()
 				DirectX::XMFLOAT2 ext = player->GetHurtboxBaseExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxBaseOffset((HurtboxType)i);
 				bool changed = false;
-				if (ImGui::SliderFloat2("Extents", &ext.x, 0.1f, 5.0f)) changed = true;
-				if (ImGui::SliderFloat2("Offset", &off.x, -5.0f, 5.0f)) changed = true;
+				if (ImGui::SliderFloat2("サイズ", &ext.x, 0.1f, 5.0f)) changed = true;
+				if (ImGui::SliderFloat2("オフセット", &off.x, -5.0f, 5.0f)) changed = true;
 				if (changed) player->SetHurtboxBase((HurtboxType)i, off, ext);
 				ImGui::PopID();
 			}
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Crouching"))
+		if (ImGui::TreeNode("しゃがみ"))
 		{
 			for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 			{
@@ -889,8 +889,8 @@ void SceneDebug::DrawImGui()
 				DirectX::XMFLOAT2 ext = player->GetHurtboxCrouchExtents((HurtboxType)i);
 				DirectX::XMFLOAT2 off = player->GetHurtboxCrouchOffset((HurtboxType)i);
 				bool changed = false;
-				if (ImGui::SliderFloat2("Extents", &ext.x, 0.1f, 5.0f)) changed = true;
-				if (ImGui::SliderFloat2("Offset", &off.x, -5.0f, 5.0f)) changed = true;
+				if (ImGui::SliderFloat2("サイズ", &ext.x, 0.1f, 5.0f)) changed = true;
+				if (ImGui::SliderFloat2("オフセット", &off.x, -5.0f, 5.0f)) changed = true;
 				if (changed) player->SetHurtboxCrouch((HurtboxType)i, off, ext);
 				ImGui::PopID();
 			}
@@ -899,7 +899,7 @@ void SceneDebug::DrawImGui()
 	}
 
 	ImGui::Separator();
-	if (ImGui::Button("SAVE ALL SETTINGS", ImVec2(-1, 40)))
+	if (ImGui::Button("全設定を保存", ImVec2(-1, 40)))
 	{
 		SavePlayerSettings();
 	}

@@ -338,37 +338,37 @@ void SceneTraining::Draw()
 
 void SceneTraining::DrawImGui()
 {
-	ImGui::Begin("Training");
+	ImGui::Begin("トレーニング");
 
-	ImGui::TextUnformatted("P1: you   P2: dummy   (TAB: toggle UI)");
+	ImGui::TextUnformatted("1P:あなた  2P:ダミー  (TAB:UI表示切替)");
 	ImGui::Separator();
 
-	const char* stances[] = { "Stand", "Crouch" };
-	ImGui::Combo("Dummy Stance", &m_dummyStance, stances, _countof(stances));
+	const char* stances[] = { "立ち", "しゃがみ" };
+	ImGui::Combo("ダミーの構え", &m_dummyStance, stances, _countof(stances));
 
-	const char* actions[] = { "None", "Repeat LP", "Repeat MP", "Repeat HP", "Repeat MK", "Repeat HK" };
-	ImGui::Combo("Dummy Action", &m_dummyAction, actions, _countof(actions));
+	const char* actions[] = { "なし", "弱P連打", "中P連打", "強P連打", "中K連打", "強K連打" };
+	ImGui::Combo("ダミーの行動", &m_dummyAction, actions, _countof(actions));
 
-	const char* guards[] = { "No Guard", "Guard All", "Guard After 1st Hit" };
-	ImGui::Combo("Dummy Guard", &m_dummyGuard, guards, _countof(guards));
+	const char* guards[] = { "ガードしない", "常にガード", "2発目以降ガード" };
+	ImGui::Combo("ダミーのガード", &m_dummyGuard, guards, _countof(guards));
 
-	ImGui::Checkbox("Infinite HP", &m_infiniteHp);
-	ImGui::Checkbox("Lock Dummy Pos", &m_lockDummyPos);
+	ImGui::Checkbox("無限HP", &m_infiniteHp);
+	ImGui::Checkbox("ダミー位置固定", &m_lockDummyPos);
 
 	ImGui::Separator();
 	Player* p1 = GetObj<Player>("Player");
 	Player* p2 = GetObj<Player>("Player2");
-	if (p1) { ImGui::Text("P1 HP"); ImGui::ProgressBar(p1->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
-	if (p2) { ImGui::Text("P2 (dummy) HP"); ImGui::ProgressBar(p2->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
+	if (p1) { ImGui::Text("1P HP"); ImGui::ProgressBar(p1->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
+	if (p2) { ImGui::Text("2P(ダミー) HP"); ImGui::ProgressBar(p2->GetHpRatio(), ImVec2(-1.0f, 0.0f)); }
 
-	ImGui::Text("Last hit: %s", m_lastBlocked ? "BLOCKED" : "HIT");
-	ImGui::Text("COMBO: %d   (max: %d)", m_comboCount, m_maxCombo);
-	ImGui::Text("Last hitstun applied: %d F", m_lastStun);
-	ImGui::Text("Connects: %d  (blocked: %d)", m_hitCount, m_blockCount);
-	ImGui::Text("Guard latch: %s", m_dummyHitLatch ? "ON" : "OFF");
-	ImGui::TextDisabled("(turn Infinite HP off to see chip damage)");
+	ImGui::Text("直近: %s", m_lastBlocked ? "ガード" : "ヒット");
+	ImGui::Text("コンボ: %d   (最大: %d)", m_comboCount, m_maxCombo);
+	ImGui::Text("与えた硬直: %d F", m_lastStun);
+	ImGui::Text("当てた数: %d  (ガード: %d)", m_hitCount, m_blockCount);
+	ImGui::Text("ガードラッチ: %s", m_dummyHitLatch ? "ON" : "OFF");
+	ImGui::TextDisabled("(無限HPをOFFにするとチップダメージが見えます)");
 
-	if (ImGui::Button("Reset Positions"))
+	if (ImGui::Button("位置リセット"))
 	{
 		ResetPositions();
 		m_hitCount = 0;
@@ -378,9 +378,9 @@ void SceneTraining::DrawImGui()
 	}
 
 	ImGui::Separator();
-	if (ImGui::Button("Go to Game"))  { s_requestGoGame = true; }
+	if (ImGui::Button("ゲームへ"))  { s_requestGoGame = true; }
 	ImGui::SameLine();
-	if (ImGui::Button("Go to Debug")) { s_requestGoDebug = true; }
+	if (ImGui::Button("デバッグへ")) { s_requestGoDebug = true; }
 
 	ImGui::End();
 }

@@ -1,6 +1,7 @@
 ﻿#include "Main.h"
 #include "Defines.h"
 #include <memory>
+#include <cstdio>
 #include "DirectX.h"
 #include "Geometory.h"
 #include "Sprite.h"
@@ -31,6 +32,17 @@ HRESULT Init(HWND hWnd, UINT width, UINT height)
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // キーボードコントロールを有効化
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // ゲームパッドコントロールを有効化
 	ImGui::StyleColorsDark(); // ダークスタイル
+
+	// 日本語フォント（Noto Sans JP / SIL OFL）を読み込む。無ければ既定フォントのまま
+	{
+		const char* jpFontPath = "Assets/Font/NotoSansJP-Regular.ttf";
+		FILE* fp = nullptr;
+		if (fopen_s(&fp, jpFontPath, "rb") == 0 && fp)
+		{
+			fclose(fp);
+			io.Fonts->AddFontFromFileTTF(jpFontPath, 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+		}
+	}
 	// Win32とDirectX11バックエンドの初期化
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX11_Init(GetDevice(), GetContext()); 
