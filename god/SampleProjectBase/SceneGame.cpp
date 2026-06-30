@@ -17,7 +17,8 @@
 #include <algorithm> 
 #include <cmath>
 #include "Projectile.h"
-#include "PlayerParameterLoader.h" 
+#include "PlayerParameterLoader.h"
+#include "PlayerAssetLoader.h" 
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -204,23 +205,8 @@ void SceneGame::Init()
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-	// アニメーション読み込み
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
-
-	// Deathアニメーションの読み込み
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
+	// アニメーション読み込み（全シーン共通）
+	PlayerAssetLoader::LoadCommonAnimations(player);
 
 
 	// ==================================================
@@ -242,20 +228,7 @@ void SceneGame::Init()
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
-	player2->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
+	PlayerAssetLoader::LoadCommonAnimations(player2);
 
 	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
@@ -271,10 +244,7 @@ void SceneGame::Init()
 
 	g_uiTex = new Texture();
 
-	for (int i = 0; i < 10; i++)
-	{
-		m_hitEffects.push_back(new HitEffect());
-	}
+	m_hitEffects.Init(10);
 
 	// ----------------------------------------------------
 	// 描画設定の作成（スカイドーム表示用）
@@ -329,13 +299,8 @@ void SceneGame::Init()
 	rsDesc.MultisampleEnable = FALSE;
 	rsDesc.AntialiasedLineEnable = FALSE;
 
-	// 表面カリング（P1アウトライン用：表面を消して裏面を描く）
-	rsDesc.CullMode = D3D11_CULL_FRONT;
-	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullFront);
-
-	// 裏面カリング（通常描画用：裏面を消して表面を描く）
-	rsDesc.CullMode = D3D11_CULL_BACK;
-	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
+	// プレイヤー描画ヘルパー（表面/裏面カリングをまとめて用意）
+	m_playerRenderer.Setup(this);
 
 	// スカイドーム用：カリングなし
 	rsDesc.CullMode = D3D11_CULL_NONE;
@@ -362,8 +327,6 @@ void SceneGame::Uninit()
 	if (m_pDepthStateNoWrite) { m_pDepthStateNoWrite->Release(); m_pDepthStateNoWrite = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pMultiplyBlend) { m_pMultiplyBlend->Release(); m_pMultiplyBlend = nullptr; }
-	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
-	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
 
 	if (m_shadowMapTex) { m_shadowMapTex->Release(); m_shadowMapTex = nullptr; }
@@ -633,7 +596,7 @@ void SceneGame::Update(float tick)
 			player,
 			player2,
 			playerTick,
-			m_hitEffects,
+			m_hitEffects.Raw(),
 			STAGE_LIMIT_X
 		);
 
@@ -735,10 +698,7 @@ void SceneGame::Update(float tick)
 	UpdateCameraShake(tick);
 
 	// ヒットエフェクトの更新
-	for (auto effect : m_hitEffects)
-	{
-		effect->Update(tick);
-	}
+	m_hitEffects.Update(tick);
 
 	// カメラ制御 (通常時のみ。スローモーション中は上で制御するためスキップ)
 	if (!m_isSlowMotion)
@@ -1026,144 +986,16 @@ void SceneGame::Draw()
 	// プレイヤー等の描画に影響が出ないよう、通常の深度設定（書き込みあり）に戻す
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
-	// ==================================================
-	// アウトライン描画パス
-	// ==================================================
+	// プレイヤー描画（先に全員のアウトライン→次に本体。共通ヘルパーに集約）
+	m_playerRenderer.DrawOutline(this, player, m_shakeOffsetP1);
+	m_playerRenderer.DrawOutline(this, player2, m_shakeOffsetP2);
+	m_playerRenderer.DrawBody(this, player, m_shakeOffsetP1);
+	m_playerRenderer.DrawBody(this, player2, m_shakeOffsetP2);
 
-	if (player) {
-		// スケールXがマイナスなら反転している
-		bool isFlipped = (player->GetScale().x < 0.0f);
-
-		// 反転している場合 -> 裏面を描画したいので「表面カリング(CullBack)」を使う (逆転)
-		// 通常の場合       -> 裏面を描画したいので「表面カリング(CullFront)」を使う
-		if (isFlipped) {
-			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
-		}
-		else {
-			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
-		}
-
-		XMFLOAT3 pos = player->GetPosition();
-		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
-
-		XMFLOAT3 rot = player->GetRotation();
-		XMFLOAT3 pScale = player->GetScale();
-		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
-		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
-		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
-		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
-
-		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-		shader[2]->WriteBuffer(0, mat); // WVPのみ
-		player->SetVertexShader(shader[2]);
-		player->SetPixelShader(shader[3]);
-		player->Draw();
-	}
-
-	if (player2) {
-		bool isFlipped = (player2->GetScale().x < 0.0f);
-		if (isFlipped) {
-			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
-		}
-		else {
-			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
-		}
-
-		XMFLOAT3 pos = player2->GetPosition();
-		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
-
-		XMFLOAT3 rot = player2->GetRotation();
-		XMFLOAT3 pScale = player2->GetScale();
-		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
-		Matrix modelBaseScaleMat = player2->GetModel()->GetScaleBaseMatrix();
-		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
-		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
-
-		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-		shader[2]->WriteBuffer(0, mat);
-		player2->SetVertexShader(shader[2]);
-		player2->SetPixelShader(shader[3]);
-		player2->Draw();
-	}
-
-	// ==================================================
-	// 通常描画パス (表面を描画)
-	// ==================================================
-
-	if (player) {
-		bool isFlipped = (player->GetScale().x < 0.0f);
-
-		// 反転している場合 -> 表面を描画したいので「裏面カリング(CullFront)」を使う (逆転)
-		// 通常の場合       -> 表面を描画したいので「裏面カリング(CullBack)」を使う
-		if (isFlipped) {
-			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
-		}
-		else {
-			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
-		}
-
-		XMFLOAT3 pos = player->GetPosition();
-		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP1.x, pos.y + m_shakeOffsetP1.y, pos.z + m_shakeOffsetP1.z };
-
-		XMFLOAT3 rot = player->GetRotation();
-		XMFLOAT3 pScale = player->GetScale();
-		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
-		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
-		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
-		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
-
-		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-		shader[0]->WriteBuffer(0, mat);
-		shader[1]->WriteBuffer(0, light);
-		shader[1]->WriteBuffer(1, camera);
-		player->SetVertexShader(shader[0]);
-		player->SetPixelShader(shader[1]);
-
-		player->Draw();
 #ifdef _DEBUG
-		player->DrawBoundingBox();
-		player->DrawHitbox();
-		player->DrawActiveHurtboxes();
+	if (player) { player->DrawBoundingBox(); player->DrawHitbox(); player->DrawActiveHurtboxes(); }
+	if (player2) { player2->DrawBoundingBox(); player2->DrawHitbox(); player2->DrawActiveHurtboxes(); }
 #endif
-	}
-
-	if (player2) {
-		bool isFlipped = (player2->GetScale().x < 0.0f);
-		if (isFlipped) {
-			if (m_pCullFront) GetContext()->RSSetState(m_pCullFront);
-		}
-		else {
-			if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
-		}
-
-		XMFLOAT3 pos = player2->GetPosition();
-		XMFLOAT3 drawPos = { pos.x + m_shakeOffsetP2.x, pos.y + m_shakeOffsetP2.y, pos.z + m_shakeOffsetP2.z };
-
-		XMFLOAT3 rot = player2->GetRotation();
-		XMFLOAT3 pScale = player2->GetScale();
-		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
-		Matrix modelBaseScaleMat = player2->GetModel()->GetScaleBaseMatrix();
-		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(drawPos.x, drawPos.y, drawPos.z);
-		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
-
-		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-		shader[0]->WriteBuffer(0, mat);
-		shader[1]->WriteBuffer(0, light);
-		shader[1]->WriteBuffer(1, camera);
-		player2->SetVertexShader(shader[0]);
-		player2->SetPixelShader(shader[1]);
-
-		player2->Draw();
-#ifdef _DEBUG
-		player2->DrawBoundingBox();
-		player2->DrawHitbox();
-		player2->DrawActiveHurtboxes();
-#endif
-	}
 
 	// ------------------------------------------------
 	//  飛び道具 & エフェクト描画 
@@ -1198,10 +1030,7 @@ void SceneGame::Draw()
 	DirectX::XMFLOAT4X4 view = pCamera->GetView();
 	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
 
-	for (auto effect : m_hitEffects)
-	{
-		effect->Draw(view, proj);
-	}
+	m_hitEffects.Draw(view, proj);
 
 	// カメラシェイクを元に戻す（UI描画や次フレームの追従に揺れを持ち込まない）
 	pCamera->SetPos(camShakeBasePos);

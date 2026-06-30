@@ -4,31 +4,33 @@
 #include <DirectXMath.h>
 #include <d3d11.h>
 #include "Player.h"
+#include "PlayerRenderer.h"
+#include "HitEffectPool.h"
 
 class HitEffect;
 class SkyDome;
 
-// E½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[E½EE½ÌŠKE½EE½wE½EE½E½EE½Ô‚ï¿½\E½EE½E½EE½E½EE½ñ‹“Œ^
+// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌŠKï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ô‚ï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ñ‹“Œ^
 enum class MenuState
 {
-	TopMenu,     // E½EE½gE½EE½bE½EE½vE½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[
-	ConfigP1,    // 1PE½EE½ÌƒLE½EE½[E½EE½RE½EE½E½EE½E½EE½tE½EE½BE½EE½OE½EE½E½EE½E½EE½
-	ConfigP2,    // 2PE½EE½ÌƒLE½EE½[E½EE½RE½EE½E½EE½E½EE½tE½EE½BE½EE½OE½EE½E½EE½E½EE½
-	TrainingMode // E½EE½gE½EE½E½EE½E½EE½[E½EE½jE½EE½E½EE½E½EE½OE½EE½E½EE½E½EE½[E½EE½hE½EE½iUIE½EE½E½EE½\E½EE½E½EE½E½EE½ÅŽï¿½E½EE½RE½EE½É“ï¿½E½EE½E½EE½E½EE½E½EE½E½EE½E½EE½j
+	TopMenu,     // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[
+	ConfigP1,    // 1Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	ConfigP2,    // 2Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	TrainingMode // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iUIï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÅŽï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É“ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
 };
 
-// E½EE½gE½EE½bE½EE½vE½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[E½EE½Ìï¿½E½EE½Úï¿½E½EE½ (DirectWriteE½EE½Éï¿½E½EE½E½E½E½E½EE½ÄEE½E½E½EE½CE½EE½hE½EE½E½EE½E½EE½E½EE½E½EE½E½EE½É‚ï¿½E½EE½E½EE½)
+// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Úï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ (DirectWriteï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Éï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½)
 struct TopMenuItem
 {
 	const wchar_t* label;
 };
 
-// E½EE½RE½EE½E½EE½E½EE½tE½EE½BE½EE½OE½EE½E½EE½Ê‚Ìï¿½E½EE½Úï¿½E½EE½ (DirectWriteE½EE½Éï¿½E½EE½E½E½E½E½EE½ÄEE½E½E½EE½CE½EE½hE½EE½E½EE½E½EE½E½EE½E½EE½E½EE½É‚ï¿½E½EE½E½EE½)
+// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ê‚Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Úï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ (DirectWriteï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Éï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½)
 struct ConfigItem
 {
-	const wchar_t* label; // E½EE½E½EE½Ê‚É•\E½EE½E½EE½E½EE½E½EE½E½EE½E½EE½eE½EE½LE½EE½XE½EE½g
-	int* keyPtr;          // E½EE½E½EE½E½EE½è“–ï¿½Ä‚ï¿½ÏXE½EE½E½EE½E½EE½E½EE½LE½EE½[E½EE½Ïï¿½E½EE½Ìƒ|E½EE½CE½EE½E½EE½E½EE½^
-	bool isDeviceSelect;  // E½EE½fE½EE½oE½EE½CE½EE½XE½EE½Ø‚ï¿½Ö‚ï¿½E½EE½pE½EE½Ìï¿½E½EE½Ú‚ï¿½E½EE½Ç‚ï¿½E½EE½E½EE½
+	const wchar_t* label; // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ê‚É•\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½g
+	int* keyPtr;          // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è“–ï¿½Ä‚ï¿½ÏXï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ïï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒ|ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^
+	bool isDeviceSelect;  // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ø‚ï¿½Ö‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ç‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 };
 
 class SceneKeyConfig : public SceneBase
@@ -42,47 +44,43 @@ public:
 	static bool s_isConfigSet;
 
 private:
-	// E½EE½wE½EE½è‚µE½EE½E½EE½E½EE½sE½EE½NE½EE½ZE½EE½E½EE½E½EE½E½EE½E½EE½WE½EE½ÆƒTE½EE½CE½EE½YE½EE½Å’PE½EE½FE½EE½ÌŽlE½EE½pE½EE½`E½EE½E½EE½`E½EE½æ‚·E½EE½E½EE½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è‚µï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½sï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÆƒTï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Yï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Å’Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌŽlï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚·ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 	void DrawRectPixel(float px, float py, float pw, float ph, DirectX::XMFLOAT4 color);
 
-	// E½EE½E½EE½E½EE½zE½EE½LE½EE½[E½EE½RE½EE½[E½EE½hE½EE½E½EE½E½EE½E½EE½\E½EE½E½EE½E½EE½pE½EE½Ì•ï¿½E½EE½E½EE½E½EE½E½EE½E½EE½E½EE½æ“¾E½EE½E½EE½E½EE½E½EE½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì•ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ“¾ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 	const wchar_t* GetKeyName(int vk);
 
-	// E½EE½RE½EE½E½EE½E½EE½gE½EE½E½EE½E½EE½[E½EE½E½EE½E½EE½[E½EE½Ìƒ{E½EE½^E½EE½E½EE½E½EE½E½EE½E½EE½E½EE½\E½EE½E½EE½E½EE½pE½EE½Ì•ï¿½E½EE½E½EE½E½EE½E½EE½E½EE½E½EE½æ“¾E½EE½E½EE½E½EE½E½EE½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒ{ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì•ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ“¾ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 	const wchar_t* GetPadButtonName(int button);
 
-	// E½EE½IE½EE½E½EÌƒfE½EE½oE½EE½CE½EE½XE½EE½E½EE½E½EE½E½EE½E½EE½æ“¾E½EE½E½EE½E½EE½E½EE½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½EÌƒfï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ“¾ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 	const wchar_t* GetDeviceName(InputDeviceType type);
 
-	// E½EE½Ý’ï¿½|E½EE½CE½EE½E½EE½E½EE½^E½EE½E½EE½E½EE½E½EE½E½EE½Ý‚ÌƒfE½EE½oE½EE½CE½EE½XE½EE½Éï¿½E½EE½E½E½E½E½EE½ÄXE½EE½VE½EE½E½EE½E½EE½E½EE½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý’ï¿½|ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý‚Ìƒfï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Éï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄXï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
 	void RefreshConfigPointers();
 
 	MenuState m_menuState;
 
-	// E½EE½gE½EE½bE½EE½vE½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[E½EE½pE½EE½Ïï¿½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ïï¿½
 	int m_topSelectedIndex;
 	std::vector<TopMenuItem> m_topItems;
 
-	// E½EE½RE½EE½E½EE½E½EE½tE½EE½BE½EE½OE½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[E½EE½pE½EE½Ïï¿½
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ïï¿½
 	int m_configSelectedIndex;
 	std::vector<ConfigItem> m_p1Items;
 	std::vector<ConfigItem> m_p2Items;
 
-	// E½EE½E½EE½E½EE½jE½EE½E½EE½E½EE½[E½EE½WE½EE½JE½EE½AE½EE½jE½EE½E½EE½E½EE½[E½EE½VE½EE½E½EE½E½EE½E½EE½E½EE½ÌcE½EE½E½EE½E½EE½E½EE½E½EE½XE½EE½PE½EE½[E½EE½E½EE½ (0.0f E½EE½` 1.0f)
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìcï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ (0.0f ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½` 1.0f)
 	float m_windowScaleY;
 
-	// E½EE½LE½EE½[E½EE½E½EE½E½EE½Í‘Ò‹@E½EE½E½EE½E½EE½ÌƒLE½EE½[E½EE½Ïï¿½E½EE½Ö‚Ìƒ|E½EE½CE½EE½E½EE½E½EE½^E½EE½inullptrE½EE½È‚ï¿½Ò‹@E½EE½E½EE½E½EE½Ä‚ï¿½E½EE½È‚ï¿½E½EE½j
+	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í‘Ò‹@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ïï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ö‚Ìƒ|ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½inullptrï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½È‚ï¿½Ò‹@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½È‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
 	int* m_waitBindKeyPtr = nullptr;
 
-	std::vector<HitEffect*> m_hitEffects;
+	HitEffectPool m_hitEffects;
 
-	ID3D11RasterizerState* m_pCullFront = nullptr;
-	ID3D11RasterizerState* m_pCullBack = nullptr;
+	// ï¿½vï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½iï¿½Aï¿½Eï¿½gï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Eï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½Qï¿½[ï¿½ï¿½ï¿½Æ‹ï¿½ï¿½Ê‰ï¿½ï¿½j
+	PlayerRenderer m_playerRenderer;
 
-	// E½wE½iE½XE½JE½CE½hE½[E½E½E½iE½QE½[E½E½E½VE½[E½E½E½Æ“ï¿½E½E½E½E½E½E½E½Ú‚É‚ï¿½E½é‚½E½ßj
+	// ï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Qï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Æ“ï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Ú‚É‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½é‚½ï¿½Eï¿½Eï¿½Eï¿½ßj
 	SkyDome* m_skyDome = nullptr;
-	// E½XE½JE½CE½hE½[E½E½E½`E½E½pE½iE½JE½E½E½E½E½OE½È‚ï¿½E½j
-	ID3D11RasterizerState* m_pCullNone = nullptr;
-	// ƒXƒJƒCƒh[ƒ€(Å‰œ)•`‰æ—pFLESS_EQUAL ‚Ì[“xƒXƒe[ƒg
-	ID3D11DepthStencilState* m_pDepthState3D = nullptr;
 };

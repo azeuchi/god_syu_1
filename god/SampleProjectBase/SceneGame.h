@@ -3,66 +3,68 @@
 #include "SkyDome.h"
 #include <DirectXMath.h> 
 #include <d3d11.h>       
-#include "HitEffect.h"
-#include "BattleUIManager.h" // UIŠÇ—ƒNƒ‰ƒX
-#include "BattleCollision.h" // Õ“Ë”»’èŠÇ—ƒNƒ‰ƒX
+#include "HitEffectPool.h"
+#include "BattleUIManager.h" // UIï¿½Ç—ï¿½ï¿½Nï¿½ï¿½ï¿½X
+#include "BattleCollision.h" // ï¿½Õ“Ë”ï¿½ï¿½ï¿½Ç—ï¿½ï¿½Nï¿½ï¿½ï¿½X
+#include "PlayerRenderer.h"
 
 /**
- * @brief ƒƒCƒ“‚ÌƒQ[ƒ€ƒV[ƒ“
- * Ši“¬ƒQ[ƒ€‚Ì–{”Ô“®ì—pƒV[ƒ“
+ * @brief ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ÌƒQï¿½[ï¿½ï¿½ï¿½Vï¿½[ï¿½ï¿½
+ * ï¿½iï¿½ï¿½ï¿½Qï¿½[ï¿½ï¿½ï¿½Ì–{ï¿½Ô“ï¿½ï¿½ï¿½pï¿½Vï¿½[ï¿½ï¿½
  */
 class SceneGame : public SceneBase
 {
 public:
-	void Init();   // ‰Šú‰»
-	void Uninit(); // I—¹
-	void Update(float tick); // XV
-	void Draw();   // •`‰æ
+	void Init();   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	void Uninit(); // ï¿½Iï¿½ï¿½
+	void Update(float tick); // ï¿½Xï¿½V
+	void Draw();   // ï¿½`ï¿½ï¿½
 
-	// SceneRoot‚©‚çQÆ‚·‚é‚½‚ß‚ÌÃ“Iƒtƒ‰ƒO
+	// SceneRootï¿½ï¿½ï¿½ï¿½Qï¿½Æ‚ï¿½ï¿½é‚½ï¿½ß‚ÌÃ“Iï¿½tï¿½ï¿½ï¿½O
 	static bool s_isGameSet;
 
 private:
-	// Ÿ‚Ìƒ‰ƒEƒ“ƒh‚Ì‚½‚ß‚ÉˆÊ’u‚âHP‚ğƒŠƒZƒbƒg‚·‚éŠÖ”
+	// ï¿½ï¿½ï¿½Ìƒï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½Ì‚ï¿½ï¿½ß‚ÉˆÊ’uï¿½ï¿½HPï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½gï¿½ï¿½ï¿½ï¿½Öï¿½
 	void ResetRound();
 
-	// ƒJƒƒ‰ƒVƒFƒCƒNiTrauma•û®j
-	void AddCameraTrauma(float amount, float dirX); // ƒqƒbƒg‚É—h‚ê‚ğ‰Á‚¦‚é
-	void UpdateCameraShake(float tick);             // –ˆƒtƒŒ[ƒ€‚ÌŒ¸Š‚ÆƒIƒtƒZƒbƒgŒvZ
+	// ï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½Fï¿½Cï¿½Nï¿½iTraumaï¿½ï¿½ï¿½ï¿½ï¿½j
+	void AddCameraTrauma(float amount, float dirX); // ï¿½qï¿½bï¿½gï¿½ï¿½ï¿½É—hï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	void UpdateCameraShake(float tick);             // ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ÌŒï¿½ï¿½ï¿½ï¿½ÆƒIï¿½tï¿½Zï¿½bï¿½gï¿½vï¿½Z
 
 private:
-	// UIƒ}ƒl[ƒWƒƒ
+	// UIï¿½}ï¿½lï¿½[ï¿½Wï¿½ï¿½
 	BattleUIManager* m_uiManager;
 
 	SkyDome* m_skyDome;
 
-	//ƒGƒtƒFƒNƒgŠÇ——pƒŠƒXƒg
-	std::vector<HitEffect*> m_hitEffects;
+	// ï¿½vï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½iï¿½Aï¿½Eï¿½gï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Eï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½Qï¿½[ï¿½ï¿½ï¿½Æ‹ï¿½ï¿½Ê‰ï¿½ï¿½j
+	PlayerRenderer m_playerRenderer;
+
+	//ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½Ç—ï¿½ï¿½pï¿½ï¿½ï¿½Xï¿½g
+	HitEffectPool m_hitEffects;
 
 	RoundPhase m_currentPhase = RoundPhase::READY;
 	float m_phaseTimer = 0.0f;
 
-	// •`‰æİ’è
-	ID3D11DepthStencilState* m_pDepthState = nullptr;         // ƒXƒJƒCƒh[ƒ€—piZ‘‚«‚İ‚ ‚èj
-	ID3D11DepthStencilState* m_pDepthStateNoWrite = nullptr; // ‰eE°—piZ‘‚«‚İ‚È‚µj
-	ID3D11BlendState* m_pBlendState = nullptr;                // ”¼“§–¾—p
+	// ï¿½`ï¿½ï¿½İ’ï¿½
+	ID3D11DepthStencilState* m_pDepthState = nullptr;         // ï¿½Xï¿½Jï¿½Cï¿½hï¿½[ï¿½ï¿½ï¿½pï¿½iZï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ‚ï¿½ï¿½ï¿½j
+	ID3D11DepthStencilState* m_pDepthStateNoWrite = nullptr; // ï¿½eï¿½Eï¿½ï¿½ï¿½pï¿½iZï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ‚È‚ï¿½ï¿½j
+	ID3D11BlendState* m_pBlendState = nullptr;                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½p
 
-	// ƒAƒEƒgƒ‰ƒCƒ“EƒJƒŠƒ“ƒOİ’è—pƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg
-	ID3D11RasterizerState* m_pCullFront = nullptr;      // •\–ÊƒJƒŠƒ“ƒOiP1ƒAƒEƒgƒ‰ƒCƒ“AP2’Êí—pj
-	ID3D11RasterizerState* m_pCullBack = nullptr;       // — –ÊƒJƒŠƒ“ƒOiP1’ÊíAP2ƒAƒEƒgƒ‰ƒCƒ“—pj
-	ID3D11RasterizerState* m_pCullNone = nullptr;       // ƒJƒŠƒ“ƒO‚È‚µiƒXƒJƒCƒh[ƒ€—pj
+	// ï¿½Aï¿½Eï¿½gï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Eï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½İ’ï¿½pï¿½ï¿½ï¿½Xï¿½^ï¿½ï¿½ï¿½Cï¿½Uï¿½[ï¿½Xï¿½eï¿½[ï¿½g
+	ID3D11RasterizerState* m_pCullNone = nullptr;       // ï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½È‚ï¿½ï¿½iï¿½Xï¿½Jï¿½Cï¿½hï¿½[ï¿½ï¿½ï¿½pï¿½j
 
-	// ƒVƒƒƒhƒEƒ}ƒbƒvE°—pİ’è
+	// ï¿½Vï¿½ï¿½ï¿½hï¿½Eï¿½}ï¿½bï¿½vï¿½Eï¿½ï¿½ï¿½pï¿½İ’ï¿½
 	ID3D11Texture2D* m_shadowMapTex = nullptr;
 	ID3D11RenderTargetView* m_shadowRTV = nullptr;
 	ID3D11ShaderResourceView* m_shadowSRV = nullptr;
 	ID3D11Texture2D* m_shadowDepthTex = nullptr;
 	ID3D11DepthStencilView* m_shadowDSV = nullptr;
-	ID3D11SamplerState* m_pSamplerState = nullptr;      // ‰e—pƒTƒ“ƒvƒ‰[
+	ID3D11SamplerState* m_pSamplerState = nullptr;      // ï¿½eï¿½pï¿½Tï¿½ï¿½ï¿½vï¿½ï¿½ï¿½[
 	D3D11_VIEWPORT m_shadowViewport = {};
 	ID3D11BlendState* m_pMultiplyBlend = nullptr;
 
-	ID3D11Buffer* m_quadVB = nullptr; // °‚Ìƒ|ƒŠƒSƒ“—p
+	ID3D11Buffer* m_quadVB = nullptr; // ï¿½ï¿½ï¿½Ìƒ|ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½p
 
 	struct SpriteParam {
 		DirectX::XMFLOAT4 offset_size;
@@ -75,37 +77,37 @@ private:
 		DirectX::XMFLOAT2 uv;
 	};
 
-	// ƒqƒbƒgƒXƒgƒbƒv‰‰o—pƒ^ƒCƒ}[
+	// ï¿½qï¿½bï¿½gï¿½Xï¿½gï¿½bï¿½vï¿½ï¿½ï¿½oï¿½pï¿½^ï¿½Cï¿½}ï¿½[
 	float m_hitStopTimer = 0.0f;
 
-	// ƒqƒbƒgƒVƒFƒCƒNiU“®j§Œä—p
-	float m_shakeTimerP1 = 0.0f; // 1P‚ÌU“®c‚èŠÔ
-	float m_shakeTimerP2 = 0.0f; // 2P‚ÌU“®c‚èŠÔ
-	DirectX::XMFLOAT3 m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f }; // 1P‚Ì•`‰æ‚¸‚ç‚µ—Ê
-	DirectX::XMFLOAT3 m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f }; // 2P‚Ì•`‰æ‚¸‚ç‚µ—Ê
+	// ï¿½qï¿½bï¿½gï¿½Vï¿½Fï¿½Cï¿½Nï¿½iï¿½Uï¿½ï¿½ï¿½jï¿½ï¿½ï¿½ï¿½p
+	float m_shakeTimerP1 = 0.0f; // 1Pï¿½ÌUï¿½ï¿½ï¿½cï¿½èï¿½ï¿½
+	float m_shakeTimerP2 = 0.0f; // 2Pï¿½ÌUï¿½ï¿½ï¿½cï¿½èï¿½ï¿½
+	DirectX::XMFLOAT3 m_shakeOffsetP1 = { 0.0f, 0.0f, 0.0f }; // 1Pï¿½Ì•`ï¿½æ‚¸ï¿½ç‚µï¿½ï¿½
+	DirectX::XMFLOAT3 m_shakeOffsetP2 = { 0.0f, 0.0f, 0.0f }; // 2Pï¿½Ì•`ï¿½æ‚¸ï¿½ç‚µï¿½ï¿½
 
-	// ƒJƒƒ‰ƒVƒFƒCƒNiTrauma•û®j§Œä—p
-	float m_cameraTrauma = 0.0f;                                 // —h‚ê‚Ì’~Ï—Êi0.0‚©‚ç1.0j
-	float m_cameraShakeKickDir = 0.0f;                           // ‰Œ‚‚Ì‰¡•ûŒüi-1/+1j
-	DirectX::XMFLOAT3 m_cameraShakeOffset = { 0.0f, 0.0f, 0.0f }; // ¡ƒtƒŒ[ƒ€‚Ì—h‚êƒIƒtƒZƒbƒg
+	// ï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½Fï¿½Cï¿½Nï¿½iTraumaï¿½ï¿½ï¿½ï¿½ï¿½jï¿½ï¿½ï¿½ï¿½p
+	float m_cameraTrauma = 0.0f;                                 // ï¿½hï¿½ï¿½Ì’~ï¿½Ï—Êi0.0ï¿½ï¿½ï¿½ï¿½1.0ï¿½j
+	float m_cameraShakeKickDir = 0.0f;                           // ï¿½ï¿½ï¿½ï¿½ï¿½Ì‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½i-1/+1ï¿½j
+	DirectX::XMFLOAT3 m_cameraShakeOffset = { 0.0f, 0.0f, 0.0f }; // ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½Ì—hï¿½ï¿½Iï¿½tï¿½Zï¿½bï¿½g
 
-	// ƒ‰ƒEƒ“ƒhŠÇ——p
-	int m_winCountP1 = 0;      // 1P‚ÌŸ—˜ƒ‰ƒEƒ“ƒh”
-	int m_winCountP2 = 0;      // 2P‚ÌŸ—˜ƒ‰ƒEƒ“ƒh”
-	bool m_isRoundOver = false; // ƒ‰ƒEƒ“ƒh‚ªI‚í‚Á‚½‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
-	float m_roundEndTimer = 0.0f; // ƒ‰ƒEƒ“ƒhI—¹Œã‚Ì‘Ò‹@ƒ^ƒCƒ}[ (2•b)
+	// ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½Ç—ï¿½ï¿½p
+	int m_winCountP1 = 0;      // 1Pï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½ï¿½
+	int m_winCountP2 = 0;      // 2Pï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½ï¿½
+	bool m_isRoundOver = false; // ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½ï¿½ï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç‚ï¿½ï¿½ï¿½ï¿½Ìƒtï¿½ï¿½ï¿½O
+	float m_roundEndTimer = 0.0f; // ï¿½ï¿½ï¿½Eï¿½ï¿½ï¿½hï¿½Iï¿½ï¿½ï¿½ï¿½Ì‘Ò‹@ï¿½^ï¿½Cï¿½}ï¿½[ (2ï¿½b)
 
-	// KO‰‰o—p
-	bool m_isKOStage = false; // Œ»İKO‰‰oƒtƒF[ƒY‚©‚Ç‚¤‚©
+	// KOï¿½ï¿½ï¿½oï¿½p
+	bool m_isKOStage = false; // ï¿½ï¿½ï¿½ï¿½KOï¿½ï¿½ï¿½oï¿½tï¿½Fï¿½[ï¿½Yï¿½ï¿½ï¿½Ç‚ï¿½ï¿½ï¿½
 
-	// ƒXƒ[ƒ‚[ƒVƒ‡ƒ“‰‰o—p
-	bool m_isSlowMotion = false;        // ƒXƒ[ƒ‚[ƒVƒ‡ƒ“’†‚©
-	float m_slowMotionTimer = 0.0f;     // ƒXƒ[ƒ‚[ƒVƒ‡ƒ“c‚èŠÔ
-	float m_slowMotionDuration = 0.0f;  // ƒXƒ[ƒ‚[ƒVƒ‡ƒ“‚Ì‘S‘ÌŠÔi•âŠÔŒvZ—pj
+	// ï¿½Xï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½p
+	bool m_isSlowMotion = false;        // ï¿½Xï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	float m_slowMotionTimer = 0.0f;     // ï¿½Xï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½cï¿½èï¿½ï¿½
+	float m_slowMotionDuration = 0.0f;  // ï¿½Xï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ì‘Sï¿½Ìï¿½ï¿½Ôiï¿½ï¿½ÔŒvï¿½Zï¿½pï¿½j
 
-	// KO‚ÌƒJƒƒ‰ƒY[ƒ€—p
-	DirectX::XMFLOAT3 m_cameraZoomStartPos;  // ƒY[ƒ€ŠJn’n“_
-	DirectX::XMFLOAT3 m_cameraZoomStartLook; // ƒY[ƒ€ŠJn‚Ì’‹“_
-	DirectX::XMFLOAT3 m_cameraZoomTargetPos; // ƒY[ƒ€–Ú•W’n“_
-	DirectX::XMFLOAT3 m_cameraZoomTargetLook;// ƒY[ƒ€–Ú•W’‹“_
+	// KOï¿½ï¿½ï¿½ÌƒJï¿½ï¿½ï¿½ï¿½ï¿½Yï¿½[ï¿½ï¿½ï¿½p
+	DirectX::XMFLOAT3 m_cameraZoomStartPos;  // ï¿½Yï¿½[ï¿½ï¿½ï¿½Jï¿½nï¿½nï¿½_
+	DirectX::XMFLOAT3 m_cameraZoomStartLook; // ï¿½Yï¿½[ï¿½ï¿½ï¿½Jï¿½nï¿½ï¿½ï¿½Ì’ï¿½ï¿½ï¿½ï¿½_
+	DirectX::XMFLOAT3 m_cameraZoomTargetPos; // ï¿½Yï¿½[ï¿½ï¿½ï¿½Ú•Wï¿½nï¿½_
+	DirectX::XMFLOAT3 m_cameraZoomTargetLook;// ï¿½Yï¿½[ï¿½ï¿½ï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ï¿½_
 };

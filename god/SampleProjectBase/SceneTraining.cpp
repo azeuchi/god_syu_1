@@ -10,6 +10,7 @@
 #include "Input.h"
 #include "BattleCollision.h"
 #include "PlayerParameterLoader.h"
+#include "PlayerAssetLoader.h"
 #include "DirectX.h"
 #include <system/imgui/imgui.h>
 #include <algorithm>
@@ -27,25 +28,6 @@ namespace
 	const float STAGE_LIMIT_X = 6.0f;
 	const float CAMERA_LIMIT_X = 4.0f;
 
-	// 共通のアニメーション読み込み（戦闘に必要な一式）
-	void LoadCommonAnimations(Player* p)
-	{
-		Model* m = p->GetModel();
-		m->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
-		m->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
-		m->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-		m->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-		m->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-		m->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-		m->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
-		m->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-		m->LoadAnimation("Assets/Model/knight/Jump.fbx", "Jump", true);
-		m->LoadAnimation("Assets/Model/knight/Damage.fbx", "Damage", true);
-		m->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
-		m->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
-		m->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
-		m->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
-	}
 }
 
 void SceneTraining::Init()
@@ -67,54 +49,12 @@ void SceneTraining::Init()
 		}
 	}
 
-	// --- 反転モデル用カリングステート（ゲームシーンと同じ見た目にする）---
-	{
-		D3D11_RASTERIZER_DESC rsDesc = {};
-		rsDesc.FillMode = D3D11_FILL_SOLID;
-		rsDesc.FrontCounterClockwise = FALSE;
-		rsDesc.DepthClipEnable = TRUE;
-		rsDesc.CullMode = D3D11_CULL_FRONT;
-		GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullFront);
-		rsDesc.CullMode = D3D11_CULL_BACK;
-		GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
-	}
+	// --- プレイヤー描画ヘルパー（アウトライン・カリングをゲームと共通で用意）---
+	m_playerRenderer.Setup(this);
 
-	// --- スカイドーム用シェーダー（VS_Object）の用意 ---
-	Shader* vsObj = GetObj<Shader>("VS_Object");
-	if (!vsObj)
-	{
-		vsObj = CreateObj<VertexShader>("VS_Object");
-		vsObj->Load("Assets/Shader/VS_Object.cso");
-	}
-
-	// --- 背景（スカイドーム）の読み込み ---
-	CreateObj<Model>("SkyModel");
-	Model* skyModel = GetObj<Model>("SkyModel");
-	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
-	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
-	skyModel->SetPixelShader((PixelShader*)GetObj<Shader>("PS_TexColor"));
+	// --- 背景（スカイドーム）一式を用意 ---
 	m_skyDome = new SkyDome();
-	m_skyDome->Init(skyModel);
-
-	// --- スカイドーム描画用：カリングなしラスタライザーステート ---
-	{
-		D3D11_RASTERIZER_DESC rsDesc = {};
-		rsDesc.FillMode = D3D11_FILL_SOLID;
-		rsDesc.CullMode = D3D11_CULL_NONE;
-		rsDesc.FrontCounterClockwise = FALSE;
-		rsDesc.DepthClipEnable = FALSE;
-		GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
-	}
-
-	// --- スカイドーム(最奥)も描画できるよう LESS_EQUAL の深度ステートを用意 ---
-	{
-		D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
-		depthDesc3D.DepthEnable = TRUE;
-		depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depthDesc3D.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-		depthDesc3D.StencilEnable = FALSE;
-		GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
-	}
+	m_skyDome->Setup(this);
 
 	// --- 1P（操作キャラ）---
 	CreateObj<Player>("Player");
@@ -122,7 +62,7 @@ void SceneTraining::Init()
 	p1->SetInputType(PlayerInputType::PLAYER_1);
 	PlayerParameterLoader::LoadSettings(p1);
 	p1->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
-	LoadCommonAnimations(p1);
+	PlayerAssetLoader::LoadCommonAnimations(p1);
 	p1->SetPosition({ -2.0f, 0.0f, 0.0f });
 	p1->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 	p1->Reset();
@@ -138,16 +78,13 @@ void SceneTraining::Init()
 	p2->SetScale(scaleP2);
 	PlayerParameterLoader::CopyParameters(p1, p2);
 	p2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
-	LoadCommonAnimations(p2);
+	PlayerAssetLoader::LoadCommonAnimations(p2);
 	p2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	p2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
 	p2->Reset();
 
 	// --- ヒットエフェクトのプール ---
-	for (int i = 0; i < 10; ++i)
-	{
-		m_hitEffects.push_back(new HitEffect());
-	}
+	m_hitEffects.Init(10);
 
 	// --- カメラ初期位置 ---
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
@@ -162,13 +99,7 @@ void SceneTraining::Init()
 
 void SceneTraining::Uninit()
 {
-	for (auto e : m_hitEffects) { delete e; }
-	m_hitEffects.clear();
-	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
-	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
-	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
-	if (m_pDepthState3D) { m_pDepthState3D->Release(); m_pDepthState3D = nullptr; }
 }
 
 PlayerInputs SceneTraining::BuildDummyInputs(Player* dummy, float tick)
@@ -252,7 +183,7 @@ void SceneTraining::Update(float tick)
 	p2->Update(tick);
 
 	// 当たり判定
-	CollisionResult result = BattleCollision::UpdateInteractions(p1, p2, tick, m_hitEffects, STAGE_LIMIT_X);
+	CollisionResult result = BattleCollision::UpdateInteractions(p1, p2, tick, m_hitEffects.Raw(), STAGE_LIMIT_X);
 
 	// ダミーに当たった（ヒット/ガード問わず）らラッチ。途切れたら解除
 	m_comboTimer += tick;
@@ -292,7 +223,7 @@ void SceneTraining::Update(float tick)
 	}
 
 	// エフェクト更新
-	for (auto e : m_hitEffects) e->Update(tick);
+	m_hitEffects.Update(tick);
 
 	// カメラ：2体の中央を映す
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
@@ -308,52 +239,6 @@ void SceneTraining::Update(float tick)
 	}
 }
 
-void SceneTraining::DrawPlayer(Player* p)
-{
-	if (!p) return;
-	CameraBase* pCamera = GetObj<CameraBase>("Camera");
-	LightBase* pLight = GetObj<LightBase>("Light");
-	Shader* vs = GetObj<Shader>("VS_SkinMeshAnimation");
-	Shader* ps = GetObj<Shader>("PS_TexColor");
-	if (!pCamera || !pLight || !vs || !ps) return;
-
-	XMFLOAT3 pos = p->GetPosition();
-	XMFLOAT3 rot = p->GetRotation();
-	XMFLOAT3 sc = p->GetScale();
-	Matrix S = Matrix::CreateScale(sc.x, sc.y, sc.z);
-	Matrix baseS = p->GetModel()->GetScaleBaseMatrix();
-	Matrix R = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-	Matrix T = Matrix::CreateTranslation(pos.x, pos.y, 0.0f);
-	Matrix world = baseS * S * R * T;
-
-	XMFLOAT4X4 mat[3];
-	XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-	mat[1] = pCamera->GetView();
-	mat[2] = pCamera->GetProj();
-
-	XMFLOAT3 lightDir = pLight->GetDirection();
-	XMFLOAT4 light[] = {
-		pLight->GetDiffuse(),
-		pLight->GetAmbient(),
-		{ lightDir.x, lightDir.y, lightDir.z, 0.0f }
-	};
-	XMFLOAT3 camPos = pCamera->GetPos();
-	XMFLOAT4 camera[] = { { camPos.x, camPos.y, camPos.z, 0.0f } };
-
-	vs->WriteBuffer(0, mat);
-	ps->WriteBuffer(0, light);
-	ps->WriteBuffer(1, camera);
-	p->SetVertexShader(vs);
-	p->SetPixelShader(ps);
-
-	// 反転している2Pは表裏が逆になるためカリングを切り替える
-	bool flipped = (sc.x < 0.0f);
-	if (flipped) { if (m_pCullFront) GetContext()->RSSetState(m_pCullFront); }
-	else { if (m_pCullBack) GetContext()->RSSetState(m_pCullBack); }
-
-	p->Draw();
-}
-
 void SceneTraining::Draw()
 {
 	Player* p1 = GetObj<Player>("Player");
@@ -361,18 +246,13 @@ void SceneTraining::Draw()
 
 	// 背景（スカイドーム）の描画。プレイヤーより先に描く
 	CameraBase* pSkyCam = GetObj<CameraBase>("Camera");
-	if (m_skyDome && pSkyCam)
-	{
-		// スカイドーム(最奥)を描画するため LESS_EQUAL をセット
-		if (m_pDepthState3D) GetContext()->OMSetDepthStencilState(m_pDepthState3D, 0);
+	if (m_skyDome && pSkyCam) m_skyDome->DrawWithState(pSkyCam->GetView(), pSkyCam->GetProj());
 
-		if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
-		m_skyDome->Draw(pSkyCam->GetView(), pSkyCam->GetProj(), GetObj<Shader>("VS_Object"));
-		GetContext()->RSSetState(nullptr);
-	}
-
-	DrawPlayer(p1);
-	DrawPlayer(p2);
+	// プレイヤー描画（ゲームと同じく、先に全員のアウトライン→次に本体）
+	m_playerRenderer.DrawOutline(this, p1);
+	m_playerRenderer.DrawOutline(this, p2);
+	m_playerRenderer.DrawBody(this, p1);
+	m_playerRenderer.DrawBody(this, p2);
 
 #ifdef _DEBUG
 	if (p1) { p1->DrawBoundingBox(); p1->DrawHitbox(); p1->DrawActiveHurtboxes(); }
@@ -385,7 +265,7 @@ void SceneTraining::Draw()
 	{
 		XMFLOAT4X4 view = pCamera->GetView();
 		XMFLOAT4X4 proj = pCamera->GetProj();
-		for (auto e : m_hitEffects) e->Draw(view, proj);
+		m_hitEffects.Draw(view, proj);
 	}
 
 	if (m_showImGui) DrawImGui();

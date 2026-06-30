@@ -17,6 +17,7 @@
 #include <string>
 #include <cstdio>
 #include "PlayerParameterLoader.h"
+#include "PlayerAssetLoader.h"
 #include "CameraShake.h"
 #include "SceneTraining.h"
 
@@ -191,38 +192,12 @@ void SceneDebug::Init()
 		}
 	}
 
-	// --- スカイドーム用シェーダー（VS_Object）の用意 ---
-	Shader* vsObj = GetObj<Shader>("VS_Object");
-	if (!vsObj)
-	{
-		vsObj = CreateObj<VertexShader>("VS_Object");
-		vsObj->Load("Assets/Shader/VS_Object.cso");
-	}
-
-	// --- 背景（スカイドーム）の読み込み ---
-	CreateObj<Model>("SkyModel");
-	Model* skyModel = GetObj<Model>("SkyModel");
-	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
-	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
-	skyModel->SetPixelShader((PixelShader*)GetObj<Shader>("PS_TexColor"));
+	// --- 背景（スカイドーム）一式を用意 ---
 	m_skyDome = new SkyDome();
-	m_skyDome->Init(skyModel);
+	m_skyDome->Setup(this);
 
-	// --- スカイドーム描画用：カリングなしラスタライザーステート ---
-	D3D11_RASTERIZER_DESC rsDesc = {};
-	rsDesc.FillMode = D3D11_FILL_SOLID;
-	rsDesc.CullMode = D3D11_CULL_NONE;
-	rsDesc.FrontCounterClockwise = FALSE;
-	rsDesc.DepthClipEnable = FALSE;
-	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
-
-	// --- スカイドーム(最奥)も描画できるよう LESS_EQUAL の深度ステートを用意 ---
-	D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
-	depthDesc3D.DepthEnable = TRUE;
-	depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDesc3D.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	depthDesc3D.StencilEnable = FALSE;
-	GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
+	// --- プレイヤー描画ヘルパー（アウトライン・カリングをゲームと共通で用意）---
+	m_playerRenderer.Setup(this);
 
 	// --- プレイヤー生成 ---
 	CreateObj<Player>("Player");
@@ -233,17 +208,9 @@ void SceneDebug::Init()
 	// --- 設定ファイルからパラメータ読み込み ---
 	PlayerParameterLoader::LoadSettings(player);
 
-	// --- モデル・アニメーションロード ---
+	// --- モデル・アニメーションロード（アニメは全シーン共通）---
 	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/LightPunch.fbx", "LightPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumPunch.fbx", "MediumPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyPunch.fbx", "HeavyPunch", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/MediumKick.fbx", "MediumKick", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/HeavyKick.fbx", "HeavyKick", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/CrouchIdle.fbx", "CrouchIdle", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Down.fbx", "Down", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/WakeUp.fbx", "WakeUp", true);
-	player->GetModel()->LoadAnimation("Assets/Model/knight/Hadouken.fbx", "Hadouken", true);
+	PlayerAssetLoader::LoadCommonAnimations(player);
 
 	// 初期状態は Idle (待機)
 	player->Debug_SetAnimation("Idle", true);
@@ -268,8 +235,6 @@ void SceneDebug::Uninit()
 	}
 
 	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
-	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
-	if (m_pDepthState3D) { m_pDepthState3D->Release(); m_pDepthState3D = nullptr; }
 }
 
 void SceneDebug::Update(float tick)
@@ -380,7 +345,6 @@ void SceneDebug::Update(float tick)
 void SceneDebug::Draw()
 {
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
-	LightBase* pLight = GetObj<LightBase>("Light");
 
 	// カメラシェイク（プレビュー）：描画の間だけカメラをずらし、後で元へ戻す
 	XMFLOAT3 camShakeBasePos = pCamera->GetPos();
@@ -392,57 +356,14 @@ void SceneDebug::Draw()
 		pCamera->SetLook(sl);
 	}
 
-	DirectX::XMFLOAT4X4 mat[3];
-	DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixIdentity());
-	mat[1] = pCamera->GetView();
-	mat[2] = pCamera->GetProj();
-	DirectX::XMFLOAT3 lightDir = pLight->GetDirection();
-	DirectX::XMFLOAT4 light[] = {
-		pLight->GetDiffuse(),
-		pLight->GetAmbient(),
-		{lightDir.x, lightDir.y, lightDir.z, 0.0f}
-	};
-	DirectX::XMFLOAT3 camPos = pCamera->GetPos();
-	DirectX::XMFLOAT4 camera[] = {
-		{camPos.x, camPos.y, camPos.z, 0.0f}
-	};
-	Shader* shader[] = {
-		GetObj<Shader>("VS_SkinMeshAnimation"),
-		GetObj<Shader>("PS_TexColor"),
-	};
-
 	Player* player = GetObj<Player>("Player");
 	if (player) {
-		XMFLOAT3 pos = player->GetPosition();
-		XMFLOAT3 rot = player->GetRotation();
-		XMFLOAT3 pScale = player->GetScale();
-		Matrix playerScaleMat = Matrix::CreateScale(pScale.x, pScale.y, pScale.z);
-		Matrix modelBaseScaleMat = player->GetModel()->GetScaleBaseMatrix();
-		Matrix rotMat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, 0.0f);
-		Matrix world = modelBaseScaleMat * playerScaleMat * rotMat * transMat;
-
-		XMStoreFloat4x4(&mat[0], XMMatrixTranspose(world));
-
 		// 背景（スカイドーム）の描画。プレイヤーより先に描く
-		if (m_skyDome)
-		{
-			// スカイドーム(最奥)を描画するため LESS_EQUAL をセット
-			if (m_pDepthState3D) GetContext()->OMSetDepthStencilState(m_pDepthState3D, 0);
+		if (m_skyDome) m_skyDome->DrawWithState(pCamera->GetView(), pCamera->GetProj());
 
-			if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
-			m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
-			GetContext()->RSSetState(nullptr);
-		}
-
-		shader[0]->WriteBuffer(0, mat);
-		shader[1]->WriteBuffer(0, light);
-		shader[1]->WriteBuffer(1, camera);
-
-		player->SetVertexShader(shader[0]);
-		player->SetPixelShader(shader[1]);
-
-		player->Draw();
+		// プレイヤー描画（アウトライン＋本体：ゲームと共通）
+		m_playerRenderer.DrawOutline(this, player);
+		m_playerRenderer.DrawBody(this, player);
 
 		// ----------------------------------------------------
 		// 判定ボックスの表示制御

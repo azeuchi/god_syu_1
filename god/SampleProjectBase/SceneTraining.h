@@ -3,8 +3,9 @@
 
 #include "SceneBase.hpp"
 #include "Player.h"     // PlayerInputs
-#include "HitEffect.h"
+#include "HitEffectPool.h"
 #include "SkyDome.h"
+#include "PlayerRenderer.h"
 #include <vector>
 #include <d3d11.h>
 
@@ -31,20 +32,15 @@ private:
 	void ResetPositions();
 	// トレーニング設定からダミー(2P)の1フレーム分の入力を組み立てる
 	PlayerInputs BuildDummyInputs(Player* dummy, float tick);
-	// 1体ぶんのモデル描画（共通処理）
-	void DrawPlayer(Player* p);
 
-	// エフェクト管理
-	std::vector<HitEffect*> m_hitEffects;
+	// エフェクト管理（ヒットエフェクトのプール）
+	HitEffectPool m_hitEffects;
 
-	// 反転モデル(2P)用のカリングステート（ゲームシーンと同様の見た目にするため）
-	ID3D11RasterizerState* m_pCullFront = nullptr;
-	ID3D11RasterizerState* m_pCullBack = nullptr;
+	// プレイヤー描画（アウトライン＋カリングはゲームと共通）
+	PlayerRenderer m_playerRenderer;
 
 	// 背景スカイドーム（ゲームシーンと同じ見た目にするため）
 	SkyDome* m_skyDome = nullptr;
-	ID3D11RasterizerState* m_pCullNone = nullptr; // スカイドーム描画用（カリングなし）
-	ID3D11DepthStencilState* m_pDepthState3D = nullptr; // スカイドーム(最奥)描画用 LESS_EQUAL
 
 	bool m_showImGui = true;
 
