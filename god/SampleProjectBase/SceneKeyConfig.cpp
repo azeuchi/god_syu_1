@@ -5,6 +5,7 @@
 #include "LightBase.h"
 #include "Shader.h"
 #include "Model.h"
+#include "SkyDome.h"
 #include "PlayerParameterLoader.h"
 #include "BattleCollision.h"
 #include "HitEffect.h"
@@ -19,7 +20,7 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// カメラの移動を制限する範囲
+// ・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ移難ｿｽ・ｽE・ｽｧ鯉ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾍ茨ｿｽ
 const float CAMERA_LIMIT_X = 4.0f;
 
 bool SceneKeyConfig::s_isConfigSet = false;
@@ -33,10 +34,10 @@ void SceneKeyConfig::Init()
 	m_configSelectedIndex = 0;
 	m_windowScaleY = 0.0f;
 
-	// フォントシステムの初期化 (DirectWrite版)
+	// ・ｽE・ｽt・ｽE・ｽH・ｽE・ｽ・ｽE・ｽ・ｽE・ｽg・ｽE・ｽV・ｽE・ｽX・ｽE・ｽe・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ擾ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ (DirectWrite・ｽE・ｽ・ｽE・ｽ)
 	SimpleFont::Init(GetDevice(), GetContext());
 
-	// トップメニューの項目を設定
+	// ・ｽE・ｽg・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ搾ｿｽ・ｽE・ｽﾚゑｿｽﾝ抵ｿｽ
 	m_topItems = {
 		{ L"Player 1 Config" },
 		{ L"Player 2 Config" },
@@ -44,7 +45,7 @@ void SceneKeyConfig::Init()
 		{ L"Game Start" }
 	};
 
-	// 選択されているデバイスが接続されていない場合はキーボードに戻す
+	// ・ｽE・ｽI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ・ｽE・ｽf・ｽE・ｽo・ｽE・ｽC・ｽE・ｽX・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚ托ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽﾈゑｿｽ・ｽE・ｽ鼾・・ｽ・ｽﾍキ・ｽE・ｽ[・ｽE・ｽ{・ｽE・ｽ[・ｽE・ｽh・ｽE・ｽﾉ戻ゑｿｽ
 	if (g_inputDeviceP1 != InputDeviceType::KEYBOARD && !IsPadConnected((int)g_inputDeviceP1 - 1))
 	{
 		g_inputDeviceP1 = InputDeviceType::KEYBOARD;
@@ -54,7 +55,7 @@ void SceneKeyConfig::Init()
 		g_inputDeviceP2 = InputDeviceType::KEYBOARD;
 	}
 
-	// 初期のデバイス状態に合わせてメニューのポインタを構築
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌデ・ｽE・ｽo・ｽE・ｽC・ｽE・ｽX・ｽE・ｽ・ｽE・ｽﾔに搾ｿｽ・ｽE・ｽ・ｽ・ｽ・ｽ・ｽE・ｽﾄ・・ｽ・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌポ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ^・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ\・ｽE・ｽz
 	RefreshConfigPointers();
 
 	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
@@ -114,7 +115,44 @@ void SceneKeyConfig::Init()
 	rsDesc.CullMode = D3D11_CULL_BACK;
 	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
 
-	// プレイヤーのアニメーションを読み込む共通ラムダ式
+	// ・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽp・ｽV・ｽF・ｽ[・ｽ_・ｽ[・ｽiVS_Object・ｽj・ｽﾌ用・ｽ・ｽ
+	Shader* vsObj = GetObj<Shader>("VS_Object");
+	if (!vsObj)
+	{
+		vsObj = CreateObj<VertexShader>("VS_Object");
+		vsObj->Load("Assets/Shader/VS_Object.cso");
+	}
+
+	// ・ｽw・ｽi・ｽi・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽj・ｽﾌ読み搾ｿｽ・ｽ・ｽ
+	CreateObj<Model>("SkyModel");
+	Model* skyModel = GetObj<Model>("SkyModel");
+	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
+	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
+	skyModel->SetPixelShader((PixelShader*)GetObj<Shader>("PS_TexColor"));
+	m_skyDome = new SkyDome();
+	m_skyDome->Init(skyModel);
+
+	// ・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽ`・ｽ・ｽp・ｽF・ｽJ・ｽ・ｽ・ｽ・ｽ・ｽO・ｽﾈゑｿｽ・ｽ・ｽ・ｽX・ｽ^・ｽ・ｽ・ｽC・ｽU・ｽ[・ｽX・ｽe・ｽ[・ｽg
+	{
+		D3D11_RASTERIZER_DESC skyRs = {};
+		skyRs.FillMode = D3D11_FILL_SOLID;
+		skyRs.CullMode = D3D11_CULL_NONE;
+		skyRs.FrontCounterClockwise = FALSE;
+		skyRs.DepthClipEnable = FALSE;
+		GetDevice()->CreateRasterizerState(&skyRs, &m_pCullNone);
+	}
+
+	// スカイドーム(最奥)描画用：LESS_EQUAL の深度ステート
+	{
+		D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
+		depthDesc3D.DepthEnable = TRUE;
+		depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthDesc3D.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		depthDesc3D.StencilEnable = FALSE;
+		GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
+	}
+
+	// ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌア・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾇみ搾ｿｽ・ｽE・ｽﾞ具ｿｽ・ｽE・ｽﾊ・・ｽ・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ_・ｽE・ｽ・ｽE・ｽ
 	auto LoadAnims = [](Player* p) {
 		p->GetModel()->LoadAnimation("Assets/Model/knight/Walking.fbx", "Walk", true);
 		p->GetModel()->LoadAnimation("Assets/Model/knight/WalkBack.fbx", "WalkBack", true);
@@ -132,43 +170,43 @@ void SceneKeyConfig::Init()
 		p->GetModel()->LoadAnimation("Assets/Model/knight/Death.fbx", "Death", true);
 		};
 
-	// プレイヤー1の生成と設定
+	// ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[1・ｽE・ｽﾌ撰ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾆ設抵ｿｽ
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	player->SetInputType(PlayerInputType::AI); // キャラが動かないようAI（待機）に固定
+	player->SetInputType(PlayerInputType::AI); // ・ｽE・ｽL・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾈゑｿｽ・ｽE・ｽ謔､AI・ｽE・ｽi・ｽE・ｽﾒ機・ｽE・ｽj・ｽE・ｽﾉ固抵ｿｽ
 	PlayerParameterLoader::LoadSettings(player);
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
-		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Error", MB_OK);
+		MessageBox(NULL, "・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽf・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ読み搾ｿｽ・ｽE・ｽﾝに趣ｿｽ・ｽE・ｽs・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾜゑｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽB", "Error", MB_OK);
 	}
 	LoadAnims(player);
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 	player->Reset();
 
-	// プレイヤー2の生成と設定
+	// ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[2・ｽE・ｽﾌ撰ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾆ設抵ｿｽ
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
-	player2->SetInputType(PlayerInputType::AI); // プレイヤーの操作を無効化
+	player2->SetInputType(PlayerInputType::AI); // ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ托ｿｽ・ｽE・ｽ・ｽE・ｽｳ鯉ｿｽ・ｽE・ｽ・ｽE・ｽ
 	player2->SetMoveSpeed(player->GetMoveSpeed());
 	player2->SetScale(player->GetScale());
 	PlayerParameterLoader::CopyParameters(player, player2);
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
-		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Error", MB_OK);
+		MessageBox(NULL, "・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[2・ｽE・ｽ・ｽE・ｽ・ｽE・ｽf・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ読み搾ｿｽ・ｽE・ｽﾝに趣ｿｽ・ｽE・ｽs・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾜゑｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽB", "Error", MB_OK);
 	}
 	LoadAnims(player2);
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
-	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f }); // 回転だけで向きを調整する
+	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f }); // ・ｽE・ｽ・ｽE・ｽ]・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾅ鯉ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽｲ撰ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 	player2->Reset();
 
-	// エフェクトの初期化
+	// ・ｽE・ｽG・ｽE・ｽt・ｽE・ｽF・ｽE・ｽN・ｽE・ｽg・ｽE・ｽﾌ擾ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 	for (int i = 0; i < 10; i++)
 	{
 		m_hitEffects.push_back(new HitEffect());
 	}
 
-	// カメラの初期設定
+	// ・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ擾ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾝ抵ｿｽ
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -189,6 +227,9 @@ void SceneKeyConfig::Uninit()
 
 	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
 	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
+	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
+	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
+	if (m_pDepthState3D) { m_pDepthState3D->Release(); m_pDepthState3D = nullptr; }
 }
 
 void SceneKeyConfig::RefreshConfigPointers()
@@ -256,7 +297,7 @@ void SceneKeyConfig::Update(float tick)
 		return false;
 		};
 
-	// いずれかのキー割り当てが選択され、入力を待っている状態
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ黷ｩ・ｽE・ｽﾌキ・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ闢厄ｿｽﾄゑｿｽ・ｽE・ｽI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽA・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾍゑｿｽﾒゑｿｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 	if (m_waitBindKeyPtr != nullptr)
 	{
 		bool isP1 = (m_menuState == MenuState::ConfigP1);
@@ -296,10 +337,10 @@ void SceneKeyConfig::Update(float tick)
 	}
 	else
 	{
-		// メニューの階層に応じた操作処理
+		// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ階・ｽE・ｽw・ｽE・ｽﾉ会ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽ・ｽE・ｽ
 		if (m_menuState == MenuState::TopMenu)
 		{
-			// 左右キーでトップメニューのカーソルを移動
+			// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽE・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾅト・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌカ・ｽE・ｽ[・ｽE・ｽ\・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚ難ｿｽ
 			if (isMenuRight())
 			{
 				m_topSelectedIndex = (m_topSelectedIndex + 1) % m_topItems.size();
@@ -309,40 +350,40 @@ void SceneKeyConfig::Update(float tick)
 				m_topSelectedIndex = (m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size();
 			}
 
-			// 決定キーで遷移
+			// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾅ遷・ｽE・ｽ・ｽE・ｽ
 			if (isMenuConfirm())
 			{
 				if (m_topSelectedIndex == 0)
 				{
-					// 1P設定を開く。展開アニメーションのためにスケールを0にリセットする
+					// 1P・ｽE・ｽﾝ抵ｿｽ・ｽE・ｽ・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽB・ｽE・ｽW・ｽE・ｽJ・ｽE・ｽA・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌゑｿｽ・ｽE・ｽﾟにス・ｽE・ｽP・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ0・ｽE・ｽﾉ・・ｽ・ｽ・ｽE・ｽZ・ｽE・ｽb・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 					m_menuState = MenuState::ConfigP1;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
 				}
 				else if (m_topSelectedIndex == 1)
 				{
-					// 2P設定を開く
+					// 2P・ｽE・ｽﾝ抵ｿｽ・ｽE・ｽ・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ
 					m_menuState = MenuState::ConfigP2;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
 				}
 				else if (m_topSelectedIndex == 2)
 				{
-					// トレーニングモードに移行し、両プレイヤーの操作権限を与える
+					// ・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽO・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽh・ｽE・ｽﾉ移行・ｽE・ｽ・ｽE・ｽ・ｽE・ｽA・ｽE・ｽ・ｽE・ｽ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ托ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ^・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 					m_menuState = MenuState::TrainingMode;
 					if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::PLAYER_1);
 					if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::PLAYER_2);
 				}
 				else if (m_topSelectedIndex == 3)
 				{
-					// ゲームスタート
+					// ・ｽE・ｽQ・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽX・ｽE・ｽ^・ｽE・ｽ[・ｽE・ｽg
 					s_isConfigSet = true;
 				}
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
-			// コンフィグ画面が開く際のアニメーション処理（縦に伸びて展開する）
+			// ・ｽE・ｽR・ｽE・ｽ・ｽE・ｽ・ｽE・ｽt・ｽE・ｽB・ｽE・ｽO・ｽE・ｽ・ｽE・ｽﾊゑｿｽ・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾛのア・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽi・ｽE・ｽc・ｽE・ｽﾉ伸・ｽE・ｽﾑて展・ｽE・ｽJ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj
 			if (m_windowScaleY < 1.0f)
 			{
 				m_windowScaleY += tick * 15.0f;
@@ -350,10 +391,10 @@ void SceneKeyConfig::Update(float tick)
 			}
 			else
 			{
-				// 展開アニメーションが終わっている場合のみ操作を受け付ける
+				// ・ｽE・ｽW・ｽE・ｽJ・ｽE・ｽA・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ・ｽE・ｽ鼾・・ｽ・ｽﾌみ托ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽｯ付・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
 
-				// 上下キーで設定項目のカーソルを移動
+				// ・ｽE・ｽ繪ｺ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾅ設定項・ｽE・ｽﾚのカ・ｽE・ｽ[・ｽE・ｽ\・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚ難ｿｽ
 				if (isMenuDown())
 				{
 					m_configSelectedIndex = (m_configSelectedIndex + 1) % currentItems.size();
@@ -363,40 +404,40 @@ void SceneKeyConfig::Update(float tick)
 					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
 				}
 
-				// 決定キーの処理
+				// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾌ擾ｿｽ・ｽE・ｽ・ｽE・ｽ
 				if (isMenuConfirm())
 				{
 					if (currentItems[m_configSelectedIndex].isDeviceSelect)
 					{
-						// デバイス切り替え
+						// ・ｽE・ｽf・ｽE・ｽo・ｽE・ｽC・ｽE・ｽX・ｽE・ｽﾘゑｿｽﾖゑｿｽ
 						InputDeviceType currentDevice = (m_menuState == MenuState::ConfigP1) ? g_inputDeviceP1 : g_inputDeviceP2;
 						InputDeviceType nextDevice = currentDevice;
 
-						// 有効なデバイスが見つかるまでループする（未接続のパッドをスキップ）
+						// ・ｽE・ｽL・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾈデ・ｽE・ｽo・ｽE・ｽC・ｽE・ｽX・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾂゑｿｽ・ｽE・ｽ・ｽE・ｽﾜで・・ｽ・ｽ・ｽE・ｽ[・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽi・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚ托ｿｽ・ｽE・ｽﾌパ・ｽE・ｽb・ｽE・ｽh・ｽE・ｽ・ｽE・ｽ・ｽE・ｽX・ｽE・ｽL・ｽE・ｽb・ｽE・ｽv・ｽE・ｽj
 						do {
 							nextDevice = (InputDeviceType)(((int)nextDevice + 1) % 5);
-							if (nextDevice == InputDeviceType::KEYBOARD) break; // キーボードは常に有効
-							if (IsPadConnected((int)nextDevice - 1)) break;     // 接続されているコントローラーなら有効
+							if (nextDevice == InputDeviceType::KEYBOARD) break; // ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽ{・ｽE・ｽ[・ｽE・ｽh・ｽE・ｽﾍ擾ｿｽﾉ有・ｽE・ｽ・ｽE・ｽ
+							if (IsPadConnected((int)nextDevice - 1)) break;     // ・ｽE・ｽﾚ托ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ・ｽE・ｽR・ｽE・ｽ・ｽE・ｽ・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾈゑｿｽL・ｽE・ｽ・ｽE・ｽ
 						} while (nextDevice != currentDevice);
 
 						if (m_menuState == MenuState::ConfigP1) g_inputDeviceP1 = nextDevice;
 						else g_inputDeviceP2 = nextDevice;
 
-						RefreshConfigPointers(); // 表示とポインタを更新
+						RefreshConfigPointers(); // ・ｽE・ｽ\・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾆポ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ^・ｽE・ｽ・ｽE・ｽ・ｽE・ｽX・ｽE・ｽV
 					}
 					else if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
 					{
-						// Backが選ばれた場合はトップメニューに戻る
+						// Back・ｽE・ｽ・ｽE・ｽ・ｽE・ｽI・ｽE・ｽﾎれた・ｽE・ｽ鼾・・ｽ・ｽﾍト・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾉ戻ゑｿｽ
 						m_menuState = MenuState::TopMenu;
 					}
 					else
 					{
-						// キー割り当て待機状態に移行
+						// ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ闢厄ｿｽﾄ待機・ｽE・ｽ・ｽE・ｽﾔに移行
 						m_waitBindKeyPtr = currentItems[m_configSelectedIndex].keyPtr;
 					}
 				}
 
-				// キャンセルキーでもトップメニューに戻る
+				// ・ｽE・ｽL・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽZ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾅゑｿｽ・ｽE・ｽg・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾉ戻ゑｿｽ
 				if (isMenuCancel())
 				{
 					m_menuState = MenuState::TopMenu;
@@ -405,7 +446,7 @@ void SceneKeyConfig::Update(float tick)
 		}
 		else if (m_menuState == MenuState::TrainingMode)
 		{
-			// トレーニングモード中、ESCキーまたはBACKボタンで戻る
+			// ・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽO・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽh・ｽE・ｽ・ｽE・ｽ・ｽE・ｽAESC・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾜゑｿｽ・ｽE・ｽ・ｽE・ｽBACK・ｽE・ｽ{・ｽE・ｽ^・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾅ戻ゑｿｽ
 			bool exitTraining = false;
 			if (IsKeyTrigger(VK_ESCAPE)) exitTraining = true;
 			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_BACK)) exitTraining = true;
@@ -422,11 +463,11 @@ void SceneKeyConfig::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// プレイヤーの更新
+	// ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ更・ｽE・ｽV
 	if (player) player->Update(tick);
 	if (player2) player2->Update(tick);
 
-	// 当たり判定処理（攻撃のヒットやプレイヤー同士の押し合いを処理する）
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ阡ｻ・ｽE・ｽ闖茨ｿｽ・ｽE・ｽ・ｽE・ｽi・ｽE・ｽU・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌヒ・ｽE・ｽb・ｽE・ｽg・ｽE・ｽ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽm・ｽE・ｽﾌ会ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj
 	BattleCollision::UpdateInteractions(player, player2, tick, m_hitEffects, 6.0f);
 
 	for (auto effect : m_hitEffects)
@@ -434,7 +475,7 @@ void SceneKeyConfig::Update(float tick)
 		effect->Update(tick);
 	}
 
-	// プレイヤーの位置に合わせてカメラが追従・ズームする制御
+	// ・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ位置・ｽE・ｽﾉ搾ｿｽ・ｽE・ｽ・ｽ・ｽ・ｽ・ｽE・ｽﾄカ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾇ従・ｽE・ｽE・ｽE・ｽY・ｽE・ｽ[・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ髏ｧ・ｽE・ｽ・ｽE・ｽ
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -448,7 +489,7 @@ void SceneKeyConfig::Update(float tick)
 		float targetLookY = 1.4f + (maxY * 0.2f);
 		float targetPosY = 1.5f + (maxY * 0.1f);
 
-		// キャラクター間の距離に基づいてカメラの引き具合を計算する
+		// ・ｽE・ｽL・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽN・ｽE・ｽ^・ｽE・ｽ[・ｽE・ｽﾔの具ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾉ奇ｿｽﾃゑｿｽ・ｽE・ｽﾄカ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ茨ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽE・ｽ・ｽ・ｽE・ｽ・ｽE・ｽv・ｽE・ｽZ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 		float distX = fabsf(p1Pos.x - p2Pos.x);
 		float zoomFactorX = 0.45f;
 		float zoomFactorY = 0.8f;
@@ -484,13 +525,16 @@ void SceneKeyConfig::Update(float tick)
 
 		pCamera->SetPos(newPos);
 		pCamera->SetLook(newLook);
+
+		// ・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽJ・ｽ・ｽ・ｽ・ｽ・ｽﾊ置・ｽﾉ追従・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
 	}
 }
 
 void SceneKeyConfig::DrawRectPixel(float px, float py, float pw, float ph, DirectX::XMFLOAT4 color)
 {
-	// 元のSpriteクラスが「指定した座標を中心とする」仕様だったため、
-	// 左上(px, py)に描画されるよう中心座標を計算してからNDCに変換する
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽSprite・ｽE・ｽN・ｽE・ｽ・ｽE・ｽ・ｽE・ｽX・ｽE・ｽ・ｽE・ｽ・ｽE・ｽu・ｽE・ｽw・ｽE・ｽ閧ｵ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽW・ｽE・ｽ・ｽES・ｽE・ｽﾆゑｿｽ・ｽE・ｽ・ｽE・ｽv・ｽE・ｽd・ｽE・ｽl・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾟ、
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ(px, py)・ｽE・ｽﾉ描・ｽE・ｽ謔ｳ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ謔､・ｽE・ｽ・ｽE・ｽ・ｽE・ｽS・ｽE・ｽ・ｽE・ｽ・ｽE・ｽW・ｽE・ｽ・ｽE・ｽ・ｽE・ｽv・ｽE・ｽZ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ・ｽE・ｽNDC・ｽE・ｽﾉ変奇ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 	float centerX = px + pw * 0.5f;
 	float centerY = py + ph * 0.5f;
 
@@ -504,7 +548,7 @@ void SceneKeyConfig::DrawRectPixel(float px, float py, float pw, float ph, Direc
 
 const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 {
-	// アルファベットと数字はそのままワイド文字として返す
+	// ・ｽE・ｽA・ｽE・ｽ・ｽE・ｽ・ｽE・ｽt・ｽE・ｽ@・ｽE・ｽx・ｽE・ｽb・ｽE・ｽg・ｽE・ｽﾆ撰ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾍゑｿｽ・ｽE・ｽﾌまま・・ｽ・ｽ・ｽE・ｽC・ｽE・ｽh・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾆゑｿｽ・ｽE・ｽﾄ返ゑｿｽ
 	if (vk >= 'A' && vk <= 'Z')
 	{
 		static wchar_t buf[2] = { 0 };
@@ -520,7 +564,7 @@ const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 		return buf;
 	}
 
-	// 特殊キーの名称対応
+	// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽ[・ｽE・ｽﾌ厄ｿｽ・ｽE・ｽﾌ対会ｿｽ
 	switch (vk)
 	{
 	case VK_UP: return L"UP";
@@ -542,7 +586,7 @@ const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 	case VK_NUMPAD9: return L"NUM 9";
 	}
 
-	// 上記以外は番号を出力する
+	// ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽﾈ外・ｽE・ｽﾍ番搾ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽo・ｽE・ｽﾍゑｿｽ・ｽE・ｽ・ｽE・ｽ
 	static wchar_t buf[16];
 	swprintf_s(buf, L"Key %d", vk);
 	return buf;
@@ -619,7 +663,18 @@ void SceneKeyConfig::Draw()
 		GetObj<Shader>("PS_Outline")
 	};
 
-	// アウトライン描画パス
+	// ・ｽw・ｽi・ｽi・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽj・ｽﾌ描・ｽ・ｽB・ｽv・ｽ・ｽ・ｽC・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽﾉ描・ｽ・ｽ
+	if (m_skyDome && pCamera)
+	{
+		// スカイドーム(最奥)を描画するため LESS_EQUAL をセット
+		if (m_pDepthState3D) GetContext()->OMSetDepthStencilState(m_pDepthState3D, 0);
+
+		if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
+		m_skyDome->Draw(pCamera->GetView(), pCamera->GetProj(), GetObj<Shader>("VS_Object"));
+		GetContext()->RSSetState(nullptr);
+	}
+
+	// ・ｽE・ｽA・ｽE・ｽE・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽC・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽp・ｽE・ｽX
 	if (player) {
 		bool isFlipped = (player->GetScale().x < 0.0f);
 		if (isFlipped) {
@@ -670,7 +725,7 @@ void SceneKeyConfig::Draw()
 		player2->Draw();
 	}
 
-	// 通常モデル描画パス
+	// ・ｽE・ｽﾊ常モ・ｽE・ｽf・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽp・ｽE・ｽX
 	if (player) {
 		bool isFlipped = (player->GetScale().x < 0.0f);
 		if (isFlipped) {
@@ -729,7 +784,7 @@ void SceneKeyConfig::Draw()
 
 	if (m_pCullBack) GetContext()->RSSetState(m_pCullBack);
 
-	// 飛び道具の描画
+	// ・ｽE・ｽ・ｽE・ｽﾑ難ｿｽ・ｽE・ｽ・ｽE・ｽﾌ描・ｽE・ｽ・ｽE・ｽ
 	if (player && player->GetProjectile())
 	{
 		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
@@ -739,7 +794,7 @@ void SceneKeyConfig::Draw()
 		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
 	}
 
-	// ヒットエフェクトの描画
+	// ・ｽE・ｽq・ｽE・ｽb・ｽE・ｽg・ｽE・ｽG・ｽE・ｽt・ｽE・ｽF・ｽE・ｽN・ｽE・ｽg・ｽE・ｽﾌ描・ｽE・ｽ・ｽE・ｽ
 	DirectX::XMFLOAT4X4 view = pCamera->GetView();
 	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
 	for (auto effect : m_hitEffects)
@@ -747,17 +802,17 @@ void SceneKeyConfig::Draw()
 		effect->Draw(view, proj);
 	}
 
-	// トレーニングモード以外の場合のみ、UIを描画する
+	// ・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽO・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽh・ｽE・ｽﾈ外・ｽE・ｽﾌ場合・ｽE・ｽﾌみ、UI・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ謔ｷ・ｽE・ｽ・ｽE・ｽ
 	if (m_menuState != MenuState::TrainingMode)
 	{
 		SimpleUI::Clear();
 
-		// 画面上部にトップメニュー用の少し明るめのネイビーブルー背景を描画
+		// ・ｽE・ｽ・ｽE・ｽﾊ上部・ｽE・ｽﾉト・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽp・ｽE・ｽﾌ擾ｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾟのネ・ｽE・ｽC・ｽE・ｽr・ｽE・ｽ[・ｽE・ｽu・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽw・ｽE・ｽi・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽ
 		DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
 
 		if (m_menuState == MenuState::TopMenu)
 		{
-			// トップメニューの項目枠を描画
+			// ・ｽE・ｽg・ｽE・ｽb・ｽE・ｽv・ｽE・ｽ・ｽE・ｽ・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽﾌ搾ｿｽ・ｽE・ｽﾚ枠・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽ
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
@@ -766,13 +821,13 @@ void SceneKeyConfig::Draw()
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
-			// コンフィグ用のパネルを描画（中央から上下に伸びる演出計算）
-			float panelHeight = 540.0f * m_windowScaleY; // 項目が増えたので枠を広げる
+			// ・ｽE・ｽR・ｽE・ｽ・ｽE・ｽ・ｽE・ｽt・ｽE・ｽB・ｽE・ｽO・ｽE・ｽp・ｽE・ｽﾌパ・ｽE・ｽl・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽi・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ繪ｺ・ｽE・ｽﾉ伸・ｽE・ｽﾑる演・ｽE・ｽo・ｽE・ｽv・ｽE・ｽZ・ｽE・ｽj
+			float panelHeight = 540.0f * m_windowScaleY; // ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚゑｿｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌで枠・ｽE・ｽ・ｽE・ｽ・ｽE・ｽL・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ
 			float panelY = 150.0f + (540.0f - panelHeight) / 2.0f;
 
 			DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
 
-			// 枠の展開アニメーションが終わってから中身の項目枠を描画する
+			// ・ｽE・ｽg・ｽE・ｽﾌ展・ｽE・ｽJ・ｽE・ｽA・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾄゑｿｽ・ｽE・ｽ迺・・ｽ・ｽg・ｽE・ｽﾌ搾ｿｽ・ｽE・ｽﾚ枠・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ謔ｷ・ｽE・ｽ・ｽE・ｽ
 			if (m_windowScaleY >= 1.0f)
 			{
 				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
@@ -784,10 +839,10 @@ void SceneKeyConfig::Draw()
 			}
 		}
 
-		// 登録した四角形UIを一括描画
+		// ・ｽE・ｽo・ｽE・ｽ^・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽl・ｽE・ｽp・ｽE・ｽ`UI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ鼕・・ｽ・ｽ`・ｽE・ｽ・ｽE・ｽ
 		SimpleUI::DrawAll();
 
-		// ここからDirectWriteによるフォントの描画処理
+		// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽDirectWrite・ｽE・ｽﾉゑｿｽ・ｽE・ｽt・ｽE・ｽH・ｽE・ｽ・ｽE・ｽ・ｽE・ｽg・ｽE・ｽﾌ描・ｽE・ｽ謠茨ｿｽ・ｽE・ｽ
 		SimpleFont::Begin();
 
 		if (m_menuState == MenuState::TopMenu)
@@ -803,7 +858,7 @@ void SceneKeyConfig::Draw()
 			bool isP1 = (m_menuState == MenuState::ConfigP1);
 			SimpleFont::Draw(isP1 ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
 
-			// 枠のアニメーション終了後に各項目のテキストを描画
+			// ・ｽE・ｽg・ｽE・ｽﾌア・ｽE・ｽj・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ[・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽI・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾉ各・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾚのテ・ｽE・ｽL・ｽE・ｽX・ｽE・ｽg・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽ
 			if (m_windowScaleY >= 1.0f)
 			{
 				std::vector<ConfigItem>& currentItems = isP1 ? m_p1Items : m_p2Items;
@@ -813,10 +868,10 @@ void SceneKeyConfig::Draw()
 				{
 					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
 
-					// アクション名を描画 (例: Light Punch)
+					// ・ｽE・ｽA・ｽE・ｽN・ｽE・ｽV・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽ (・ｽE・ｽ・ｽE・ｽ: Light Punch)
 					SimpleFont::Draw(currentItems[i].label, 80, 175 + i * 45, 20.0f, textColor);
 
-					// 現在の割り当てキー、または待機中のメッセージを描画
+					// ・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾝの奇ｿｽ・ｽE・ｽ闢厄ｿｽﾄキ・ｽE・ｽ[・ｽE・ｽA・ｽE・ｽﾜゑｿｽ・ｽE・ｽﾍ待機・ｽE・ｽ・ｽE・ｽ・ｽE・ｽﾌ・・ｽ・ｽ・ｽE・ｽb・ｽE・ｽZ・ｽE・ｽ[・ｽE・ｽW・ｽE・ｽ・ｽE・ｽ`・ｽE・ｽ・ｽE・ｽ
 					if (currentItems[i].isDeviceSelect)
 					{
 						SimpleFont::Draw(GetDeviceName(currentDevice), 250, 175 + i * 45, 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });

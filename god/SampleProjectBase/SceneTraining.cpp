@@ -79,6 +79,43 @@ void SceneTraining::Init()
 		GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullBack);
 	}
 
+	// --- スカイドーム用シェーダー（VS_Object）の用意 ---
+	Shader* vsObj = GetObj<Shader>("VS_Object");
+	if (!vsObj)
+	{
+		vsObj = CreateObj<VertexShader>("VS_Object");
+		vsObj->Load("Assets/Shader/VS_Object.cso");
+	}
+
+	// --- 背景（スカイドーム）の読み込み ---
+	CreateObj<Model>("SkyModel");
+	Model* skyModel = GetObj<Model>("SkyModel");
+	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
+	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
+	skyModel->SetPixelShader((PixelShader*)GetObj<Shader>("PS_TexColor"));
+	m_skyDome = new SkyDome();
+	m_skyDome->Init(skyModel);
+
+	// --- スカイドーム描画用：カリングなしラスタライザーステート ---
+	{
+		D3D11_RASTERIZER_DESC rsDesc = {};
+		rsDesc.FillMode = D3D11_FILL_SOLID;
+		rsDesc.CullMode = D3D11_CULL_NONE;
+		rsDesc.FrontCounterClockwise = FALSE;
+		rsDesc.DepthClipEnable = FALSE;
+		GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
+	}
+
+	// --- スカイドーム(最奥)も描画できるよう LESS_EQUAL の深度ステートを用意 ---
+	{
+		D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
+		depthDesc3D.DepthEnable = TRUE;
+		depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthDesc3D.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		depthDesc3D.StencilEnable = FALSE;
+		GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
+	}
+
 	// --- 1P（操作キャラ）---
 	CreateObj<Player>("Player");
 	Player* p1 = GetObj<Player>("Player");
@@ -129,6 +166,9 @@ void SceneTraining::Uninit()
 	m_hitEffects.clear();
 	if (m_pCullFront) { m_pCullFront->Release(); m_pCullFront = nullptr; }
 	if (m_pCullBack) { m_pCullBack->Release(); m_pCullBack = nullptr; }
+	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
+	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
+	if (m_pDepthState3D) { m_pDepthState3D->Release(); m_pDepthState3D = nullptr; }
 }
 
 PlayerInputs SceneTraining::BuildDummyInputs(Player* dummy, float tick)
@@ -262,6 +302,9 @@ void SceneTraining::Update(float tick)
 		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
 		pCamera->SetPos({ centerX, 1.5f, -5.0f });
 		pCamera->SetLook({ centerX, 1.2f, 0.0f });
+
+		// スカイドームをカメラ位置に追従させる
+		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
 	}
 }
 
@@ -315,6 +358,18 @@ void SceneTraining::Draw()
 {
 	Player* p1 = GetObj<Player>("Player");
 	Player* p2 = GetObj<Player>("Player2");
+
+	// 背景（スカイドーム）の描画。プレイヤーより先に描く
+	CameraBase* pSkyCam = GetObj<CameraBase>("Camera");
+	if (m_skyDome && pSkyCam)
+	{
+		// スカイドーム(最奥)を描画するため LESS_EQUAL をセット
+		if (m_pDepthState3D) GetContext()->OMSetDepthStencilState(m_pDepthState3D, 0);
+
+		if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
+		m_skyDome->Draw(pSkyCam->GetView(), pSkyCam->GetProj(), GetObj<Shader>("VS_Object"));
+		GetContext()->RSSetState(nullptr);
+	}
 
 	DrawPlayer(p1);
 	DrawPlayer(p2);
