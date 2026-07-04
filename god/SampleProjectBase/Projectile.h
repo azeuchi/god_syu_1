@@ -46,7 +46,7 @@ private:
 
 	DirectX::BoundingBox m_hitbox;
 	static Texture* s_texture;
-	// パーティクル用の丸ぼかしテクスチャ（コード生成）
+	// パーティクル用の丸ぼかしテクスチャ
 	static Texture* s_softTex;
 
 	// --- 後方に撒くパーティクル演出 ---
@@ -54,7 +54,7 @@ private:
 	{
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMFLOAT2 vel;
-		float life = 0.0f;    // 残り寿命（0以下で消滅）
+		float life = 0.0f;    // 残り寿命。0以下で消滅
 		float maxLife = 0.0f;
 		float size = 0.0f;
 	};
@@ -62,6 +62,6 @@ private:
 	Particle m_particles[MAX_PARTICLES];
 	float m_spawnTimer = 0.0f; // 次のパーティクル発生までのタイマー
 
-	// 画面外（カメラの外）消滅の閾値
+	// 画面外で消滅する閾値
 	const float CAMERA_OUT_LIMIT = 10.0f;
 };

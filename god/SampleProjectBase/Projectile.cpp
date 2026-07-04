@@ -10,7 +10,7 @@ Texture* Projectile::s_softTex = nullptr;
 
 namespace
 {
-	// 0.0から1.0の乱数（パーティクルの散らばり用）
+	// 0.0から1.0の乱数
 	float Rand01() { return (float)rand() / (float)RAND_MAX; }
 }
 
@@ -29,8 +29,7 @@ Projectile::Projectile()
 		s_texture->Create("Assets/Texture/particle.png");
 	}
 
-	// パーティクル用の丸いぼかしテクスチャをコードで生成する
-	// （中心が不透明で外へ向かって透明になる白い円。色は描画時に付ける）
+	// パーティクル用の丸ぼかしテクスチャを生成する。色は描画時に付ける
 	if (!s_softTex)
 	{
 		const int W = 64;
@@ -44,7 +43,7 @@ Projectile::Projectile()
 				float r = sqrtf(dx * dx + dy * dy);
 				float fall = 1.0f - r;
 				if (fall < 0.0f) fall = 0.0f;
-				fall *= 1.8f; if (fall > 1.0f) fall = 1.0f; // 中心を不透明に飽和させる（半透明破棄対策）
+				fall *= 1.8f; if (fall > 1.0f) fall = 1.0f; // 中心を不透明に飽和させて半透明破棄を防ぐ
 				BYTE a = (BYTE)(fall * 255.0f);
 				BYTE* px = &pixels[(y * W + x) * 4];
 				px[0] = 255; px[1] = 255; px[2] = 255; px[3] = a;
@@ -137,7 +136,7 @@ void Projectile::Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4
 	Sprite::SetUVPos({ 0.0f, 0.0f });
 	Sprite::SetUVScale({ 1.0f, 1.0f });
 
-	// --- パーティクル（弾より先＝後ろに描く）---
+	// パーティクルは弾より奥に描く
 	for (const auto& p : m_particles)
 	{
 		if (p.life <= 0.0f) continue;
@@ -148,16 +147,16 @@ void Projectile::Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4
 		DirectX::XMFLOAT4X4 world;
 		DirectX::XMStoreFloat4x4(&world, DirectX::XMMatrixTranspose(mS * mT));
 		Sprite::SetWorld(world);
-		// 青みがかった色（不透明寄りにして描画設定に消されないようにする）
+		// 青みの粒。薄くすると破棄されるため不透明寄りにする
 		Sprite::SetColor({ 0.5f, 0.75f, 1.0f, 0.9f });
 		Sprite::Draw();
 	}
 
 	if (!m_isActive) return;
 
-	// --- 弾本体（元のまま：画像を1枚描くだけ）---
+	// 弾本体
 	// 左向きの場合はXスケールをマイナスにして画像を左右反転させる
-	Sprite::SetTexture(s_texture); // 本体は元の画像に戻す
+	Sprite::SetTexture(s_texture); // 本体のテクスチャへ戻す
 	float scaleX = m_isRight ? m_size : -m_size;
 	DirectX::XMMATRIX mScale = DirectX::XMMatrixScaling(scaleX, m_size, 1.0f);
 	DirectX::XMMATRIX mTrans = DirectX::XMMatrixTranslation(m_position.x, m_position.y, m_position.z);

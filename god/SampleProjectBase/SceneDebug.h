@@ -38,9 +38,9 @@ private:
 	// (trueなら攻撃判定の描画や、終了フレームの監視を行う)
 	bool m_isAttacking = false;
 
-	// 背景スカイドーム（ゲームシーンと同じ見た目にするため）
+	// 背景スカイドーム
 	SkyDome* m_skyDome = nullptr;
-	PlayerRenderer m_playerRenderer; // プレイヤー描画（アウトライン共通）
+	PlayerRenderer m_playerRenderer;
 
 	// アニメーション一時停止フラグ
 	// (trueならアニメーションを進めない、またはコマ送りモード)

@@ -10,12 +10,12 @@ SkyDome::~SkyDome()
 	if (m_pDepthLessEqual) { m_pDepthLessEqual->Release(); m_pDepthLessEqual = nullptr; }
 }
 
-// 背景一式（モデル・シェーダー・ステート）をまとめて用意する
+// モデル・シェーダー・ステートをまとめて用意する
 bool SkyDome::Setup(SceneBase* scene)
 {
 	if (!scene) return false;
 
-	// 必要なシェーダーを用意（無ければ生成）
+	// シェーダーが無ければ生成
 	Shader* vsObj = scene->GetObj<Shader>("VS_Object");
 	if (!vsObj)
 	{
@@ -41,7 +41,7 @@ bool SkyDome::Setup(SceneBase* scene)
 	skyModel->SetPixelShader((PixelShader*)psTex);
 	m_pModel = skyModel;
 
-	// 最奥描画用：カリングなし＋深度 LESS_EQUAL のステートを生成
+	// カリングなしと深度 LESS_EQUAL を生成
 	D3D11_RASTERIZER_DESC rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
 	rsDesc.CullMode = D3D11_CULL_NONE;
@@ -122,6 +122,6 @@ void SkyDome::DrawWithState(const DirectX::XMFLOAT4X4& viewMatrix, const DirectX
 
 	Draw(viewMatrix, projMatrix, m_pVS);
 
-	// 後続のモデル描画のため既定（裏面カリング）へ戻す
+	// 既定の裏面カリングへ戻す
 	GetContext()->RSSetState(nullptr);
 }

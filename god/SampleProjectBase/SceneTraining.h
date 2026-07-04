@@ -33,13 +33,13 @@ private:
 	// トレーニング設定からダミー(2P)の1フレーム分の入力を組み立てる
 	PlayerInputs BuildDummyInputs(Player* dummy, float tick);
 
-	// エフェクト管理（ヒットエフェクトのプール）
+	// ヒットエフェクトのプール
 	HitEffectPool m_hitEffects;
 
-	// プレイヤー描画（アウトライン＋カリングはゲームと共通）
+	// プレイヤー描画の共通ヘルパー
 	PlayerRenderer m_playerRenderer;
 
-	// 背景スカイドーム（ゲームシーンと同じ見た目にするため）
+	// 背景スカイドーム
 	SkyDome* m_skyDome = nullptr;
 
 	bool m_showImGui = true;

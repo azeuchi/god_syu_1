@@ -78,9 +78,9 @@ private:
 
 	HitEffectPool m_hitEffects;
 
-	// プレイヤー描画（アウトライン・カリングをゲームと共通化）
+	// プレイヤー描画の共通ヘルパー
 	PlayerRenderer m_playerRenderer;
 
-	// 背景スカイドーム（ゲームシーンと同じ見た目にするため）
+	// 背景スカイドーム
 	SkyDome* m_skyDome = nullptr;
 };

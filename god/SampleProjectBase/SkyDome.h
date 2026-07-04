@@ -13,14 +13,14 @@ public:
 	SkyDome();
 	~SkyDome();
 
-	// 背景一式（モデル・シェーダー・描画ステート）をシーンにまとめて用意する
+	// モデル・シェーダー・ステートをまとめて用意する
 	bool Setup(SceneBase* scene);
 
 	void Init(Model* pModel);
 	void Update(const DirectX::XMFLOAT3& camPos);
 	void Draw(const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projMatrix, Shader* pShader);
 
-	// 最奥描画用のステートを内部で設定して描画する（描画後に既定へ戻す）
+	// 最奥描画用のステートを設定して描画する
 	void DrawWithState(const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projMatrix);
 
 	DirectX::XMFLOAT3* GetScalePtr() { return &m_scale; }
@@ -30,7 +30,7 @@ public:
 private:
 	Model* m_pModel = nullptr;
 	Shader* m_pVS = nullptr; // VS_Object
-	// 最奥描画用ステート（カリングなし／深度 LESS_EQUAL）
+	// 最奥描画用ステート
 	ID3D11RasterizerState* m_pCullNone = nullptr;
 	ID3D11DepthStencilState* m_pDepthLessEqual = nullptr;
 	DirectX::XMFLOAT3 m_pos = { 0.0f,0.0f,0.0f }; // スカイドームの位置

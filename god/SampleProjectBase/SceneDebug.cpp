@@ -192,11 +192,11 @@ void SceneDebug::Init()
 		}
 	}
 
-	// --- 背景（スカイドーム）一式を用意 ---
+	// --- スカイドームを用意 ---
 	m_skyDome = new SkyDome();
 	m_skyDome->Setup(this);
 
-	// --- プレイヤー描画ヘルパー（アウトライン・カリングをゲームと共通で用意）---
+	// --- プレイヤー描画ヘルパーを用意---
 	m_playerRenderer.Setup(this);
 
 	// --- プレイヤー生成 ---
@@ -208,7 +208,7 @@ void SceneDebug::Init()
 	// --- 設定ファイルからパラメータ読み込み ---
 	PlayerParameterLoader::LoadSettings(player);
 
-	// --- モデル・アニメーションロード（アニメは全シーン共通）---
+	// --- モデル・アニメーションロード---
 	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
 	PlayerAssetLoader::LoadCommonAnimations(player);
 
@@ -358,10 +358,10 @@ void SceneDebug::Draw()
 
 	Player* player = GetObj<Player>("Player");
 	if (player) {
-		// 背景（スカイドーム）の描画。プレイヤーより先に描く
+		// スカイドームはプレイヤーより先に描く
 		if (m_skyDome) m_skyDome->DrawWithState(pCamera->GetView(), pCamera->GetProj());
 
-		// プレイヤー描画（アウトライン＋本体：ゲームと共通）
+		// アウトラインと本体を描く
 		m_playerRenderer.DrawOutline(this, player);
 		m_playerRenderer.DrawBody(this, player);
 

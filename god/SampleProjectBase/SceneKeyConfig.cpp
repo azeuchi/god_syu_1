@@ -99,10 +99,10 @@ void SceneKeyConfig::Init()
 		}
 	}
 
-	// プレイヤー描画ヘルパー（アウトライン・カリングをゲームと共通で用意）
+	// プレイヤー描画ヘルパーを用意
 	m_playerRenderer.Setup(this);
 
-	// 背景（スカイドーム）一式を用意
+	// スカイドームを用意
 	m_skyDome = new SkyDome();
 	m_skyDome->Setup(this);
 
@@ -560,16 +560,16 @@ void SceneKeyConfig::Draw()
 	Player* player2 = GetObj<Player>("Player2");
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 
-	// 背景（スカイドーム）の描画。プレイヤーより先に描く
+	// スカイドームはプレイヤーより先に描く
 	if (m_skyDome && pCamera) m_skyDome->DrawWithState(pCamera->GetView(), pCamera->GetProj());
 
-	// プレイヤー描画（ゲームと同じく、先に全員のアウトライン→次に本体）
+	// 先に全員のアウトライン、次に本体を描く
 	m_playerRenderer.DrawOutline(this, player);
 	m_playerRenderer.DrawOutline(this, player2);
 	m_playerRenderer.DrawBody(this, player);
 	m_playerRenderer.DrawBody(this, player2);
 
-	// 飛び道具は通常のカリング（裏面）で描くため既定へ戻す
+	// 既定の裏面カリングへ戻す
 	GetContext()->RSSetState(nullptr);
 
 

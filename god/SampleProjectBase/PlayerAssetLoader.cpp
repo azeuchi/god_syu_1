@@ -6,7 +6,7 @@ namespace
 {
 	struct AnimEntry { const char* file; const char* name; };
 
-	// knight モデルが使う共通アニメーション（ファイルと登録名）
+	// knight モデルの共通アニメーション一覧
 	const AnimEntry kCommonAnims[] = {
 		{ "Assets/Model/knight/Walking.fbx",     "Walk" },
 		{ "Assets/Model/knight/WalkBack.fbx",    "WalkBack" },

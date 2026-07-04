@@ -4,7 +4,7 @@
 
 class HitEffect;
 
-// ヒットエフェクトのプール（生成・更新・描画・解放をまとめる）
+// ヒットエフェクトのプール
 class HitEffectPool
 {
 public:

@@ -37,7 +37,7 @@ private:
 
 	SkyDome* m_skyDome;
 
-	// プレイヤー描画（アウトライン・カリングをゲームと共通化）
+	// プレイヤー描画の共通ヘルパー
 	PlayerRenderer m_playerRenderer;
 
 	//エフェクト管理用リスト

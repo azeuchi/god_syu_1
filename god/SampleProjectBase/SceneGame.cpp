@@ -205,7 +205,7 @@ void SceneGame::Init()
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
-	// アニメーション読み込み（全シーン共通）
+	// アニメーション読み込み
 	PlayerAssetLoader::LoadCommonAnimations(player);
 
 
@@ -299,7 +299,7 @@ void SceneGame::Init()
 	rsDesc.MultisampleEnable = FALSE;
 	rsDesc.AntialiasedLineEnable = FALSE;
 
-	// プレイヤー描画ヘルパー（表面/裏面カリングをまとめて用意）
+	// プレイヤー描画ヘルパーを用意
 	m_playerRenderer.Setup(this);
 
 	// スカイドーム用：カリングなし
@@ -986,7 +986,7 @@ void SceneGame::Draw()
 	// プレイヤー等の描画に影響が出ないよう、通常の深度設定（書き込みあり）に戻す
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
-	// プレイヤー描画（先に全員のアウトライン→次に本体。共通ヘルパーに集約）
+	// 先に全員のアウトライン、次に本体を描く
 	m_playerRenderer.DrawOutline(this, player, m_shakeOffsetP1);
 	m_playerRenderer.DrawOutline(this, player2, m_shakeOffsetP2);
 	m_playerRenderer.DrawBody(this, player, m_shakeOffsetP1);

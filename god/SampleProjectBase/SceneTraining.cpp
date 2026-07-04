@@ -50,10 +50,10 @@ void SceneTraining::Init()
 		}
 	}
 
-	// --- プレイヤー描画ヘルパー（アウトライン・カリングをゲームと共通で用意）---
+	// --- プレイヤー描画ヘルパー ---
 	m_playerRenderer.Setup(this);
 
-	// --- 背景（スカイドーム）一式を用意 ---
+	// --- スカイドームを用意 ---
 	m_skyDome = new SkyDome();
 	m_skyDome->Setup(this);
 
@@ -245,11 +245,11 @@ void SceneTraining::Draw()
 	Player* p1 = GetObj<Player>("Player");
 	Player* p2 = GetObj<Player>("Player2");
 
-	// 背景（スカイドーム）の描画。プレイヤーより先に描く
+	// スカイドームはプレイヤーより先に描く
 	CameraBase* pSkyCam = GetObj<CameraBase>("Camera");
 	if (m_skyDome && pSkyCam) m_skyDome->DrawWithState(pSkyCam->GetView(), pSkyCam->GetProj());
 
-	// プレイヤー描画（ゲームと同じく、先に全員のアウトライン→次に本体）
+	// 先に全員のアウトライン、次に本体を描く
 	m_playerRenderer.DrawOutline(this, p1);
 	m_playerRenderer.DrawOutline(this, p2);
 	m_playerRenderer.DrawBody(this, p1);

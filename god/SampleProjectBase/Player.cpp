@@ -532,8 +532,7 @@ void Player::UpdateAnimation(float tick)
 		// 攻撃判定生成用のタイマーをフレームと同期
 		if (m_pActiveAttackParams)
 		{
-			// 攻撃判定の発生タイミングは経過時間（60FPS基準）で測る。
-			// アニメ再生速度を変えても判定が前後にズレないようにするため。
+			// 攻撃判定は実経過時間で測る。アニメ再生速度でズレないようにするため
 			m_attackTimer = m_attackElapsedSec * 60.0f;
 		}
 	}
@@ -926,7 +925,7 @@ void Player::UpdateAttackBoxes()
 	// 発生から持続終了までの間かどうかをチェック
 	float startFrame = m_pActiveAttackParams->hitboxStart * 60.0f;
 	float endFrame = m_pActiveAttackParams->hitboxEnd * 60.0f;
-	// 発生判定はゲームフレーム（経過時間）で行う。アニメフレームだと再生速度ぶん前にズレるため。
+	// 発生判定も実経過時間基準。アニメフレームだと再生速度ぶんズレるため
 	float judgeFrame = m_attackTimer;
 	bool isHitActive = (judgeFrame >= startFrame && judgeFrame < endFrame);
 

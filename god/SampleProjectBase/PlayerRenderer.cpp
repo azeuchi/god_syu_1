@@ -54,7 +54,7 @@ bool PlayerRenderer::Setup(SceneBase* scene)
 		sh->Load(d.file);
 	}
 
-	// 反転モデル（2P）にも対応するため表面／裏面カリングを用意
+	// 反転モデル用に表裏のカリングを用意
 	D3D11_RASTERIZER_DESC rs = {};
 	rs.FillMode = D3D11_FILL_SOLID;
 	rs.FrontCounterClockwise = FALSE;
