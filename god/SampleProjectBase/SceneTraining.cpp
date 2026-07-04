@@ -11,6 +11,7 @@
 #include "BattleCollision.h"
 #include "PlayerParameterLoader.h"
 #include "PlayerAssetLoader.h"
+#include "Projectile.h"
 #include "DirectX.h"
 #include <system/imgui/imgui.h>
 #include <algorithm>
@@ -259,12 +260,14 @@ void SceneTraining::Draw()
 	if (p2) { p2->DrawBoundingBox(); p2->DrawHitbox(); p2->DrawActiveHurtboxes(); }
 #endif
 
-	// ヒットエフェクト
+	// 飛び道具（波動拳）とヒットエフェクト
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
 		XMFLOAT4X4 view = pCamera->GetView();
 		XMFLOAT4X4 proj = pCamera->GetProj();
+		if (p1 && p1->GetProjectile()) p1->GetProjectile()->Draw(view, proj);
+		if (p2 && p2->GetProjectile()) p2->GetProjectile()->Draw(view, proj);
 		m_hitEffects.Draw(view, proj);
 	}
 
