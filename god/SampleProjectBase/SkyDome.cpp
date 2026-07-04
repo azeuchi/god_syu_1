@@ -60,7 +60,7 @@ bool SkyDome::Setup(SceneBase* scene)
 }
 
 //=========================================
-// ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+// 初期化
 //=========================================
 void SkyDome::Init(Model* pModel)
 {
@@ -68,46 +68,46 @@ void SkyDome::Init(Model* pModel)
 }
 
 //=========================================
-// ・ｽX・ｽV
+// 更新
 //=========================================
 void SkyDome::Update(const DirectX::XMFLOAT3& camPos)
 {
-	// ・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽﾌ抵ｿｽ・ｽS・ｽ・ｽ・ｽ・ｽﾉカ・ｽ・ｽ・ｽ・ｽ・ｽﾌ位置・ｽ・ｽ・ｽ・ｽ・ｽ墲ｹ・ｽ・ｽ
+	// スカイドームの中心を常にカメラの位置を合わせる
 	//m_pos = camPos;
 
-	// ・ｽJ・ｽ・ｽ・ｽ・ｽ・ｽﾊ置 + ・ｽ闢ｮ・ｽI・ｽt・ｽZ・ｽb・ｽg
+	// カメラ位置 + 手動オフセット
 	m_pos.x = camPos.x + m_offset.x;
 	m_pos.y = camPos.y + m_offset.y;
 	m_pos.z = camPos.z + m_offset.z;
 }
 
 //=========================================
-// ・ｽ`・ｽ・ｽ
+// 描画
 //=========================================
 void SkyDome::Draw(const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projMatrix, Shader* pShader)
 {
 	if (!m_pModel || !pShader)return;
 
-	// ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽh・ｽs・ｽ・ｽﾌ計・ｽZ
+	// ワールド行列の計算
 	DirectX::XMMATRIX matScale = DirectX::XMMatrixScaling(m_scale.x, m_scale.y, m_scale.z);
 	DirectX::XMMATRIX matTrans = DirectX::XMMatrixTranslation(m_pos.x, m_pos.y, m_pos.z);
 	
 	DirectX::XMMATRIX worldMat = matScale * matTrans;
 
-	// ・ｽ關費ｿｽo・ｽb・ｽt・ｽ@・ｽﾌ擾ｿｽ・ｽ・ｽ
+	// 定数バッファの準備
 	DirectX::XMFLOAT4X4 mat[3];
-	DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixTranspose(worldMat)); // ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽh
-	mat[1] = viewMatrix; // ・ｽr・ｽ・ｽ・ｽ[
-	mat[2] = projMatrix; // ・ｽv・ｽ・ｽ・ｽW・ｽF・ｽN・ｽV・ｽ・ｽ・ｽ・ｽ
+	DirectX::XMStoreFloat4x4(&mat[0], DirectX::XMMatrixTranspose(worldMat)); // ワールド
+	mat[1] = viewMatrix; // ビュー
+	mat[2] = projMatrix; // プロジェクション
 
-	// ・ｽV・ｽF・ｽ[・ｽ_・ｽ[・ｽﾉ擾ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽﾝ、・ｽZ・ｽb・ｽg
+	// シェーダーに書き込み、セット
 	pShader->WriteBuffer(0, mat);
 
-	// ・ｽ・ｽ・ｽ_・ｽV・ｽF・ｽ[・ｽ_・ｽ[・ｽ・ｽ・ｽZ・ｽb・ｽg
+	// 頂点シェーダーをセット
 	m_pModel->SetVertexShader(pShader);
 	//m_pModel->SetPixelShader(pShader);
 
-	// ・ｽ`・ｽ・ｽ
+	// 描画
 	m_pModel->Draw(0);
 }
 

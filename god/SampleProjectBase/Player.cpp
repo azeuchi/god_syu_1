@@ -7,7 +7,7 @@
 #include "Model.h"
 #include <Xinput.h>
 
-// ・ｽX・ｽe・ｽ[・ｽg・ｽp・ｽ^・ｽ[・ｽ・ｽ・ｽp
+// ステートパターン用
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
 #include "LightPunch.h" 
@@ -36,44 +36,44 @@ InputDeviceType g_inputDeviceP1 = InputDeviceType::KEYBOARD;
 InputDeviceType g_inputDeviceP2 = InputDeviceType::PAD_0;
 
 namespace {
-	// ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾌ指・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾉゑｿｽ・ｽ・ｽ・ｽ體厄ｿｽ・ｽ・ｽ阡ｻ・ｽ・ｽﾌ位置・ｽﾆサ・ｽC・ｽY・ｽ・ｽ・ｽv・ｽZ・ｽ・ｽ・ｽ・ｽw・ｽ・ｽ・ｽp・ｽ[・ｽﾖ撰ｿｽ
+	// アニメーション中の指定フレームにおける当たり判定の位置とサイズを計算するヘルパー関数
 	BoxData CalculateInterpolatedBox(const AnimatedBox& animBox, float currentFrame)
 	{
-		// ・ｽL・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾝゑｿｽ・ｽﾈゑｿｽ・ｽ鼾・ｿｽﾍ擾ｿｽ・ｽ・ｽ・ｽl・ｽ・ｽﾔゑｿｽ
+		// キーフレームが存在しない場合は初期値を返す
 		if (animBox.keyframes.empty())
 		{
 			return BoxData();
 		}
 
-		// ・ｽL・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ1・ｽﾂゑｿｽ・ｽ・ｽ・ｽﾈゑｿｽA・ｽ・ｽﾉゑｿｽ・ｽﾌ値・ｽ・ｽ・ｽg・ｽ・ｽ
+		// キーフレームが1つだけなら、常にその値を使う
 		if (animBox.keyframes.size() == 1)
 		{
 			return animBox.keyframes[0].data;
 		}
 
-		// ・ｽ・ｽ・ｽﾝフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽﾅ擾ｿｽ・ｽﾌキ・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽO・ｽﾈゑｿｽA・ｽﾅ擾ｿｽ・ｽﾌ値・ｽ・ｽ・ｽg・ｽ・ｽ
+		// 現在フレームが最初のキーフレームより前なら、最初の値を使う
 		if (currentFrame <= animBox.keyframes.front().frame)
 		{
 			return animBox.keyframes.front().data;
 		}
-		// ・ｽ・ｽ・ｽﾝフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽﾅ鯉ｿｽﾌキ・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾈゑｿｽA・ｽﾅ鯉ｿｽﾌ値・ｽ・ｽ・ｽg・ｽ・ｽ
+		// 現在フレームが最後のキーフレームより後なら、最後の値を使う
 		if (currentFrame >= animBox.keyframes.back().frame)
 		{
 			return animBox.keyframes.back().data;
 		}
 
-		// ・ｽL・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾔの包ｿｽﾔ擾ｿｽ・ｽ・ｽ
+		// キーフレーム間の補間処理
 		for (size_t i = 0; i < animBox.keyframes.size() - 1; ++i)
 		{
 			const auto& k1 = animBox.keyframes[i];
 			const auto& k2 = animBox.keyframes[i + 1];
 
-			// ・ｽ・ｽ・ｽﾝのフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽﾇのキ・ｽ[・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾔに托ｿｽ・ｽﾝゑｿｽ・ｽ驍ｩ・ｽ`・ｽF・ｽb・ｽN
+			// 現在のフレームがどのキーフレーム間に存在するかチェック
 			if (currentFrame >= k1.frame && currentFrame < k2.frame)
 			{
 				float range = k2.frame - k1.frame;
 				float t = 0.0f;
-				// ・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽZ・ｽh・ｽ~
+				// ゼロ除算防止
 				if (range > 0.0001f)
 				{
 					t = (currentFrame - k1.frame) / range;
@@ -86,7 +86,7 @@ namespace {
 				XMVECTOR vExt1 = XMLoadFloat2(&k1.data.extents);
 				XMVECTOR vExt2 = XMLoadFloat2(&k2.data.extents);
 
-				// ・ｽﾊ置・ｽﾆサ・ｽC・ｽY・ｽ・ｽ・ｽ・ｽ`・ｽ・ｽ・ｽ (Lerp)
+				// 位置とサイズを線形補間 (Lerp)
 				XMVECTOR vOff = XMVectorLerp(vOff1, vOff2, t);
 				XMVECTOR vExt = XMVectorLerp(vExt1, vExt2, t);
 
@@ -97,7 +97,7 @@ namespace {
 			}
 		}
 
-		// ・ｽ・ｽ・ｽS・ｽﾌゑｿｽ・ｽﾟのフ・ｽH・ｽ[・ｽ・ｽ・ｽo・ｽb・ｽN
+		// 安全のためのフォールバック
 		return animBox.keyframes.back().data;
 	}
 }
@@ -124,7 +124,7 @@ Player::Player()
 	, m_projectile(new Projectile())
 	, m_attackTimer(0.0f)
 {
-	// ・ｽ・ｽ・ｽ・ｽ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾆス・ｽe・ｽ[・ｽg・ｽﾌ設抵ｿｽ
+	// 初期アニメーションとステートの設定
 	m_currentAnim = { "Idle", 0 };
 	m_previousAnim = { "Idle", 0 };
 	SetState(new PlayerStateIdle());
@@ -134,7 +134,7 @@ Player::Player()
 
 Player::~Player()
 {
-	// ・ｽX・ｽe・ｽ[・ｽg・ｽﾆ費ｿｽﾑ難ｿｽ・ｽ・ｽﾌ・ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+	// ステートと飛び道具のメモリ解放
 	if (m_currentState) {
 		delete m_currentState;
 		m_currentState = nullptr;
@@ -145,14 +145,14 @@ Player::~Player()
 	}
 }
 
-// ・ｽv・ｽ・ｽ・ｽC・ｽ・ｽ・ｽ[・ｽﾌ移難ｿｽ・ｽ・ｽ・ｽx・ｽ・ｽA・ｽe・ｽ・ｽU・ｽ・ｽ・ｽZ・ｽﾌ擾ｿｽ・ｽ・ｽ・ｽp・ｽ・ｽ・ｽ・ｽ・ｽ[・ｽ^・ｽ・ｽﾝ定す・ｽ・ｽ
+// プレイヤーの移動速度や、各種攻撃技の初期パラメータを設定する
 void Player::InitDefaultParameters()
 {
 	m_moveSpeed = 2.102f;
 	m_jumpSpeed = 2.5f;
 	m_scale = { 1.0f, 1.0f, 1.0f };
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾔの奇ｿｽ{・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ (Head, Body, Legs)
+	// 立ち状態の基本くらい判定 (Head, Body, Legs)
 	m_baseHurtboxExtents[(int)HurtboxType::HEAD] = { 0.33f, 0.33f };
 	m_baseHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.024f, 1.923f };
 	m_baseHurtboxExtents[(int)HurtboxType::BODY] = { 0.598f, 0.522f };
@@ -160,7 +160,7 @@ void Player::InitDefaultParameters()
 	m_baseHurtboxExtents[(int)HurtboxType::LEGS] = { 0.482f, 0.497f };
 	m_baseHurtboxOffsets[(int)HurtboxType::LEGS] = { -0.007f, 0.159f };
 
-	// ・ｽ・ｽ・ｽ痰ｪ・ｽﾝ擾ｿｽﾔの奇ｿｽ{・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ
+	// しゃがみ状態の基本くらい判定
 	m_crouchHurtboxExtents[(int)HurtboxType::HEAD] = { 0.281f, 0.176f };
 	m_crouchHurtboxOffsets[(int)HurtboxType::HEAD] = { 0.272f, 1.425f };
 	m_crouchHurtboxExtents[(int)HurtboxType::BODY] = { 0.6f, 0.401f };
@@ -169,21 +169,21 @@ void Player::InitDefaultParameters()
 	m_crouchHurtboxOffsets[(int)HurtboxType::LEGS] = { 0.116f, 0.308f };
 
 
-	// ・ｽﾇ会ｿｽ・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽﾌ擾ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽw・ｽ・ｽ・ｽp・ｽ[・ｽB・ｽ・ｽ{・ｽﾌゑｿｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ(・ｽ・ｽ・ｽE・ｽﾌ・・ｽ・ｽ)・ｽﾍ常時・ｽL・ｽ・ｽ・ｽﾈので、
-	// ・ｽZ・ｽﾅ有・ｽﾌ追会ｿｽ・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽﾍデ・ｽt・ｽH・ｽ・ｽ・ｽg・ｽﾅは厄ｿｽ・ｽ・ｽ(・ｽ・ｽ)・ｽﾉゑｿｽ・ｽﾄゑｿｽ・ｽ・ｽ
+	// 追加くらい判定の初期化ヘルパー。基本のくらい判定(頭・体・足)は常時有効なので、
+	// 技固有の追加くらい判定はデフォルトでは無し(空)にしておく
 	auto InitDefaultHurtboxes = [&](std::vector<WindowedHurtbox>& boxes) {
 		boxes.clear();
 		};
 
 
-	// --- ・ｽ・ｽp・ｽ・ｽ・ｽ`・ｽﾌ設抵ｿｽ ---
+	// --- 弱パンチの設定 ---
 	{
 		AttackParams& p = m_lightPunchParams;
 		p.totalDuration = 0.166667f;
-		p.hitboxStart = 0.0666667f; // ・ｽ・ｽ・ｽ・ｽ
-		p.hitboxEnd = 0.15f;        // ・ｽ・ｽ・ｽ・ｽ・ｽI・ｽ・ｽ
+		p.hitboxStart = 0.0666667f; // 発生
+		p.hitboxEnd = 0.15f;        // 持続終了
 
-		// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽiHitbox・ｽj・ｽﾌ作成
+		// 攻撃判定（Hitbox）の作成
 		p.hitboxes.clear();
 		AnimatedBox ab;
 		ab.keyframes.push_back({ 0.0f, { {0.76f, 1.7f}, {0.454f, 0.157f} } });
@@ -191,17 +191,17 @@ void Player::InitDefaultParameters()
 
 		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.223f;
 		p.isDown = false;
-		p.attackLevel = AttackLevel::HIGH; // ・ｽ・ｽi・ｽ・ｽ・ｽ・ｽ
+		p.attackLevel = AttackLevel::HIGH; // 上段判定
 
 		InitDefaultHurtboxes(p.moveHurtboxes);
 
-		// ・ｽL・ｽ・ｽ・ｽ・ｽ・ｽZ・ｽ・ｽ・ｽﾂ能・ｽ^・ｽC・ｽ~・ｽ・ｽ・ｽO・ｽﾌ設抵ｿｽ
+		// キャンセル可能タイミングの設定
 		p.cancelEnabled = true; p.cancelStart = 0.0666667f; p.cancelEnd = 0.166667f;
 		p.cancelToLight = true; p.cancelToMedium = true; p.cancelToHeavyPunch = false; p.cancelToMediumKick = false; p.cancelToHeavy = false;
 		p.speedModifiers.clear();
 	}
 
-	// --- ・ｽ・ｽ・ｽp・ｽ・ｽ・ｽ`・ｽﾌ設抵ｿｽ ---
+	// --- 中パンチの設定 ---
 	{
 		AttackParams& p = m_mediumPunchParams;
 		p.totalDuration = 0.333333f;
@@ -221,13 +221,13 @@ void Player::InitDefaultParameters()
 		p.cancelEnabled = true; p.cancelStart = 0.1f; p.cancelEnd = 0.333333f;
 		p.cancelToLight = false; p.cancelToMedium = false; p.cancelToHeavyPunch = true; p.cancelToMediumKick = false; p.cancelToHeavy = true;
 
-		// ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽd・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾜゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽﾟのア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾄ撰ｿｽ・ｽ・ｽ・ｽx・ｽ・ｽ・ｽ・ｽ
+		// 発生や硬直をごまかすためのアニメーション再生速度調整
 		p.speedModifiers.clear();
 		p.speedModifiers.push_back({ 0.0f, 6.0f, 0.369f });
 		p.speedModifiers.push_back({ 7.0f, 12.0f, 2.533f });
 	}
 
-	// --- ・ｽ・ｽ・ｽp・ｽ・ｽ・ｽ`・ｽﾌ設抵ｿｽ ---
+	// --- 強パンチの設定 ---
 	{
 		AttackParams& p = m_heavyPunchParams;
 		p.totalDuration = 0.5f;
@@ -253,7 +253,7 @@ void Player::InitDefaultParameters()
 		p.speedModifiers.push_back({ 22.0f, 30.0f, 0.486f });
 	}
 
-	// --- ・ｽ・ｽ・ｽL・ｽb・ｽN・ｽﾌ設抵ｿｽ ---
+	// --- 中キックの設定 ---
 	{
 		AttackParams& p = m_mediumKickParams;
 		p.totalDuration = 0.416667f;
@@ -266,7 +266,7 @@ void Player::InitDefaultParameters()
 
 		p.damage = 400; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.05f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.attackLevel = AttackLevel::MID; // ・ｽ・ｽ・ｽi・ｽ・ｽ・ｽ・ｽi・ｽ・ｽ・ｽ痰ｪ・ｽﾝガ・ｽ[・ｽh・ｽs・ｽﾂ）
+		p.attackLevel = AttackLevel::MID; // 中段判定（しゃがみガード不可）
 
 		InitDefaultHurtboxes(p.moveHurtboxes);
 
@@ -278,7 +278,7 @@ void Player::InitDefaultParameters()
 		p.speedModifiers.push_back({ 10.0f, 20.0f, 0.295f });
 	}
 
-	// --- ・ｽ・ｽ・ｽL・ｽb・ｽN・ｽﾌ設抵ｿｽ ---
+	// --- 強キックの設定 ---
 	{
 		AttackParams& p = m_heavyKickParams;
 		p.totalDuration = 0.5f;
@@ -291,7 +291,7 @@ void Player::InitDefaultParameters()
 
 		p.damage = 700; p.hitFrame = 5; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.0f;
 		p.isDown = false;
-		p.attackLevel = AttackLevel::LOW; // ・ｽ・ｽ・ｽi・ｽ・ｽ・ｽ・ｽi・ｽ・ｽ・ｽ・ｽ・ｽK・ｽ[・ｽh・ｽs・ｽﾂ）
+		p.attackLevel = AttackLevel::LOW; // 下段判定（立ちガード不可）
 
 		InitDefaultHurtboxes(p.moveHurtboxes);
 
@@ -304,11 +304,11 @@ void Player::InitDefaultParameters()
 			{ 17.0f, 30.0f, 0.345f });
 	}
 
-	// --- ・ｽg・ｽ・ｽ・ｽ・ｽ (・ｽ・ｽ/・ｽ・ｽ/・ｽ・ｽ) ・ｽﾌ設抵ｿｽ ---
+	// --- 波動拳 (弱/中/強) の設定 ---
 	{
 		InitDefaultHurtboxes(m_hadoukenLParams.moveHurtboxes);
 		m_hadoukenLParams.totalDuration = 0.6f;
-		m_hadoukenLParams.projectileSpeed = 4.0f; // ・ｽe・ｽ・ｽ
+		m_hadoukenLParams.projectileSpeed = 4.0f; // 弾速
 		m_hadoukenLParams.damage = 500;
 		m_hadoukenLParams.attackLevel = AttackLevel::HIGH;
 
@@ -326,40 +326,40 @@ void Player::InitDefaultParameters()
 	}
 }
 
-// ・ｽ・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾄばゑｿｽ・ｽX・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾌ托ｿｽg
+// 毎フレーム呼ばれる更新処理の大枠
 void Player::Update(float tick)
 {
-	// 1. ・ｽ・ｽ・ｽﾍの取得
+	// 1. 入力の取得
 	PollInputs();
 	UpdateCommandTimer(tick);
 	UpdateInputBuffer(tick);
 
-	// 2. ・ｽ・ｽ・ｽﾝのス・ｽe・ｽ[・ｽg・ｽi・ｽ・ｽﾔ）・ｽﾌ更・ｽV
+	// 2. 現在のステート（状態）の更新
 	if (m_currentState) {
 		m_isCrouching = m_currentState->IsCrouch();
 		m_currentState->Update(this, tick);
 		if (m_pActiveAttackParams) m_attackElapsedSec += tick;
 	}
 
-	// 3. ・ｽ・ｽ・ｽ・ｽ・ｽE・ｽ・ｽ・ｽW・ｽﾌ更・ｽV
+	// 3. 物理・座標の更新
 	UpdatePhysics(tick);
 
-	// 4. ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾌ進・ｽs
+	// 4. アニメーションフレームの進行
 	UpdateAnimation(tick);
 
-	// 5. ・ｽ・ｽ・ｽf・ｽ・ｽ・ｽﾌア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽu・ｽ・ｽ・ｽ・ｽ・ｽh・ｽX・ｽV
+	// 5. モデルのアニメーションブレンド更新
 	UpdateModelBlend();
 
-	// 6. ・ｽ・ｽ・ｽﾝのフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾉ会ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽE・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽﾌ更・ｽV
+	// 6. 現在のフレームに応じた攻撃判定・くらい判定の更新
 	UpdateAttackBoxes();
 
-	// 7. ・ｽ・ｽ・ｽﾋ済みの費ｿｽﾑ難ｿｽ・ｽ・ｽﾌ更・ｽV
+	// 7. 発射済みの飛び道具の更新
 	if (m_projectile) {
 		m_projectile->Update(tick);
 	}
 }
 
-// ・ｽL・ｽ[・ｽ{・ｽ[・ｽh・ｽ・ｽR・ｽ・ｽ・ｽg・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ[・ｽﾌ難ｿｽ・ｽﾍゑｿｽ・ｽ謫ｾ・ｽ・ｽ・ｽAPlayerInputs・ｽ\・ｽ・ｽ・ｽﾌにマ・ｽb・ｽs・ｽ・ｽ・ｽO・ｽ・ｽ・ｽ・ｽ
+// キーボードやコントローラーの入力を取得し、PlayerInputs構造体にマッピングする
 void Player::PollInputs()
 {
 	m_inputs = {};
@@ -432,13 +432,13 @@ void Player::PollInputs()
 
 	case PlayerInputType::AI:
 		m_inputs = m_injectedInputs;
-		// AI・ｽﾌ難ｿｽ・ｽﾍ・ｿｽ・ｽW・ｽb・ｽN・ｽﾍ別途・ｽ・ｽ・ｽ・ｽ
+		// AIの入力ロジックは別途実装
 		break;
 	}
 }
 
 
-// ・ｽd・ｽﾍの適・ｽp・ｽﾆ搾ｿｽ・ｽW・ｽﾌ移難ｿｽ・ｽ・ｽ・ｽ・ｽ
+// 重力の適用と座標の移動処理
 void Player::SetInjectedInputs(const PlayerInputs& in)
 {
 	m_injectedInputs = in;
@@ -463,14 +463,14 @@ void Player::UpdateInputBuffer(float tick)
 void Player::UpdatePhysics(float tick)
 {
 	if (m_isJumping) {
-		m_velocity.y -= 55.0f * tick; // ・ｽd・ｽ・ｽ
+		m_velocity.y -= 55.0f * tick; // 重力
 	}
 
 	m_position.x += m_velocity.x * tick;
 	m_position.y += m_velocity.y * tick;
 	m_position.z += m_velocity.z * tick;
 
-	// ・ｽn・ｽﾊとの難ｿｽ・ｽ・ｽ・ｽ阡ｻ・ｽ・ｽiY・ｽ・ｽ・ｽW0・ｽ・ｽ・ｽ・ｽ・ｽﾆゑｿｽ・ｽ・ｽj
+	// 地面との当たり判定（Y座標0を床とする）
 	if (m_position.y <= 0.0f) {
 		m_position.y = 0.0f;
 		if (m_isJumping) {
@@ -481,10 +481,10 @@ void Player::UpdatePhysics(float tick)
 	}
 }
 
-// ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾌフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽi・ｽs・ｽﾆ再撰ｿｽ・ｽ・ｽ・ｽx・ｽﾌ難ｿｽ・ｽI・ｽﾏ更・ｽ・ｽ・ｽs・ｽ・ｽ
+// アニメーションのフレーム進行と再生速度の動的変更を行う
 void Player::UpdateAnimation(float tick)
 {
-	// ・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽJ・ｽﾚ趣ｿｽ・ｽﾌブ・ｽ・ｽ・ｽ・ｽ・ｽh・ｽW・ｽ・ｽ・ｽ・ｽ・ｽX・ｽV
+	// モーション遷移時のブレンド係数を更新
 	if (m_blendFactor < 1.0f)
 	{
 		m_blendFactor += tick / m_transitionDuration;
@@ -495,7 +495,7 @@ void Player::UpdateAnimation(float tick)
 	{
 		float currentSpeed = m_animSpeed;
 
-		// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾌ場合・ｽA・ｽw・ｽ閧ｳ・ｽ黷ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽﾔで再撰ｿｽ・ｽ・ｽ・ｽx・ｽ・ｽﾏ難ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+		// 攻撃モーション中の場合、指定されたフレーム区間で再生速度を変動させる
 		if (m_pActiveAttackParams)
 		{
 			bool isControlledAnim = (
@@ -526,10 +526,10 @@ void Player::UpdateAnimation(float tick)
 			}
 		}
 
-		// ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽ・ｽi・ｽﾟゑｿｽi60FPS・ｽ譓・ｽj
+		// フレームを進める（60FPS基準）
 		m_currentAnim.frame += currentSpeed * tick * 60.0f;
 
-		// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ關ｶ・ｽ・ｽ・ｽp・ｽﾌタ・ｽC・ｽ}・ｽ[・ｽ・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾆ難ｿｽ・ｽ・ｽ
+		// 攻撃判定生成用のタイマーをフレームと同期
 		if (m_pActiveAttackParams)
 		{
 			// 攻撃判定の発生タイミングは経過時間（60FPS基準）で測る。
@@ -539,7 +539,7 @@ void Player::UpdateAnimation(float tick)
 	}
 }
 
-// ・ｽﾏ更・ｽO・ｽﾌア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾆ変更・ｽ・ｽﾌア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ轤ｩ・ｽﾉ包ｿｽﾔゑｿｽ・ｽ・ｽ
+// 変更前のアニメーションと変更後のアニメーションを滑らかに補間する
 void Player::UpdateModelBlend()
 {
 	m_model->UpdateWithBlend(
@@ -548,13 +548,13 @@ void Player::UpdateModelBlend()
 		m_blendFactor);
 }
 
-// ・ｽv・ｽ・ｽ・ｽC・ｽ・ｽ・ｽ[・ｽﾌス・ｽe・ｽ[・ｽg・ｽi・ｽﾒ機・ｽA・ｽ・ｽ・ｽs・ｽA・ｽW・ｽ・ｽ・ｽ・ｽ・ｽv・ｽA・ｽU・ｽ・ｽ・ｽﾈど）・ｽ・ｽﾘゑｿｽﾖゑｿｽ・ｽ・ｽ
+// プレイヤーのステート（待機、歩行、ジャンプ、攻撃など）を切り替える
 void Player::SetState(PlayerState* newState)
 {
 	if (newState != nullptr)
 	{
 
-		// ・ｽﾌ力ゑｿｽ0・ｽﾈ会ｿｽ・ｽﾈら死・ｽS・ｽX・ｽe・ｽ[・ｽg・ｽﾈ外・ｽﾖの遷・ｽﾚゑｿｽ・ｽ・ｽ・ｽ・ｽ
+		// 体力が0以下なら死亡ステート以外への遷移を拒否
 		if (m_hp <= 0 && !newState->IsDeathState())
 		{
 			delete newState;
@@ -562,7 +562,7 @@ void Player::SetState(PlayerState* newState)
 		}
 
 		if (m_currentState) {
-			// ・ｽ・ｽ・ｽﾅに趣ｿｽ・ｽS・ｽ・ｽﾔなゑｿｽA・ｽ・ｽ・ｽﾌ擾ｿｽﾔにゑｿｽ・ｽ繽托ｿｽ・ｽ・ｽ・ｽ・ｽu・ｽ・ｽ・ｽb・ｽN
+			// すでに死亡状態なら、他の状態による上書きをブロック
 			if (m_currentState->IsDeathState() && m_hp <= 0) {
 				delete newState;
 				return;
@@ -575,7 +575,7 @@ void Player::SetState(PlayerState* newState)
 	}
 }
 
-// ・ｽ・ｽ・ｽﾝのス・ｽe・ｽ[・ｽg・ｽ・ｽ・ｽ・ｽ・ｽG・ｽ・ｽ・ｽﾇゑｿｽ・ｽ・ｽ・ｽｻ抵ｿｽ
+// 現在のステートが無敵かどうかを判定
 bool Player::IsInvincible() const
 {
 	if (m_currentState)
@@ -585,59 +585,59 @@ bool Player::IsInvincible() const
 	return false;
 }
 
-// ・ｽw・ｽ閧ｵ・ｽ・ｽ・ｽ・ｽ・ｽO・ｽﾌア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄ撰ｿｽ・ｽ・ｽ・ｽ・ｽ
+// 指定した名前のアニメーションを再生する
 void Player::PlayAnimation(const char* name, bool forceRestart)
 {
 	m_isAnimPaused = false;
 	m_hasHit = false;
 	m_animSpeed = 1.0f;
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾉ再撰ｿｽ・ｽ・ｽ・ｽﾅ、・ｽ・ｽ・ｽﾂ具ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽX・ｽ^・ｽ[・ｽg・ｽt・ｽ・ｽ・ｽO・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾎ会ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽﾈゑｿｽ
+	// 同じアニメーションが既に再生中で、かつ強制リスタートフラグが無ければ何もしない
 	if (!forceRestart && strcmp(m_currentAnim.name, name) == 0)
 	{
 		return;
 	}
 
-	// ・ｽu・ｽ・ｽ・ｽ・ｽ・ｽh・ｽ・ｽ・ｽ・ｽ・ｽﾌゑｿｽ・ｽﾟに鯉ｿｽ・ｽﾝのア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽu・ｽO・ｽ・ｽv・ｽﾆゑｿｽ・ｽﾄ保托ｿｽ
+	// ブレンド処理のために現在のアニメーションを「前回」として保存
 	m_previousAnim = m_currentAnim;
 	m_currentAnim.name = name;
 	m_currentAnim.frame = 0;
 	m_blendFactor = 0.0f;
 }
 
-// ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾌ再撰ｿｽ・ｽ・ｽ・ｽx・ｽ{・ｽ・ｽ・ｽ・ｽﾝ抵ｿｽ
+// アニメーションの再生速度倍率を設定
 void Player::SetAnimationSpeed(float speed)
 {
 	m_animSpeed = speed;
 }
 
-// ・ｽA・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽﾌ一時・ｽ・ｽ~・ｽ・ｽﾝ抵ｿｽi・ｽq・ｽb・ｽg・ｽX・ｽg・ｽb・ｽv・ｽﾈどで使・ｽp・ｽj
+// アニメーションの一時停止を設定（ヒットストップなどで使用）
 void Player::SetAnimPause(bool pause)
 {
 	m_isAnimPaused = pause;
 }
 
-// ・ｽ・ｽ・ｽﾝのア・ｽj・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾅ終・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾜで再撰ｿｽ・ｽ・ｽ・ｽ黷ｽ・ｽ・ｽ・ｽ・ｽ・ｽm・ｽF
+// 現在のアニメーションが最終フレームまで再生されたかを確認
 bool Player::IsAnimEnd() const
 {
 	int total = m_model->GetAnimationTotalFrame(m_currentAnim.name);
 	return (m_currentAnim.frame >= total - 1);
 }
 
-// ・ｽO・ｽi・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽ・ｽﾞゑｿｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽｻ定す・ｽ驍ｽ・ｽﾟの難ｿｽ・ｽﾏゑｿｽ・ｽv・ｽZ
+// 前進しているか後退しているかを判定するための内積を計算
 float Player::GetForwardMoveDot() const
 {
 	using namespace DirectX::SimpleMath;
 	Vector3 velocity = m_velocity;
 	Vector3 rotation = m_rotation;
 
-	// ・ｽﾚ難ｿｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽﾈゑｿｽ・ｽ鼾・ｿｽ・ｽ0・ｽ・ｽﾔゑｿｽ
+	// 移動していない場合は0を返す
 	if (Vector2(velocity.x, velocity.z).LengthSquared() <= 0.01f)
 	{
 		return 0.0f;
 	}
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾌベ・ｽN・ｽg・ｽ・ｽ・ｽ・ｽ・ｽv・ｽZ
+	// 向いている方向のベクトルを計算
 	Matrix rotMat = Matrix::CreateRotationY(rotation.y);
 	Vector3 forward = Vector3::Transform(Vector3(0.0f, 0.0f, -1.0f), rotMat);
 
@@ -645,7 +645,7 @@ float Player::GetForwardMoveDot() const
 	moveDir.y = 0.0f;
 	moveDir.Normalize();
 
-	// ・ｽi・ｽs・ｽ・ｽ・ｽ・ｽ・ｽﾆ鯉ｿｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾌ難ｿｽ・ｽﾏ（・ｽv・ｽ・ｽ・ｽX・ｽﾈゑｿｽO・ｽi・ｽA・ｽ}・ｽC・ｽi・ｽX・ｽﾈゑｿｽ・ｽﾞ）
+	// 進行方向と向いている方向の内積（プラスなら前進、マイナスなら後退）
 	return forward.Dot(moveDir);
 }
 
@@ -715,7 +715,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
 	if (!m_isJumping) {
-		m_velocity.y = 19.0f; // ・ｽW・ｽ・ｽ・ｽ・ｽ・ｽv・ｽ・ｽ・ｽ・ｽ
+		m_velocity.y = 19.0f; // ジャンプ初速
 		m_isJumping = true;
 	}
 }
@@ -776,13 +776,13 @@ bool Player::GetIsCrouching() const
 	return m_isCrouching;
 }
 
-// ・ｽ・ｽ・ｽ・ｽ・ｽ竄ｵ・ｽ痰ｪ・ｽﾝ擾ｿｽﾔゑｿｽ・ｽl・ｽ・ｽ・ｽ・ｽ・ｽﾄ、・ｽ・ｽ・ｽﾛの・ｿｽ・ｽ[・ｽ・ｽ・ｽh・ｽ・ｽ・ｽW・ｽn・ｽﾌゑｿｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ{・ｽb・ｽN・ｽX・ｽ・ｽ・ｽ謫ｾ・ｽ・ｽ・ｽ・ｽ
+// 向きやしゃがみ状態を考慮して、実際のワールド座標系のくらい判定ボックスを取得する
 DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 {
 	if (type >= HurtboxType::COUNT) return DirectX::BoundingBox();
 
 	int idx = (int)type;
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾉゑｿｽ・ｽ・ｽ・ｽX・ｽ・ｽ・ｽW・ｽﾌオ・ｽt・ｽZ・ｽb・ｽg・ｽｽ転・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+	// 向いている方向によってX座標のオフセットを反転させる
 	float direction = (m_rotation.y < 0.0f) ? 1.0f : -1.0f;
 
 	float offsetX = m_isCrouching ? m_crouchHurtboxOffsets[idx].x : m_baseHurtboxOffsets[idx].x;
@@ -796,13 +796,13 @@ DirectX::BoundingBox Player::GetHurtbox(HurtboxType type) const
 		m_position.z
 	};
 	DirectX::XMFLOAT3 extents = {
-		extentX, extentY, 0.1f // Z・ｽ・ｽ・ｽﾌ鯉ｿｽ・ｽﾝは固抵ｿｽ
+		extentX, extentY, 0.1f // Z軸の厚みは固定
 	};
 
 	return DirectX::BoundingBox(center, extents);
 }
 
-// ・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽiHurtbox・ｽj・ｽﾌデ・ｽo・ｽb・ｽO・ｽ`・ｽ・ｽ
+// くらい判定（Hurtbox）のデバッグ描画
 void Player::DrawBoundingBox()
 {
 	using namespace DirectX;
@@ -810,8 +810,8 @@ void Player::DrawBoundingBox()
 	if (m_isColliding) Geometory::SetColor(XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
 	else Geometory::SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
 
-	// ・ｽ・ｽ{・ｽﾌゑｿｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ(・ｽ・ｽ・ｽE・ｽﾌ・・ｽ・ｽ)・ｽﾍ常時・ｽL・ｽ・ｽ・ｽﾈので、・ｽ・ｽﾉゑｿｽ・ｽ・ｽ・ｽ`・ｽ謔ｷ・ｽ・ｽB
-	// ・ｽZ・ｽﾅ有・ｽﾌ追会ｿｽ・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽﾍ別途 m_activeHurtboxes ・ｽﾆゑｿｽ・ｽﾄ描・ｽ謔ｳ・ｽ・ｽ・ｽ
+	// 基本のくらい判定(頭・体・足)は常時有効なので、常にこれを描画する。
+	// 技固有の追加くらい判定は別途 m_activeHurtboxes として描画される
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i)
 	{
 		BoundingBox box = GetHurtbox((HurtboxType)i);
@@ -825,7 +825,7 @@ void Player::DrawBoundingBox()
 	}
 }
 
-// ・ｽ・ｽ・ｽ・ｽv・ｽ・ｽ・ｽC・ｽ・ｽ・ｽ[・ｽﾆの会ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽi・ｽP・ｽ・ｽ・ｽ・ｽBODY・ｽ・ｽ・ｽm・ｽﾌ衝突）
+// 相手プレイヤーとの押し合い判定（単純なBODY同士の衝突）
 bool Player::CheckCollision(const Player* other) const
 {
 	if (!other) return false;
@@ -880,7 +880,7 @@ DirectX::XMFLOAT3 Player::GetScale() const { return m_scale; }
 void Player::SetActiveHitbox(bool isActive)
 {
 	m_isAttacking = isActive;
-	// ・ｽ・ｽA・ｽN・ｽe・ｽB・ｽu・ｽﾉなゑｿｽ・ｽ・ｽ・ｽ迪ｻ・ｽﾝの費ｿｽ・ｽ閭奇ｿｽX・ｽg・ｽ・ｽ・ｽN・ｽ・ｽ・ｽA
+	// 非アクティブになったら現在の判定リストをクリア
 	if (!isActive)
 	{
 		m_activeHitboxes.clear();
@@ -893,7 +893,7 @@ bool Player::IsAttacking() const
 	return m_isAttacking;
 }
 
-// ・ｽU・ｽ・ｽ・ｽZ・ｽﾌパ・ｽ・ｽ・ｽ・ｽ・ｽ[・ｽ^・ｽ・ｽ・ｽZ・ｽb・ｽg・ｽ・ｽ・ｽA・ｽU・ｽ・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾌ計・ｽ・ｽ・ｽ・ｽ・ｽJ・ｽn・ｽ・ｽ・ｽ・ｽ
+// 攻撃技のパラメータをセットし、攻撃フレームの計測を開始する
 void Player::SetCurrentAttackParams(AttackParams* params)
 {
 	m_pActiveAttackParams = params;
@@ -907,7 +907,7 @@ AttackParams* Player::GetCurrentAttackParams() const
 	return m_pActiveAttackParams;
 }
 
-// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ[・ｽV・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾌ鯉ｿｽ・ｽﾝフ・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽﾉ搾ｿｽ・ｽ墲ｹ・ｽ・ｽ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽE・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽﾌ更・ｽV
+// 攻撃モーション中の現在フレームに合わせた攻撃判定・くらい判定の更新
 void Player::UpdateAttackBoxes()
 {
 	if (!m_pActiveAttackParams)
@@ -923,14 +923,14 @@ void Player::UpdateAttackBoxes()
 
 	float currentFrame = m_currentAnim.frame;
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ邇晢ｿｽ・ｽ・ｽI・ｽ・ｽ・ｽﾜでの間ゑｿｽ・ｽﾇゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ`・ｽF・ｽb・ｽN
+	// 発生から持続終了までの間かどうかをチェック
 	float startFrame = m_pActiveAttackParams->hitboxStart * 60.0f;
 	float endFrame = m_pActiveAttackParams->hitboxEnd * 60.0f;
 	// 発生判定はゲームフレーム（経過時間）で行う。アニメフレームだと再生速度ぶん前にズレるため。
 	float judgeFrame = m_attackTimer;
 	bool isHitActive = (judgeFrame >= startFrame && judgeFrame < endFrame);
 
-	// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ (Hitbox) ・ｽﾌ撰ｿｽ・ｽ・ｽ
+	// 攻撃判定 (Hitbox) の生成
 	if (isHitActive || m_isAttacking)
 	{
 		for (const auto& animBox : m_pActiveAttackParams->hitboxes)
@@ -951,8 +951,8 @@ void Player::UpdateAttackBoxes()
 		}
 	}
 
-	// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽﾌ追会ｿｽ・ｽ・ｽ・ｽ轤｢・ｽ・ｽ・ｽ・ｽ (Hurtbox) ・ｽﾌ撰ｿｽ・ｽ・ｽ
-	// m_attackTimer ・ｽ・ｽ60FPS・ｽ譓・ｽﾌゲ・ｽ[・ｽ・ｽ・ｽt・ｽ・ｽ・ｽ[・ｽ・ｽ・ｽB・ｽ・ｽﾔ難ｿｽ・ｽﾌゑｿｽ・ｽﾌゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽﾅ抵ｿｽT・ｽC・ｽY・ｽﾅ撰ｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+	// 攻撃中の追加くらい判定 (Hurtbox) の生成
+	// m_attackTimer は60FPS基準のゲームフレーム。区間内のものだけを固定サイズで生成する
 	float gameFrame = m_attackTimer;
 	for (const auto& wh : m_pActiveAttackParams->moveHurtboxes)
 	{
@@ -982,13 +982,13 @@ const std::vector<DirectX::BoundingBox>& Player::GetActiveHurtboxes() const
 	return m_activeHurtboxes;
 }
 
-// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ (Hitbox) ・ｽﾌデ・ｽo・ｽb・ｽO・ｽ`・ｽ・ｽ
+// 攻撃判定 (Hitbox) のデバッグ描画
 void Player::DrawHitbox()
 {
 	if (!m_isAttacking) return;
 
 	using namespace DirectX;
-	// ・ｽU・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾍ赤色・ｽﾅ描・ｽ・ｽ
+	// 攻撃判定は赤色で描画
 	Geometory::SetColor(XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
 
 	for (const auto& box : m_activeHitboxes)
@@ -1003,7 +1003,7 @@ void Player::DrawHitbox()
 	}
 }
 
-// ・ｽ_・ｽ・ｽ・ｽ[・ｽW・ｽ・ｽ・ｽｯる処・ｽ・ｽ・ｽB・ｽK・ｽ[・ｽh・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ・ｽﾎ搾ｿｽ・ｽ_・ｽ・ｽ・ｽ[・ｽW・ｽi10・ｽ・ｽ・ｽ・ｽ1・ｽj・ｽﾉなゑｿｽ
+// ダメージを受ける処理。ガードが成功していれば削りダメージ（10分の1）になる
 void Player::ReceiveDamage(int damage, AttackLevel atkLevel)
 {
 	if (TryGuard(atkLevel))
@@ -1015,7 +1015,7 @@ void Player::ReceiveDamage(int damage, AttackLevel atkLevel)
 	if (m_hp <= 0)
 	{
 		m_hp = 0;
-		// HP・ｽ・ｽ0・ｽﾉなゑｿｽ・ｽ・ｽ・ｽ邇・ｽS・ｽX・ｽe・ｽ[・ｽg・ｽﾖ遷・ｽ・ｽ
+		// HPが0になったら死亡ステートへ遷移
 		SetState(new PlayerStateDeath());
 	}
 }
@@ -1025,7 +1025,7 @@ float Player::GetHpRatio() const
 	return (float)m_hp / (float)m_maxHp;
 }
 
-// ・ｽ・ｽ・ｽE・ｽ・ｽ・ｽh・ｽJ・ｽn・ｽ・ｽ・ｽﾈどにプ・ｽ・ｽ・ｽC・ｽ・ｽ・ｽ[・ｽﾌ擾ｿｽﾔゑｿｽ・ｽ・ｽ・ｽZ・ｽb・ｽg
+// ラウンド開始時などにプレイヤーの状態をリセット
 void Player::Reset()
 {
 	m_hp = m_maxHp;
@@ -1045,7 +1045,7 @@ bool Player::CanFireProjectile() const
 	return !m_projectile->IsActive();
 }
 
-// ・ｽR・ｽ}・ｽ・ｽ・ｽh・ｽ・ｽ・ｽﾍのタ・ｽC・ｽ}・ｽ[・ｽ・ｽ・ｽﾇ暦ｿｽ・ｽi・ｽg・ｽ・ｽ・ｽ・ｽ・ｽR・ｽ}・ｽ・ｽ・ｽh・ｽﾈどの趣ｿｽt・ｽ・ｽ・ｽﾔ擾ｿｽ・ｽ・ｽ・ｽj
+// コマンド入力のタイマーを管理（波動拳コマンドなどの受付時間処理）
 void Player::UpdateCommandTimer(float tick)
 {
 	if (m_cmdTimerDown > 0) m_cmdTimerDown -= tick;
@@ -1053,14 +1053,14 @@ void Player::UpdateCommandTimer(float tick)
 
 	const PlayerInputs& in = GetInputs();
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾉゑｿｽ・ｽ・ｽﾄ前・ｽ・ｽ・ｽﾍゑｿｽ・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽｻ抵ｿｽ
+	// 向いている方向によって前入力か後ろ入力かを判定
 	bool forward = (m_rotation.y < 0.0f) ? in.moveRight : in.moveLeft;
 
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽ・ｽ・ｽ黷ｽ・ｽ・ｽ^・ｽC・ｽ}・ｽ[・ｽ・ｽ・ｽX・ｽ^・ｽ[・ｽg
+	// 下入力がされたらタイマーをスタート
 	if (in.moveDown && !forward) {
 		m_cmdTimerDown = CMD_WINDOW;
 	}
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽﾂ前・ｽ・ｽ・ｽﾍ（・ｽﾎめ前・ｽj・ｽ・ｽ・ｽ・ｽ・ｽ黷ｽ・ｽ鼾・
+	// 下入力かつ前入力（斜め前）がされた場合
 	else if (in.moveDown && forward) {
 		if (m_cmdTimerDown > 0) {
 			m_cmdTimerDownForward = CMD_WINDOW;
@@ -1068,7 +1068,7 @@ void Player::UpdateCommandTimer(float tick)
 	}
 }
 
-// ・ｽg・ｽ・ｽ・ｽ・ｽ・ｽﾌコ・ｽ}・ｽ・ｽ・ｽh・ｽi・ｽ・ｽ -> ・ｽﾎめ前 -> ・ｽO・ｽ{・ｽp・ｽ・ｽ・ｽ`・ｽj・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽ`・ｽF・ｽb・ｽN
+// 波動拳のコマンド（下 -> 斜め前 -> 前＋パンチ）が成立しているかチェック
 bool Player::CheckHadoukenCommand() const
 {
 	const PlayerInputs& in = GetInputs();
@@ -1077,13 +1077,13 @@ bool Player::CheckHadoukenCommand() const
 	return (m_cmdTimerDownForward > 0 && forward && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }
 
-// ・ｽ・ｽ・ｽﾝガ・ｽ[・ｽh・ｽﾂ能・ｽﾈ擾ｿｽﾔゑｿｽ・ｽA・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽｻ抵ｿｽ
+// 現在ガード可能な状態か、後ろ入力がされているかを判定
 bool Player::IsGuarding() const
 {
-	// ・ｽW・ｽ・ｽ・ｽ・ｽ・ｽv・ｽ・ｽ・ｽA・ｽU・ｽ・ｽ・ｽ・ｽ・ｽﾈどはガ・ｽ[・ｽh・ｽs・ｽ・ｽ
+	// ジャンプ中、攻撃中などはガード不可
 	if (m_isJumping || m_isAttacking || m_pActiveAttackParams != nullptr) return false;
 
-	// ・ｽ_・ｽ・ｽ・ｽ[・ｽW・ｽ・ｽ_・ｽE・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽK・ｽ[・ｽh・ｽs・ｽ・ｽ
+	// ダメージやダウン中もガード不可
 	if (strcmp(m_currentAnim.name, "Damage") == 0 ||
 		strcmp(m_currentAnim.name, "Down") == 0 ||
 		strcmp(m_currentAnim.name, "WakeUp") == 0 ||
@@ -1094,31 +1094,31 @@ bool Player::IsGuarding() const
 
 	const PlayerInputs& in = GetInputs();
 	bool isFacingRight = (m_rotation.y < 0.0f);
-	// ・ｽ・ｽ・ｽ・ｽﾌ費ｿｽ・ｽﾎ包ｿｽ・ｽ・ｽ・ｽi・ｽ・ｽ・ｽj・ｽL・ｽ[・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ
+	// 相手の反対方向（後ろ）キーが押されているか
 	bool isPressingBack = isFacingRight ? in.moveLeft : in.moveRight;
 
 	return isPressingBack;
 }
 
-// ・ｽ・ｽ・ｽ・ｽ・ｽK・ｽ[・ｽh・ｽi・ｽ・ｽi・ｽK・ｽ[・ｽh・ｽj・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽ・ｽ・ｽ・ｽ
+// 立ちガード（上段ガード）が成立しているか判定
 bool Player::IsGuardingHigh() const
 {
 	if (!IsGuarding()) return false;
 	const PlayerInputs& in = GetInputs();
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽﾂ会ｿｽ・ｽﾉ難ｿｽ・ｽﾍゑｿｽ・ｽﾄゑｿｽ・ｽﾈゑｿｽ・ｽ鼾・
+	// 後ろ入力かつ下に入力していない場合
 	return !in.moveDown;
 }
 
-// ・ｽ・ｽ・ｽ痰ｪ・ｽﾝガ・ｽ[・ｽh・ｽi・ｽ・ｽ・ｽi・ｽK・ｽ[・ｽh・ｽj・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾄゑｿｽ・ｽ驍ｩ・ｽ・ｽ・ｽ・ｽ
+// しゃがみガード（下段ガード）が成立しているか判定
 bool Player::IsGuardingLow() const
 {
 	if (!IsGuarding()) return false;
 	const PlayerInputs& in = GetInputs();
-	// ・ｽ・ｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽﾂ会ｿｽ・ｽﾉゑｿｽ・ｽ・ｽ・ｽﾍゑｿｽ・ｽﾄゑｿｽ・ｽ・ｽ鼾・
+	// 後ろ入力かつ下にも入力している場合
 	return in.moveDown;
 }
 
-// ・ｽ・ｽ・ｽ・ｽﾌ攻・ｽ・ｽ・ｽ・ｽ・ｽ閭鯉ｿｽx・ｽ・ｽ・ｽﾉ対ゑｿｽ・ｽﾄガ・ｽ[・ｽh・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ驍ｩ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ
+// 相手の攻撃判定レベルに対してガードが成功するかを検証
 bool Player::TryGuard(AttackLevel atkLevel) const
 {
 	if (!IsGuarding()) return false;
@@ -1126,15 +1126,15 @@ bool Player::TryGuard(AttackLevel atkLevel) const
 	if (m_guardAllLevels) return true;
 	if (atkLevel == AttackLevel::MID)
 	{
-		// ・ｽ・ｽ・ｽi・ｽU・ｽ・ｽ・ｽﾍ暦ｿｽ・ｽ・ｽ・ｽK・ｽ[・ｽh・ｽﾌみ可能
+		// 中段攻撃は立ちガードのみ可能
 		return IsGuardingHigh();
 	}
 	else if (atkLevel == AttackLevel::LOW)
 	{
-		// ・ｽ・ｽ・ｽi・ｽU・ｽ・ｽ・ｽﾍゑｿｽ・ｽ痰ｪ・ｽﾝガ・ｽ[・ｽh・ｽﾌみ可能
+		// 下段攻撃はしゃがみガードのみ可能
 		return IsGuardingLow();
 	}
 
-	// ・ｽ・ｽi・ｽU・ｽ・ｽ・ｽﾍ暦ｿｽ・ｽ・ｽ・ｽK・ｽ[・ｽh・ｽﾅゑｿｽ・ｽ・ｽ・ｽ痰ｪ・ｽﾝガ・ｽ[・ｽh・ｽﾅゑｿｽ・ｽh・ｽ・ｽ・ｽ・ｽ
+	// 上段攻撃は立ちガードでもしゃがみガードでも防げる
 	return true;
 }

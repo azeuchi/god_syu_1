@@ -33,9 +33,9 @@ private:
 	// 最奥描画用ステート（カリングなし／深度 LESS_EQUAL）
 	ID3D11RasterizerState* m_pCullNone = nullptr;
 	ID3D11DepthStencilState* m_pDepthLessEqual = nullptr;
-	DirectX::XMFLOAT3 m_pos = { 0.0f,0.0f,0.0f }; // ・ｽX・ｽJ・ｽC・ｽh・ｽ[・ｽ・ｽ・ｽﾌ位置
-	DirectX::XMFLOAT3 m_scale = { 80.0f,80.0f,80.0f }; // ・ｽ・ｽ・ｽ・ｽﾉゑｿｽ・ｽ・ｽ
-	DirectX::XMFLOAT3 m_offset = { 0.0f, -18000.0f, 0.0f }; // ・ｽY・ｽ・ｽ・ｽ竦ｳ・ｽp
+	DirectX::XMFLOAT3 m_pos = { 0.0f,0.0f,0.0f }; // スカイドームの位置
+	DirectX::XMFLOAT3 m_scale = { 80.0f,80.0f,80.0f }; // 巨大にする
+	DirectX::XMFLOAT3 m_offset = { 0.0f, -18000.0f, 0.0f }; // ズレ補正用
 };
 
 

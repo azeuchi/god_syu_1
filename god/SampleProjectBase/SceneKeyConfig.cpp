@@ -21,7 +21,7 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌˆÚ“ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ð§Œï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Íˆï¿½
+// ƒJƒƒ‰‚ÌˆÚ“®‚ð§ŒÀ‚·‚é”ÍˆÍ
 const float CAMERA_LIMIT_X = 4.0f;
 
 bool SceneKeyConfig::s_isConfigSet = false;
@@ -35,10 +35,10 @@ void SceneKeyConfig::Init()
 	m_configSelectedIndex = 0;
 	m_windowScaleY = 0.0f;
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ (DirectWriteï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½)
+	// ƒtƒHƒ“ƒgƒVƒXƒeƒ€‚Ì‰Šú‰» (DirectWrite”Å)
 	SimpleFont::Init(GetDevice(), GetContext());
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‚ï¿½Ý’ï¿½
+	// ƒgƒbƒvƒƒjƒ…[‚Ì€–Ú‚ðÝ’è
 	m_topItems = {
 		{ L"Player 1 Config" },
 		{ L"Player 2 Config" },
@@ -46,7 +46,7 @@ void SceneKeyConfig::Init()
 		{ L"Game Start" }
 	};
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½È‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½êEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ÍƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½{ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É–ß‚ï¿½
+	// ‘I‘ð‚³‚ê‚Ä‚¢‚éƒfƒoƒCƒX‚ªÚ‘±‚³‚ê‚Ä‚¢‚È‚¢ê‡‚ÍƒL[ƒ{[ƒh‚É–ß‚·
 	if (g_inputDeviceP1 != InputDeviceType::KEYBOARD && !IsPadConnected((int)g_inputDeviceP1 - 1))
 	{
 		g_inputDeviceP1 = InputDeviceType::KEYBOARD;
@@ -56,7 +56,7 @@ void SceneKeyConfig::Init()
 		g_inputDeviceP2 = InputDeviceType::KEYBOARD;
 	}
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒfï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ô‚Éï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒ|ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½z
+	// ‰Šú‚ÌƒfƒoƒCƒXó‘Ô‚É‡‚í‚¹‚Äƒƒjƒ…[‚Ìƒ|ƒCƒ“ƒ^‚ð\’z
 	RefreshConfigPointers();
 
 	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");
@@ -99,48 +99,48 @@ void SceneKeyConfig::Init()
 		}
 	}
 
-	// ï¿½vï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½wï¿½ï¿½ï¿½pï¿½[ï¿½iï¿½Aï¿½Eï¿½gï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Eï¿½Jï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½Qï¿½[ï¿½ï¿½ï¿½Æ‹ï¿½ï¿½Ê‚Å—pï¿½Ój
+	// ƒvƒŒƒCƒ„[•`‰æƒwƒ‹ƒp[iƒAƒEƒgƒ‰ƒCƒ“EƒJƒŠƒ“ƒO‚ðƒQ[ƒ€‚Æ‹¤’Ê‚Å—pˆÓj
 	m_playerRenderer.Setup(this);
 
-	// ï¿½Eï¿½wï¿½Eï¿½iï¿½Eï¿½iï¿½Eï¿½Xï¿½Eï¿½Jï¿½Eï¿½Cï¿½Eï¿½hï¿½Eï¿½[ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½jï¿½Eï¿½êŽ®ï¿½Eï¿½ï¿½Eï¿½pï¿½Eï¿½ï¿½Eï¿½
+	// ”wŒiiƒXƒJƒCƒh[ƒ€jˆêŽ®‚ð—pˆÓ
 	m_skyDome = new SkyDome();
 	m_skyDome->Setup(this);
 
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[1ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÆÝ’ï¿½
+	// ƒvƒŒƒCƒ„[1‚Ì¶¬‚ÆÝ’è
 	CreateObj<Player>("Player");
 	Player* player = GetObj<Player>("Player");
-	player->SetInputType(PlayerInputType::AI); // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½È‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚¤AIï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ò‹@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉŒÅ’ï¿½
+	player->SetInputType(PlayerInputType::AI); // ƒLƒƒƒ‰‚ª“®‚©‚È‚¢‚æ‚¤AIi‘Ò‹@j‚ÉŒÅ’è
 	PlayerParameterLoader::LoadSettings(player);
 	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
-		MessageBox(NULL, "ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì“Ç‚Ýï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý‚ÉŽï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½sï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ü‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½B", "Error", MB_OK);
+		MessageBox(NULL, "ƒvƒŒƒCƒ„[ƒ‚ƒfƒ‹‚Ì“Ç‚Ýž‚Ý‚ÉŽ¸”s‚µ‚Ü‚µ‚½B", "Error", MB_OK);
 	}
 	PlayerAssetLoader::LoadCommonAnimations(player);
 	player->SetPosition({ -2.0f, 0.0f, 0.0f });
 	player->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
 	player->Reset();
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[2ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÆÝ’ï¿½
+	// ƒvƒŒƒCƒ„[2‚Ì¶¬‚ÆÝ’è
 	CreateObj<Player>("Player2");
 	Player* player2 = GetObj<Player>("Player2");
-	player2->SetInputType(PlayerInputType::AI); // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ð–³Œï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	player2->SetInputType(PlayerInputType::AI); // ƒvƒŒƒCƒ„[‚Ì‘€ì‚ð–³Œø‰»
 	player2->SetMoveSpeed(player->GetMoveSpeed());
 	player2->SetScale(player->GetScale());
 	PlayerParameterLoader::CopyParameters(player, player2);
 	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
 	{
-		MessageBox(NULL, "ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[2ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì“Ç‚Ýï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý‚ÉŽï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½sï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ü‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½B", "Error", MB_OK);
+		MessageBox(NULL, "ƒvƒŒƒCƒ„[2ƒ‚ƒfƒ‹‚Ì“Ç‚Ýž‚Ý‚ÉŽ¸”s‚µ‚Ü‚µ‚½B", "Error", MB_OK);
 	}
 	PlayerAssetLoader::LoadCommonAnimations(player2);
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
-	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f }); // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½]ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÅŒï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ð’²ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f }); // ‰ñ“]‚¾‚¯‚ÅŒü‚«‚ð’²®‚·‚é
 	player2->Reset();
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ƒGƒtƒFƒNƒg‚Ì‰Šú‰»
 	m_hitEffects.Init(10);
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý’ï¿½
+	// ƒJƒƒ‰‚Ì‰ŠúÝ’è
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
 	{
@@ -221,7 +221,7 @@ void SceneKeyConfig::Update(float tick)
 		return false;
 		};
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ê‚©ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è“–ï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í‚ï¿½Ò‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ‚¢‚¸‚ê‚©‚ÌƒL[Š„‚è“–‚Ä‚ª‘I‘ð‚³‚êA“ü—Í‚ð‘Ò‚Á‚Ä‚¢‚éó‘Ô
 	if (m_waitBindKeyPtr != nullptr)
 	{
 		bool isP1 = (m_menuState == MenuState::ConfigP1);
@@ -261,10 +261,10 @@ void SceneKeyConfig::Update(float tick)
 	}
 	else
 	{
-		// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌŠKï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É‰ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+		// ƒƒjƒ…[‚ÌŠK‘w‚É‰ž‚¶‚½‘€ìˆ—
 		if (m_menuState == MenuState::TopMenu)
 		{
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Åƒgï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒJï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú“ï¿½
+			// ¶‰EƒL[‚Åƒgƒbƒvƒƒjƒ…[‚ÌƒJ[ƒ\ƒ‹‚ðˆÚ“®
 			if (isMenuRight())
 			{
 				m_topSelectedIndex = (m_topSelectedIndex + 1) % m_topItems.size();
@@ -274,40 +274,40 @@ void SceneKeyConfig::Update(float tick)
 				m_topSelectedIndex = (m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size();
 			}
 
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Å‘Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+			// Œˆ’èƒL[‚Å‘JˆÚ
 			if (isMenuConfirm())
 			{
 				if (m_topSelectedIndex == 0)
 				{
-					// 1Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý’ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ß‚ÉƒXï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½0ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+					// 1PÝ’è‚ðŠJ‚­B“WŠJƒAƒjƒ[ƒVƒ‡ƒ“‚Ì‚½‚ß‚ÉƒXƒP[ƒ‹‚ð0‚ÉƒŠƒZƒbƒg‚·‚é
 					m_menuState = MenuState::ConfigP1;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
 				}
 				else if (m_topSelectedIndex == 1)
 				{
-					// 2Pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý’ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+					// 2PÝ’è‚ðŠJ‚­
 					m_menuState = MenuState::ConfigP2;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
 				}
 				else if (m_topSelectedIndex == 2)
 				{
-					// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉˆÚsï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+					// ƒgƒŒ[ƒjƒ“ƒOƒ‚[ƒh‚ÉˆÚs‚µA—¼ƒvƒŒƒCƒ„[‚Ì‘€ìŒ ŒÀ‚ð—^‚¦‚é
 					m_menuState = MenuState::TrainingMode;
 					if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::PLAYER_1);
 					if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::PLAYER_2);
 				}
 				else if (m_topSelectedIndex == 3)
 				{
-					// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Qï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½g
+					// ƒQ[ƒ€ƒXƒ^[ƒg
 					s_isConfigSet = true;
 				}
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ê‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Û‚ÌƒAï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ñ‚Ä“Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
+			// ƒRƒ“ƒtƒBƒO‰æ–Ê‚ªŠJ‚­Û‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ˆ—ic‚ÉL‚Ñ‚Ä“WŠJ‚·‚éj
 			if (m_windowScaleY < 1.0f)
 			{
 				m_windowScaleY += tick * 15.0f;
@@ -315,10 +315,10 @@ void SceneKeyConfig::Update(float tick)
 			}
 			else
 			{
-				// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½êEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Ì‚Ý‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ó‚¯•tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+				// “WŠJƒAƒjƒ[ƒVƒ‡ƒ“‚ªI‚í‚Á‚Ä‚¢‚éê‡‚Ì‚Ý‘€ì‚ðŽó‚¯•t‚¯‚é
 				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
 
-				// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ã‰ºï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÅÝ’è€ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‚ÌƒJï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú“ï¿½
+				// ã‰ºƒL[‚ÅÝ’è€–Ú‚ÌƒJ[ƒ\ƒ‹‚ðˆÚ“®
 				if (isMenuDown())
 				{
 					m_configSelectedIndex = (m_configSelectedIndex + 1) % currentItems.size();
@@ -328,40 +328,40 @@ void SceneKeyConfig::Update(float tick)
 					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
 				}
 
-				// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+				// Œˆ’èƒL[‚Ìˆ—
 				if (isMenuConfirm())
 				{
 					if (currentItems[m_configSelectedIndex].isDeviceSelect)
 					{
-						// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ø‚ï¿½Ö‚ï¿½
+						// ƒfƒoƒCƒXØ‚è‘Ö‚¦
 						InputDeviceType currentDevice = (m_menuState == MenuState::ConfigP1) ? g_inputDeviceP1 : g_inputDeviceP2;
 						InputDeviceType nextDevice = currentDevice;
 
-						// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Èƒfï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Â‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ü‚ÅEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒpï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
+						// —LŒø‚ÈƒfƒoƒCƒX‚ªŒ©‚Â‚©‚é‚Ü‚Åƒ‹[ƒv‚·‚éi–¢Ú‘±‚Ìƒpƒbƒh‚ðƒXƒLƒbƒvj
 						do {
 							nextDevice = (InputDeviceType)(((int)nextDevice + 1) % 5);
-							if (nextDevice == InputDeviceType::KEYBOARD) break; // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½{ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Íï¿½É—Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
-							if (IsPadConnected((int)nextDevice - 1)) break;     // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‘ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½È‚ï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+							if (nextDevice == InputDeviceType::KEYBOARD) break; // ƒL[ƒ{[ƒh‚Íí‚É—LŒø
+							if (IsPadConnected((int)nextDevice - 1)) break;     // Ú‘±‚³‚ê‚Ä‚¢‚éƒRƒ“ƒgƒ[ƒ‰[‚È‚ç—LŒø
 						} while (nextDevice != currentDevice);
 
 						if (m_menuState == MenuState::ConfigP1) g_inputDeviceP1 = nextDevice;
 						else g_inputDeviceP2 = nextDevice;
 
-						RefreshConfigPointers(); // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½\ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Æƒ|ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½V
+						RefreshConfigPointers(); // •\Ž¦‚Æƒ|ƒCƒ“ƒ^‚ðXV
 					}
 					else if (currentItems[m_configSelectedIndex].keyPtr == nullptr)
 					{
-						// Backï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Î‚ê‚½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½êEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Íƒgï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É–ß‚ï¿½
+						// Back‚ª‘I‚Î‚ê‚½ê‡‚Íƒgƒbƒvƒƒjƒ…[‚É–ß‚é
 						m_menuState = MenuState::TopMenu;
 					}
 					else
 					{
-						// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è“–ï¿½Ä‘Ò‹@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ô‚ÉˆÚs
+						// ƒL[Š„‚è“–‚Ä‘Ò‹@ó‘Ô‚ÉˆÚs
 						m_waitBindKeyPtr = currentItems[m_configSelectedIndex].keyPtr;
 					}
 				}
 
-				// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Å‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É–ß‚ï¿½
+				// ƒLƒƒƒ“ƒZƒ‹ƒL[‚Å‚àƒgƒbƒvƒƒjƒ…[‚É–ß‚é
 				if (isMenuCancel())
 				{
 					m_menuState = MenuState::TopMenu;
@@ -370,7 +370,7 @@ void SceneKeyConfig::Update(float tick)
 		}
 		else if (m_menuState == MenuState::TrainingMode)
 		{
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½AESCï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ü‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½BACKï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½{ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Å–ß‚ï¿½
+			// ƒgƒŒ[ƒjƒ“ƒOƒ‚[ƒh’†AESCƒL[‚Ü‚½‚ÍBACKƒ{ƒ^ƒ“‚Å–ß‚é
 			bool exitTraining = false;
 			if (IsKeyTrigger(VK_ESCAPE)) exitTraining = true;
 			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_BACK)) exitTraining = true;
@@ -387,16 +387,16 @@ void SceneKeyConfig::Update(float tick)
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌXï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½V
+	// ƒvƒŒƒCƒ„[‚ÌXV
 	if (player) player->Update(tick);
 	if (player2) player2->Update(tick);
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è”»ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½èˆï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Uï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒqï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½mï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‰ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
+	// “–‚½‚è”»’èˆ—iUŒ‚‚Ìƒqƒbƒg‚âƒvƒŒƒCƒ„[“¯Žm‚Ì‰Ÿ‚µ‡‚¢‚ðˆ—‚·‚éj
 	BattleCollision::UpdateInteractions(player, player2, tick, m_hitEffects.Raw(), 6.0f);
 
 	m_hitEffects.Update(tick);
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌˆÊ’uï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Éï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄƒJï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ç]ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Yï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½é§ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ƒvƒŒƒCƒ„[‚ÌˆÊ’u‚É‡‚í‚¹‚ÄƒJƒƒ‰‚ª’Ç]EƒY[ƒ€‚·‚é§Œä
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera && player && player2)
 	{
@@ -410,7 +410,7 @@ void SceneKeyConfig::Update(float tick)
 		float targetLookY = 1.4f + (maxY * 0.2f);
 		float targetPosY = 1.5f + (maxY * 0.1f);
 
-		// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ô‚Ì‹ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉŠï¿½Ã‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÄƒJï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìˆï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+		// ƒLƒƒƒ‰ƒNƒ^[ŠÔ‚Ì‹——£‚ÉŠî‚Ã‚¢‚ÄƒJƒƒ‰‚Ìˆø‚«‹ï‡‚ðŒvŽZ‚·‚é
 		float distX = fabsf(p1Pos.x - p2Pos.x);
 		float zoomFactorX = 0.45f;
 		float zoomFactorY = 0.8f;
@@ -447,15 +447,15 @@ void SceneKeyConfig::Update(float tick)
 		pCamera->SetPos(newPos);
 		pCamera->SetLook(newLook);
 
-		// ï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Ê’uï¿½Eï¿½Eï¿½Eï¿½É’Ç]ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½
+		// ƒXƒJƒCƒh[ƒ€‚ðƒJƒƒ‰ˆÊ’u‚É’Ç]‚³‚¹‚é
 		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
 	}
 }
 
 void SceneKeyConfig::DrawRectPixel(float px, float py, float pw, float ph, DirectX::XMFLOAT4 color)
 {
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Spriteï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½uï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è‚µï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ESï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Æ‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½dï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ßA
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½(px, py)ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É•`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚³ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚¤ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Sï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½NDCï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É•ÏŠï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// Œ³‚ÌSpriteƒNƒ‰ƒX‚ªuŽw’è‚µ‚½À•W‚ð’†S‚Æ‚·‚évŽd—l‚¾‚Á‚½‚½‚ßA
+	// ¶ã(px, py)‚É•`‰æ‚³‚ê‚é‚æ‚¤’†SÀ•W‚ðŒvŽZ‚µ‚Ä‚©‚çNDC‚É•ÏŠ·‚·‚é
 	float centerX = px + pw * 0.5f;
 	float centerY = py + ph * 0.5f;
 
@@ -469,7 +469,7 @@ void SceneKeyConfig::DrawRectPixel(float px, float py, float pw, float ph, Direc
 
 const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 {
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Æï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‚Ü‚ÜEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Æ‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä•Ô‚ï¿½
+	// ƒAƒ‹ƒtƒ@ƒxƒbƒg‚Æ”Žš‚Í‚»‚Ì‚Ü‚ÜƒƒCƒh•¶Žš‚Æ‚µ‚Ä•Ô‚·
 	if (vk >= 'A' && vk <= 'Z')
 	{
 		static wchar_t buf[2] = { 0 };
@@ -485,7 +485,7 @@ const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 		return buf;
 	}
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì–ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‘Î‰ï¿½
+	// “ÁŽêƒL[‚Ì–¼Ì‘Î‰ž
 	switch (vk)
 	{
 	case VK_UP: return L"UP";
@@ -507,7 +507,7 @@ const wchar_t* SceneKeyConfig::GetKeyName(int vk)
 	case VK_NUMPAD9: return L"NUM 9";
 	}
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÈŠOï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í”Ôï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ã‹LˆÈŠO‚Í”Ô†‚ðo—Í‚·‚é
 	static wchar_t buf[16];
 	swprintf_s(buf, L"Key %d", vk);
 	return buf;
@@ -560,19 +560,20 @@ void SceneKeyConfig::Draw()
 	Player* player2 = GetObj<Player>("Player2");
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 
-	// ï¿½Eï¿½wï¿½Eï¿½iï¿½Eï¿½iï¿½Eï¿½Xï¿½Eï¿½Jï¿½Eï¿½Cï¿½Eï¿½hï¿½Eï¿½[ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½jï¿½Eï¿½Ì•`ï¿½Eï¿½ï¿½Eï¿½Bï¿½Eï¿½vï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Cï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½[ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½É•`ï¿½Eï¿½ï¿½Eï¿½
+	// ”wŒiiƒXƒJƒCƒh[ƒ€j‚Ì•`‰æBƒvƒŒƒCƒ„[‚æ‚èæ‚É•`‚­
 	if (m_skyDome && pCamera) m_skyDome->DrawWithState(pCamera->GetView(), pCamera->GetProj());
 
-	// ï¿½Eï¿½vï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Cï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½[ï¿½Eï¿½`ï¿½Eï¿½ï¿½Eï¿½iï¿½Eï¿½Qï¿½Eï¿½[ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Æ“ï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Aï¿½Eï¿½ï¿½Eï¿½É‘Sï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ÌƒAï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Cï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½É–{ï¿½Eï¿½Ìj
+	// ƒvƒŒƒCƒ„[•`‰æiƒQ[ƒ€‚Æ“¯‚¶‚­Aæ‚É‘Sˆõ‚ÌƒAƒEƒgƒ‰ƒCƒ“¨ŽŸ‚É–{‘Ìj
 	m_playerRenderer.DrawOutline(this, player);
 	m_playerRenderer.DrawOutline(this, player2);
 	m_playerRenderer.DrawBody(this, player);
 	m_playerRenderer.DrawBody(this, player2);
 
-	// ï¿½Eï¿½ï¿½Eï¿½Ñ“ï¿½ï¿½Eï¿½ï¿½Eï¿½Í’Êï¿½ÌƒJï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Oï¿½Eï¿½iï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½Êjï¿½Eï¿½Å•`ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ï¿½Eï¿½ßŠï¿½ï¿½Eï¿½ï¿½Eï¿½Ö–ß‚ï¿½
+	// ”ò‚Ñ“¹‹ï‚Í’Êí‚ÌƒJƒŠƒ“ƒOi— –Êj‚Å•`‚­‚½‚ßŠù’è‚Ö–ß‚·
 	GetContext()->RSSetState(nullptr);
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ñ“ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì•`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+
+	// ”ò‚Ñ“¹‹ï‚Ì•`‰æ
 	if (player && player->GetProjectile())
 	{
 		player->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
@@ -582,22 +583,22 @@ void SceneKeyConfig::Draw()
 		player2->GetProjectile()->Draw(pCamera->GetView(), pCamera->GetProj());
 	}
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½qï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Fï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì•`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ƒqƒbƒgƒGƒtƒFƒNƒg‚Ì•`‰æ
 	DirectX::XMFLOAT4X4 view = pCamera->GetView();
 	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
 	m_hitEffects.Draw(view, proj);
 
-	// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÈŠOï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìê‡ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‚ÝAUIï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚·ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+	// ƒgƒŒ[ƒjƒ“ƒOƒ‚[ƒhˆÈŠO‚Ìê‡‚Ì‚ÝAUI‚ð•`‰æ‚·‚é
 	if (m_menuState != MenuState::TrainingMode)
 	{
 		SimpleUI::Clear();
 
-		// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Êã•”ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Éƒgï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ß‚Ìƒlï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Cï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½uï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+		// ‰æ–Êã•”‚Éƒgƒbƒvƒƒjƒ…[—p‚Ì­‚µ–¾‚é‚ß‚ÌƒlƒCƒr[ƒuƒ‹[”wŒi‚ð•`‰æ
 		DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
 
 		if (m_menuState == MenuState::TopMenu)
 		{
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú˜gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+			// ƒgƒbƒvƒƒjƒ…[‚Ì€–Ú˜g‚ð•`‰æ
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
@@ -606,13 +607,13 @@ void SceneKeyConfig::Draw()
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
 		{
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Rï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìƒpï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ã‰ºï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ñ‚é‰‰ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½j
-			float panelHeight = 540.0f * m_windowScaleY; // ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì‚Å˜gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+			// ƒRƒ“ƒtƒBƒO—p‚Ìƒpƒlƒ‹‚ð•`‰æi’†‰›‚©‚çã‰º‚ÉL‚Ñ‚é‰‰oŒvŽZj
+			float panelHeight = 540.0f * m_windowScaleY; // €–Ú‚ª‘‚¦‚½‚Ì‚Å˜g‚ðL‚°‚é
 			float panelY = 150.0f + (540.0f - panelHeight) / 2.0f;
 
 			DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
 
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì“Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ä‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ç’Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ìï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú˜gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æ‚·ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+			// ˜g‚Ì“WŠJƒAƒjƒ[ƒVƒ‡ƒ“‚ªI‚í‚Á‚Ä‚©‚ç’†g‚Ì€–Ú˜g‚ð•`‰æ‚·‚é
 			if (m_windowScaleY >= 1.0f)
 			{
 				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
@@ -624,10 +625,10 @@ void SceneKeyConfig::Draw()
 			}
 		}
 
-		// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½oï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½^ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½pï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`UIï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½êŠEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+		// “o˜^‚µ‚½ŽlŠpŒ`UI‚ðˆêŠ‡•`‰æ
 		SimpleUI::DrawAll();
 
-		// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½DirectWriteï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½É‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½tï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Hï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ì•`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½æˆï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+		// ‚±‚±‚©‚çDirectWrite‚É‚æ‚éƒtƒHƒ“ƒg‚Ì•`‰æˆ—
 		SimpleFont::Begin();
 
 		if (m_menuState == MenuState::TopMenu)
@@ -643,7 +644,7 @@ void SceneKeyConfig::Draw()
 			bool isP1 = (m_menuState == MenuState::ConfigP1);
 			SimpleFont::Draw(isP1 ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
 
-			// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌƒAï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½jï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Iï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÉŠeï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ú‚Ìƒeï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Lï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Xï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½gï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+			// ˜g‚ÌƒAƒjƒ[ƒVƒ‡ƒ“I—¹Œã‚ÉŠe€–Ú‚ÌƒeƒLƒXƒg‚ð•`‰æ
 			if (m_windowScaleY >= 1.0f)
 			{
 				std::vector<ConfigItem>& currentItems = isP1 ? m_p1Items : m_p2Items;
@@ -653,10 +654,10 @@ void SceneKeyConfig::Draw()
 				{
 					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
 
-					// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Nï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Vï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ (ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½: Light Punch)
+					// ƒAƒNƒVƒ‡ƒ“–¼‚ð•`‰æ (—á: Light Punch)
 					SimpleFont::Draw(currentItems[i].label, 80, 175 + i * 45, 20.0f, textColor);
 
-					// ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ý‚ÌŠï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½è“–ï¿½ÄƒLï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Aï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Ü‚ï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Í‘Ò‹@ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ÌEï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½bï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Zï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½[ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Wï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½`ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½
+					// Œ»Ý‚ÌŠ„‚è“–‚ÄƒL[A‚Ü‚½‚Í‘Ò‹@’†‚ÌƒƒbƒZ[ƒW‚ð•`‰æ
 					if (currentItems[i].isDeviceSelect)
 					{
 						SimpleFont::Draw(GetDeviceName(currentDevice), 250, 175 + i * 45, 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });

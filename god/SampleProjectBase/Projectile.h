@@ -6,7 +6,7 @@
 class Player;
 
 /**
- * @brief ・ｽ・ｽﾑ難ｿｽ・ｽ・ｽi・ｽg・ｽ・ｽ・ｽ・ｽ・ｽj・ｽN・ｽ・ｽ・ｽX
+ * @brief 飛び道具（波動拳）クラス
  */
 class Projectile
 {
@@ -14,17 +14,17 @@ public:
 	Projectile();
 	~Projectile();
 
-	// ・ｽe・ｽｭ射ゑｿｽ・ｽ・ｽ
+	// 弾を発射する
 	void Launch(Player* owner, float speed, int damage, float size, bool isRight);
 
-	// ・ｽX・ｽV
+	// 更新
 	void Update(float tick);
 
-	// ・ｽ`・ｽ・ｽ
+	// 描画
 	void Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
 
 #ifdef _DEBUG
-	// ・ｽf・ｽo・ｽb・ｽO・ｽp・ｽ・ｽ・ｽ・ｽ・ｽ阡ｻ・ｽ・ｽ`・ｽ・ｽ
+	// デバッグ用当たり判定描画
 	void DrawHitbox(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
 #endif
 
@@ -49,19 +49,19 @@ private:
 	// パーティクル用の丸ぼかしテクスチャ（コード生成）
 	static Texture* s_softTex;
 
-	// --- ・ｽ・ｽ・ｽ・ｽﾉ撒・ｽ・ｽ・ｽp・ｽ[・ｽe・ｽB・ｽN・ｽ・ｽ・ｽ・ｽ・ｽo ---
+	// --- 後方に撒くパーティクル演出 ---
 	struct Particle
 	{
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMFLOAT2 vel;
-		float life = 0.0f;    // ・ｽc・ｽ・ｽ・ｽ・ｽ・ｽ・ｽi0・ｽﾈ会ｿｽ・ｽﾅ擾ｿｽ・ｽﾅ）
+		float life = 0.0f;    // 残り寿命（0以下で消滅）
 		float maxLife = 0.0f;
 		float size = 0.0f;
 	};
 	static const int MAX_PARTICLES = 64;
 	Particle m_particles[MAX_PARTICLES];
-	float m_spawnTimer = 0.0f; // ・ｽ・ｽ・ｽﾌパ・ｽ[・ｽe・ｽB・ｽN・ｽ・ｽ・ｽ・ｽ・ｽ・ｽ・ｽﾜでのタ・ｽC・ｽ}・ｽ[
+	float m_spawnTimer = 0.0f; // 次のパーティクル発生までのタイマー
 
-	// ・ｽ・ｽﾊ外・ｽi・ｽJ・ｽ・ｽ・ｽ・ｽ・ｽﾌ外・ｽj・ｽ・ｽ・ｽﾅゑｿｽ閾値
+	// 画面外（カメラの外）消滅の閾値
 	const float CAMERA_OUT_LIMIT = 10.0f;
 };
