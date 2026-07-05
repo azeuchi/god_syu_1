@@ -227,6 +227,10 @@ public:
 	const PlayerInputs& GetInputs() const;
 	void SetInjectedInputs(const PlayerInputs& in);
 	void RefillHp() { m_hp = m_maxHp; }
+#ifdef _DEBUG
+	// デバッグコマンド用
+	void Debug_SetHp(int hp) { m_hp = hp; }
+#endif
 	void SetGuardAllLevels(bool b) { m_guardAllLevels = b; }
 
 	void PlayAnimation(const char* name, bool forceRestart = false);

@@ -4,6 +4,19 @@
 #include "Texture.h"
 #include "Sprite.h" 
 
+namespace
+{
+	// 左上基準のピクセル座標で単色矩形をUIに登録する
+	void AddRectPixel(float px, float py, float pw, float ph, const DirectX::XMFLOAT4& color)
+	{
+		float cx = px + pw * 0.5f;
+		float cy = py + ph * 0.5f;
+		float ndcX = (cx / 1280.0f) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (cy / 720.0f) * 2.0f;
+		SimpleUI::AddRect(ndcX, ndcY, (pw / 1280.0f) * 2.0f, (ph / 720.0f) * 2.0f, color, nullptr);
+	}
+}
+
 BattleUIManager::BattleUIManager()
 	: m_hpBar(nullptr), m_enemyhpBar(nullptr), m_fadeBlack(nullptr)
 	, m_hpFrame(nullptr), m_enemyhpFrame(nullptr)
@@ -70,7 +83,7 @@ void BattleUIManager::Init()
 	// UI用の深度ステート
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
 	depthDescUI.DepthEnable = TRUE;
-	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDescUI.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 深度を書き、後描きのグリッド線をUIの後ろに隠す
 	depthDescUI.DepthFunc = D3D11_COMPARISON_ALWAYS; // 常に手前に描画
 	depthDescUI.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
@@ -149,7 +162,7 @@ void BattleUIManager::SetFadeAlpha(float alpha)
 	}
 }
 
-void BattleUIManager::Draw(RoundPhase currentPhase, int winCountP1, int winCountP2)
+void BattleUIManager::Draw(RoundPhase currentPhase, int winCountP1, int winCountP2, int roundToWin)
 {
 	// 深度設定: UI用 (Depth ON, Func ALWAYS)
 	if (m_pDepthStateUI)
@@ -173,6 +186,24 @@ void BattleUIManager::Draw(RoundPhase currentPhase, int winCountP1, int winCount
 	//--- HPフレーム描画登録 ---
 	if (m_hpFrame) m_hpFrame->Draw();
 	if (m_enemyhpFrame) m_enemyhpFrame->Draw();
+
+	// --- ラウンド取得ランプ ---
+	// 画像を使わず矩形で描く。取った数だけ中央側から金色に点灯する
+	{
+		const float PIP_W = 26.0f, PIP_H = 10.0f, PIP_GAP = 8.0f, PIP_Y = 128.0f;
+		const DirectX::XMFLOAT4 PIP_ON = { 1.0f, 0.85f, 0.25f, 0.95f };
+		const DirectX::XMFLOAT4 PIP_OFF = { 0.08f, 0.08f, 0.08f, 0.7f };
+		const DirectX::XMFLOAT4 PIP_EDGE = { 0.0f, 0.0f, 0.0f, 0.8f };
+		for (int i = 0; i < roundToWin; ++i)
+		{
+			float x1 = 500.0f - PIP_W - i * (PIP_W + PIP_GAP); // 1P: 右端から中央側へ
+			float x2 = 780.0f + i * (PIP_W + PIP_GAP);          // 2P: 左端から中央側へ
+			AddRectPixel(x1 - 2.0f, PIP_Y - 2.0f, PIP_W + 4.0f, PIP_H + 4.0f, PIP_EDGE);
+			AddRectPixel(x1, PIP_Y, PIP_W, PIP_H, (winCountP1 > i) ? PIP_ON : PIP_OFF);
+			AddRectPixel(x2 - 2.0f, PIP_Y - 2.0f, PIP_W + 4.0f, PIP_H + 4.0f, PIP_EDGE);
+			AddRectPixel(x2, PIP_Y, PIP_W, PIP_H, (winCountP2 > i) ? PIP_ON : PIP_OFF);
+		}
+	}
 
 	// --- ラウンド演出の描画登録 ---
 	if (currentPhase == RoundPhase::ROUND_CALL)

@@ -25,10 +25,12 @@ using namespace DirectX::SimpleMath;
 const float CAMERA_LIMIT_X = 4.0f;
 
 bool SceneKeyConfig::s_isConfigSet = false;
+bool SceneKeyConfig::s_requestDebug = false;
 
 void SceneKeyConfig::Init()
 {
 	s_isConfigSet = false;
+	s_requestDebug = false;
 	m_waitBindKeyPtr = nullptr;
 	m_menuState = MenuState::TopMenu;
 	m_topSelectedIndex = 0;
@@ -43,7 +45,8 @@ void SceneKeyConfig::Init()
 		{ L"Player 1 Config" },
 		{ L"Player 2 Config" },
 		{ L"Training Mode" },
-		{ L"Game Start" }
+		{ L"Game Start" },
+		{ L"Debug Room" }
 	};
 
 	// 選択されているデバイスが接続されていない場合はキーボードに戻す
@@ -302,6 +305,11 @@ void SceneKeyConfig::Update(float tick)
 				{
 					// ゲームスタート
 					s_isConfigSet = true;
+				}
+				else if (m_topSelectedIndex == 4)
+				{
+					// デバッグシーンへ
+					s_requestDebug = true;
 				}
 			}
 		}

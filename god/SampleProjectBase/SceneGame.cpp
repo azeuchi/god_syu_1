@@ -18,7 +18,8 @@
 #include <cmath>
 #include "Projectile.h"
 #include "PlayerParameterLoader.h"
-#include "PlayerAssetLoader.h" 
+#include "PlayerAssetLoader.h"
+#include "SceneRoot.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -346,6 +347,7 @@ void SceneGame::ResetRound()
 {
 	m_isRoundOver = false;
 	m_roundEndTimer = 0.0f;
+	SceneRoot::s_sceneFade = 0.0f; // ラウンド切替の暗転を解除
 	m_hitStopTimer = 0.0f;
 	m_shakeTimerP1 = 0.0f;
 	m_shakeTimerP2 = 0.0f;
@@ -412,6 +414,13 @@ void SceneGame::Update(float tick)
 {
 	Player* player = GetObj<Player>("Player");
 	Player* player2 = GetObj<Player>("Player2");
+
+#ifdef _DEBUG
+	// デバッグコマンド。F1:2PのHPを1に F2:1PのHPを1に F3:両者全回復
+	if (IsKeyTrigger(VK_F1) && player2) player2->Debug_SetHp(1);
+	if (IsKeyTrigger(VK_F2) && player) player->Debug_SetHp(1);
+	if (IsKeyTrigger(VK_F3)) { if (player) player->RefillHp(); if (player2) player2->RefillHp(); }
+#endif
 
 	// ==========================================================
 	// ラウンド開始演出 (フェーズ管理)
@@ -544,14 +553,14 @@ void SceneGame::Update(float tick)
 			{
 				if (m_roundEndTimer < WAIT_BEFORE_FADE)
 				{
-					m_uiManager->SetFadeAlpha(0.0f);
+					SceneRoot::s_sceneFade = 0.0f;
 				}
 				else
 				{
 					float progress = (m_roundEndTimer - WAIT_BEFORE_FADE) / FADE_DURATION;
 					if (progress > 1.0f) progress = 1.0f;
-					float alpha = 0.1f + (progress * 0.9f);
-					m_uiManager->SetFadeAlpha(alpha);
+					// 画面全体（グリッド線含む）を暗転させるためSceneRoot側でかける
+					SceneRoot::s_sceneFade = 0.1f + (progress * 0.9f);
 				}
 			}
 
@@ -1042,7 +1051,7 @@ void SceneGame::Draw()
 	// ------------------------------------------------
 	if (m_uiManager)
 	{
-		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2);
+		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2, ROUND_TO_WIN);
 	}
 
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);

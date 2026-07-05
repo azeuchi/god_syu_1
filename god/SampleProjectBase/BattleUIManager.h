@@ -31,7 +31,7 @@ public:
 	void SetFadeAlpha(float alpha);
 
 	// •`‰æ
-	void Draw(RoundPhase currentPhase, int winCountP1, int winCountP2);
+	void Draw(RoundPhase currentPhase, int winCountP1, int winCountP2, int roundToWin);
 
 private:
 	// HPƒo[

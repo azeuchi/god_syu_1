@@ -42,6 +42,8 @@ public:
 	void Draw();
 
 	static bool s_isConfigSet;
+	// デバッグシーンへの遷移要求（SceneRootが監視）
+	static bool s_requestDebug;
 
 private:
 	// 指定したピクセル座標とサイズで単色の四角形を描画する
