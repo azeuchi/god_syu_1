@@ -4,6 +4,7 @@
 #include "CameraBase.h"
 #include "LightBase.h"
 #include "Shader.h"
+#include "Sound.h"
 #include <math.h>
 
 // アクションのアニメーションリスト
@@ -15,6 +16,8 @@ static const int ACTION_COUNT = sizeof(ACTION_ANIMS) / sizeof(ACTION_ANIMS[0]);
 void SceneTitle::Init()
 {
 	DebugLog::log(DebugLog::INFO_LOG, "--- Title Scene Init ---");
+
+	Sound::PlayBGM("Assets/Sound/bgm_title.wav", 0.4f);
 
 	// シェーダーの読み込み
 	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");

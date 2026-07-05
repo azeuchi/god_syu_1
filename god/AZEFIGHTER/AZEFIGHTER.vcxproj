@@ -238,6 +238,7 @@
     </ClCompile>
     <ClCompile Include="SimpleUI.cpp" />
     <ClCompile Include="SkyDome.cpp" />
+    <ClCompile Include="Sound.cpp" />
     <ClCompile Include="SpotLight.cpp" />
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="Startup.cpp" />
@@ -316,6 +317,7 @@
     </ClInclude>
     <ClInclude Include="SimpleUI.h" />
     <ClInclude Include="SkyDome.h" />
+    <ClInclude Include="Sound.h" />
     <ClInclude Include="SpotLight.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="system\commontypes.h" />

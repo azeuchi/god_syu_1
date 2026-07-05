@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "Sprite.h"
 #include "Geometory.h" // 当たり判定描画用に追加
+#include "Sound.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -67,6 +68,7 @@ void Projectile::Launch(Player* owner, float speed, int damage, float size, bool
 	m_isRight = isRight;
 	m_isActive = true;
 	m_spawnTimer = 0.0f;
+	Sound::PlaySE("Assets/Sound/hadouken.wav");
 
 	// プレイヤーの少し前から発射
 	m_position = owner->GetPosition();

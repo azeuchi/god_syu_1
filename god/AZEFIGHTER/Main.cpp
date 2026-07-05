@@ -7,6 +7,7 @@
 #include "Sprite.h"
 #include "Input.h"
 #include "SceneRoot.h"
+#include "Sound.h"
 
 #include <system/imgui/imgui.h>
 #include <system/imgui/imgui_impl_dx11.h>
@@ -24,6 +25,7 @@ HRESULT Init(HWND hWnd, UINT width, UINT height)
 	Geometory::Init();
 	Sprite::Init();
 	InitInput();
+	Sound::Init();
 
 	// ImGuiの初期化
 	IMGUI_CHECKVERSION();
@@ -73,6 +75,7 @@ void Uninit()
 
 	g_pScene->Uninit();
 	g_pScene.reset();
+	Sound::Uninit();
 	UninitInput();
 	Sprite::Uninit();
 	Geometory::Uninit();

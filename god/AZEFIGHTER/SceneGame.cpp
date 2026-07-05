@@ -20,6 +20,7 @@
 #include "PlayerParameterLoader.h"
 #include "PlayerAssetLoader.h"
 #include "SceneRoot.h"
+#include "Sound.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -310,6 +311,8 @@ void SceneGame::Init()
 
 	// 初期位置設定
 	ResetRound();
+
+	Sound::PlayBGM("Assets/Sound/bgm_battle.wav", 0.4f);
 }
 
 void SceneGame::Uninit()
@@ -609,6 +612,12 @@ void SceneGame::Update(float tick)
 			STAGE_LIMIT_X
 		);
 
+		// ヒット・ガードの効果音
+		if (result.shakeTimerP1 > 0.0f || result.shakeTimerP2 > 0.0f)
+		{
+			Sound::PlaySE(result.wasBlocked ? "Assets/Sound/guard.wav" : "Assets/Sound/hit.wav");
+		}
+
 		// 結果の適用
 		if (result.isRoundOver)
 		{
@@ -621,6 +630,7 @@ void SceneGame::Update(float tick)
 
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
+			Sound::PlaySE("Assets/Sound/ko.wav");
 
 			// スローモーション演出開始 
 			m_isSlowMotion = true;
