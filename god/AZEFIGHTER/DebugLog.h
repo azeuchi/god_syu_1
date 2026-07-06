@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -7,8 +7,8 @@
 #include <ctime>
 
 /// <summary>
-/// ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°å‡ºåŠ›ã‚¯ãƒ©ã‚¹ C++17ä»¥ä¸Šã§å‹•ä½œ
-/// ãƒ­ã‚°ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ä¾‹
+/// ƒfƒoƒbƒOƒƒOo—ÍƒNƒ‰ƒX C++17ˆÈã‚Å“®ì
+/// ƒƒOƒƒbƒZ[ƒW‚Ì—á
 /// DebugLog::log(DebugLog::INFO_LOG, "User information: Name = ", name, ", Age = ", age, ", Height = ", height);
 /// DebugLog::log(DebugLog::WARNING_LOG, "Warning: Height is too low.");
 /// DebugLog::log(DebugLog::ERROR_LOG, "Error: Invalid user data.");
@@ -26,7 +26,7 @@ public:
 		ERROR_LOG	= 2,
 	};
 
-	// ãƒ­ã‚°ã®ç¨®é¡ã‚’æ–‡å­—åˆ—ã«å¤‰æ›ã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
+	// ƒƒO‚Ìí—Ş‚ğ•¶š—ñ‚É•ÏŠ·‚·‚éƒwƒ‹ƒp[ŠÖ”
 	static const char* LogTypeToString(LogType type) {
 		switch (type) {
 		case INFO_LOG: return		"INFO";
@@ -36,30 +36,32 @@ public:
 		}
 	}
 
-	// ãƒ­ã‚°ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã™ã‚‹é–¢æ•°
+	// ƒƒOƒƒbƒZ[ƒW‚ğ•\¦‚·‚éŠÖ”
 	template <typename... Args>
 	static void log(LogType type, const std::string& message, Args... args) {
-		// ç¾åœ¨æ™‚åˆ»ã‚’å–å¾—
+		// Œ»İ‚ğæ“¾
 		std::time_t currentTime = std::time(nullptr);
-		std::tm* localTime = std::localtime(&currentTime);
+		std::tm tmBuf;
+		localtime_s(&tmBuf, &currentTime);
+		std::tm* localTime = &tmBuf;
 
-		// æ™‚åˆ»ã®ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ
+		// ‚ÌƒtƒH[ƒ}ƒbƒg
 		std::ostringstream timeStream;
 		timeStream << std::put_time(localTime, "%Y-%m-%d %H:%M:%S");
 
-		// ãƒ­ã‚°ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®ä½œæˆ
+		// ƒƒOƒƒbƒZ[ƒW‚Ìì¬
 		std::ostringstream logStream;
 		logStream << "[" << timeStream.str() << "] ";
 		logStream << "[" << LogTypeToString(type) << "] ";
 		logStream << message;
 
-		// å¯å¤‰å¼•æ•°ã§æ¸¡ã•ã‚ŒãŸå¤‰æ•°
+		// ‰Â•Ïˆø”‚Å“n‚³‚ê‚½•Ï”
 		(logStream << ... << args);
  
-		// æœ€å¾Œã«æ”¹è¡Œ
+		// ÅŒã‚É‰üs
 		logStream << std::endl;
 
-		// ãƒ­ã‚°ã‚’ã‚³ãƒ³ã‚½ãƒ¼ãƒ«ã«è¡¨ç¤º
+		// ƒƒO‚ğƒRƒ“ƒ\[ƒ‹‚É•\¦
 		std::cout << logStream.str();
 	}
 };

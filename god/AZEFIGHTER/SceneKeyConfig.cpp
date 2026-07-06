@@ -274,7 +274,7 @@ void SceneKeyConfig::Update(float tick)
 			}
 			if (isMenuLeft())
 			{
-				m_topSelectedIndex = (m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size();
+				m_topSelectedIndex = (int)((m_topSelectedIndex - 1 + m_topItems.size()) % m_topItems.size());
 			}
 
 			// 決定キーで遷移
@@ -333,7 +333,7 @@ void SceneKeyConfig::Update(float tick)
 				}
 				if (isMenuUp())
 				{
-					m_configSelectedIndex = (m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size();
+					m_configSelectedIndex = (int)((m_configSelectedIndex - 1 + currentItems.size()) % currentItems.size());
 				}
 
 				// 決定キーの処理
@@ -610,7 +610,7 @@ void SceneKeyConfig::Draw()
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
-				DrawRectPixel(50 + i * 250, 50, 200, 50, color);
+				DrawRectPixel((float)(50 + i * 250), 50.0f, 200.0f, 50.0f, color);
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
@@ -628,7 +628,7 @@ void SceneKeyConfig::Draw()
 				for (int i = 0; i < currentItems.size(); ++i)
 				{
 					DirectX::XMFLOAT4 color = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 0.7f, 0.0f, 0.9f) : XMFLOAT4(0.3f, 0.3f, 0.3f, 0.8f);
-					DrawRectPixel(70, 170 + i * 45, 360, 40, color);
+					DrawRectPixel(70.0f, (float)(170 + i * 45), 360.0f, 40.0f, color);
 				}
 			}
 		}
@@ -644,7 +644,7 @@ void SceneKeyConfig::Draw()
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 textColor = (i == m_topSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
-				SimpleFont::Draw(m_topItems[i].label, 70 + i * 250, 60, 24.0f, textColor);
+				SimpleFont::Draw(m_topItems[i].label, (float)(70 + i * 250), 60.0f, 24.0f, textColor);
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
@@ -663,23 +663,23 @@ void SceneKeyConfig::Draw()
 					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
 
 					// アクション名を描画 (例: Light Punch)
-					SimpleFont::Draw(currentItems[i].label, 80, 175 + i * 45, 20.0f, textColor);
+					SimpleFont::Draw(currentItems[i].label, 80.0f, (float)(175 + i * 45), 20.0f, textColor);
 
 					// 現在の割り当てキー、または待機中のメッセージを描画
 					if (currentItems[i].isDeviceSelect)
 					{
-						SimpleFont::Draw(GetDeviceName(currentDevice), 250, 175 + i * 45, 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
+						SimpleFont::Draw(GetDeviceName(currentDevice), 250.0f, (float)(175 + i * 45), 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
 					}
 					else if (currentItems[i].keyPtr != nullptr)
 					{
 						if (m_waitBindKeyPtr == currentItems[i].keyPtr)
 						{
-							SimpleFont::Draw(L"Press Any Button...", 250, 175 + i * 45, 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
+							SimpleFont::Draw(L"Press Any Button...", 250.0f, (float)(175 + i * 45), 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
 						}
 						else
 						{
 							const wchar_t* btnName = (currentDevice == InputDeviceType::KEYBOARD) ? GetKeyName(*currentItems[i].keyPtr) : GetPadButtonName(*currentItems[i].keyPtr);
-							SimpleFont::Draw(btnName, 250, 175 + i * 45, 20.0f, textColor);
+							SimpleFont::Draw(btnName, 250.0f, (float)(175 + i * 45), 20.0f, textColor);
 						}
 					}
 				}

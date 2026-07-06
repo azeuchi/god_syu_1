@@ -3,7 +3,7 @@
 #include <DirectXCollision.h>
 #include <memory>
 #include <vector>
-#include "Texture.h" /
+#include "Texture.h"
 
 class SimpleUI
 {

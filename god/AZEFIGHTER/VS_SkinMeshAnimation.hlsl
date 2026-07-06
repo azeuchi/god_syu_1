@@ -57,7 +57,7 @@ VS_OUT main(VS_IN vin)
 
     Normal = mul(Comb, float4(vin.normal, 0.0));
 	normalize(Normal);
-	vin.normal = Normal;
+	vin.normal = Normal.xyz;
 	
 	//vout.pos = float4(vin.pos, 1.0f);
 	//vout.pos = vin.pos;
