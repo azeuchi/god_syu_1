@@ -13,6 +13,9 @@ public:
 	// エフェクトを発生させる
 	void Activate(Player* target);
 
+	// 指定した座標に発生させる（追従なし）
+	void Activate(const DirectX::XMFLOAT3& pos);
+
 	// 更新（アニメーション進行）
 	void Update(float tick);
 

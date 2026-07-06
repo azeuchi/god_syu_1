@@ -2,6 +2,19 @@
 #include "DebugLog.h"
 #include "PlayerStateDamage.h"
 #include "PlayerStateDown.h"
+
+namespace
+{
+	// 2つの判定ボックスの重なり領域の中心を返す
+	DirectX::XMFLOAT3 OverlapCenter(const DirectX::BoundingBox& a, const DirectX::BoundingBox& b)
+	{
+		float minX = (std::max)(a.Center.x - a.Extents.x, b.Center.x - b.Extents.x);
+		float maxX = (std::min)(a.Center.x + a.Extents.x, b.Center.x + b.Extents.x);
+		float minY = (std::max)(a.Center.y - a.Extents.y, b.Center.y - b.Extents.y);
+		float maxY = (std::min)(a.Center.y + a.Extents.y, b.Center.y + b.Extents.y);
+		return { (minX + maxX) * 0.5f, (minY + maxY) * 0.5f, a.Center.z };
+	}
+}
 #include "Projectile.h"
 #include <algorithm>
 
@@ -102,6 +115,8 @@ void BattleCollision::ResolvePushback(Player* p1, Player* p2, float stageLimitX)
 void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::vector<HitEffect*>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
 {
 	bool hit = false;
+	DirectX::XMFLOAT3 hitPos = defender->GetPosition();
+	hitPos.y += 1.5f; // 万一の保険（従来の位置）
 	if (attacker->IsAttacking() && !attacker->HasHit())
 	{
 		if (!defender->IsInvincible())
@@ -117,6 +132,8 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 					if (atk.Intersects(hurt))
 					{
 						hit = true;
+						// エフェクトは判定が重なった領域の中心に出す
+						hitPos = OverlapCenter(atk, hurt);
 						break;
 					}
 				}
@@ -126,7 +143,7 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 
 	if (hit)
 	{
-		SpawnHitEffect(effects, defender);
+		SpawnHitEffect(effects, hitPos);
 
 		AttackParams* params = attacker->GetCurrentAttackParams();
 		int dmg = (params != nullptr) ? params->damage : 0;
@@ -207,11 +224,14 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 	{
 		auto hurtboxes = GetTargetHurtboxes(defender);
 		bool projHit = false;
+		DirectX::XMFLOAT3 projHitPos = defender->GetPosition();
+		projHitPos.y += 1.5f;
 		for (const auto& hurt : hurtboxes)
 		{
 			if (proj->GetHitbox().Intersects(hurt))
 			{
 				projHit = true;
+				projHitPos = OverlapCenter(proj->GetHitbox(), hurt);
 				break;
 			}
 		}
@@ -219,7 +239,7 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 		if (projHit)
 		{
 			proj->Deactivate();
-			SpawnHitEffect(effects, defender);
+			SpawnHitEffect(effects, projHitPos);
 			defender->ReceiveDamage(proj->GetDamage(), AttackLevel::HIGH);
 
 			bool blockedProj = defender->TryGuard(AttackLevel::HIGH);
@@ -267,13 +287,13 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 	}
 }
 
-void BattleCollision::SpawnHitEffect(std::vector<HitEffect*>& effects, Player* target)
+void BattleCollision::SpawnHitEffect(std::vector<HitEffect*>& effects, const DirectX::XMFLOAT3& pos)
 {
 	for (auto effect : effects)
 	{
 		if (!effect->IsActive())
 		{
-			effect->Activate(target);
+			effect->Activate(pos);
 			break;
 		}
 	}

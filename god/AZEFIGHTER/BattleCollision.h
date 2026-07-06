@@ -65,7 +65,7 @@ private:
 	);
 
 	// エフェクト再生ヘルパー
-	static void SpawnHitEffect(std::vector<HitEffect*>& effects, Player* target);
+	static void SpawnHitEffect(std::vector<HitEffect*>& effects, const DirectX::XMFLOAT3& pos);
 
 	// くらい判定取得ヘルパー
 	static std::vector<DirectX::BoundingBox> GetTargetHurtboxes(const Player* target);

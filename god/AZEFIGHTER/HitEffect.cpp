@@ -41,6 +41,16 @@ void HitEffect::Activate(Player* target)
 	}
 }
 
+void HitEffect::Activate(const DirectX::XMFLOAT3& pos)
+{
+	m_isActive = true;
+	m_targetPlayer = nullptr; // ŒÅ’èˆÊ’u‚È‚Ì‚Å’Ç]‚µ‚È‚¢
+	m_timer = 0.0f;
+	m_frameIndex = 0;
+	m_position = pos;
+	m_position.z -= 0.5f; // è‘O‚Éo‚·
+}
+
 void HitEffect::Update(float tick)
 {
 	if (!m_isActive) return;
