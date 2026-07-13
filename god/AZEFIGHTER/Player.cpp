@@ -329,31 +329,24 @@ void Player::InitDefaultParameters()
 // 毎フレーム呼ばれる更新処理の大枠
 void Player::Update(float tick)
 {
-	// 1. 入力の取得
 	PollInputs();
 	UpdateCommandTimer(tick);
 	UpdateInputBuffer(tick);
 
-	// 2. 現在のステート（状態）の更新
 	if (m_currentState) {
 		m_isCrouching = m_currentState->IsCrouch();
 		m_currentState->Update(this, tick);
 		if (m_pActiveAttackParams) m_attackElapsedSec += tick;
 	}
 
-	// 3. 物理・座標の更新
 	UpdatePhysics(tick);
 
-	// 4. アニメーションフレームの進行
 	UpdateAnimation(tick);
 
-	// 5. モデルのアニメーションブレンド更新
 	UpdateModelBlend();
 
-	// 6. 現在のフレームに応じた攻撃判定・くらい判定の更新
 	UpdateAttackBoxes();
 
-	// 7. 発射済みの飛び道具の更新
 	if (m_projectile) {
 		m_projectile->Update(tick);
 	}

@@ -27,7 +27,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 
 	const PlayerInputs& inputs = player->GetInputs();
 
-	// 1. 弱パンチへのキャンセル
+	// 弱パンチへのキャンセル
 	if (params.cancelToLight && inputs.LightPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
@@ -35,7 +35,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 		return true;
 	}
 
-	// 2. 中パンチへのキャンセル
+	// 中パンチへのキャンセル
 	if (params.cancelToMedium && inputs.MediumPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
@@ -43,7 +43,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 		return true;
 	}
 
-	// 3. 大パンチへのキャンセル
+	// 大パンチへのキャンセル
 	if (params.cancelToHeavyPunch && inputs.HeavyPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
@@ -51,7 +51,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 		return true;
 	}
 
-	// 4. 中キックへのキャンセル
+	// 中キックへのキャンセル
 	if (params.cancelToMediumKick && inputs.MediumKick)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumKickParams());
@@ -59,7 +59,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 		return true;
 	}
 
-	// 5. 大キックへのキャンセル
+	// 大キックへのキャンセル
 	if (params.cancelToHeavy && inputs.HeavyKick)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());

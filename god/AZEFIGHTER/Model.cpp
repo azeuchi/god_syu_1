@@ -439,13 +439,13 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	std::vector<Matrix> blendedLocalPose;
 	blendedLocalPose.resize(m_Bone.size());
 
-	// 1. 新旧それぞれのローカル行列（親に対する姿勢）を取得
+	// 新旧それぞれのローカル行列（親に対する姿勢）を取得
 
 	std::vector<Matrix> newLocalPose, oldLocalPose;
 	SampleAnimationKeys(newAnimName, newFrame, newLocalPose);
 	SampleAnimationKeys(oldAnimName, oldFrame, oldLocalPose);
 
-	// 2. ローカル空間で補間計算を行う
+	// ローカル空間で補間計算を行う
 	size_t boneCount = m_Bone.size();
 	for (size_t i = 0; i < boneCount; ++i)
 	{
@@ -482,13 +482,13 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 			Matrix::CreateTranslation(finalTrans);
 	}
 
-	// 3. ブレンド済みのローカル行列を使って、再帰的にグローバル行列とオフセット行列を計算
+	// ブレンド済みのローカル行列を使って、再帰的にグローバル行列とオフセット行列を計算
 	m_bonecombmtxcontainer.resize(m_Bone.size());
 	Matrix rootMatrix = Matrix::Identity;
 
 	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, blendedLocalPose, m_bonecombmtxcontainer);
 
-	// 4. シェーダー用に転置して更新 
+	// シェーダー用に転置して更新 
 	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		bcmtx.Transpose();
@@ -499,11 +499,11 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
 {
 	// 補間なしの単一アニメーション再生用
-	// 1. ローカル行列を取得
+	// ローカル行列を取得
 	std::vector<Matrix> localMatrices;
 	SampleAnimationKeys(animName, frame, localMatrices);
 
-	// 2. 階層計算を行ってグローバル行列を算出
+	// 階層計算を行ってグローバル行列を算出
 	outPose.resize(m_Bone.size());
 	Matrix rootMatrix = Matrix::Identity;
 	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, localMatrices, outPose);

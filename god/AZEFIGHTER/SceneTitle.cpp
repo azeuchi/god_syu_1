@@ -84,7 +84,7 @@ void SceneTitle::Init()
 	m_particles.clear();
 	m_cameraAngle = 0.0f;
 
-	// 1. 半透明ブレンドステート
+	// 半透明ブレンドステート
 	D3D11_BLEND_DESC blendDesc = {};
 
 	//  AlphaToCoverageを有効にする
@@ -102,7 +102,7 @@ void SceneTitle::Init()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
 
-	// 2. UI用の深度ステート (深度書き込みON)
+	// UI用の深度ステート (深度書き込みON)
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
 
 	// 深度書き込みを有効にする
@@ -112,7 +112,7 @@ void SceneTitle::Init()
 	depthDescUI.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDescUI, &m_pDepthStateUI);
 
-	// 3. 3D用の深度ステート
+	// 3D用の深度ステート
 	D3D11_DEPTH_STENCIL_DESC depthDesc3D = {};
 	depthDesc3D.DepthEnable = TRUE;
 	depthDesc3D.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -120,7 +120,7 @@ void SceneTitle::Init()
 	depthDesc3D.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&depthDesc3D, &m_pDepthState3D);
 
-	// 4. スカイドーム用：カリングなしラスタライザーステート
+	// スカイドーム用：カリングなしラスタライザーステート
 	D3D11_RASTERIZER_DESC rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
 	rsDesc.CullMode = D3D11_CULL_NONE; // ここが重要
@@ -265,7 +265,7 @@ void SceneTitle::Update(float tick)
 void SceneTitle::Draw()
 {
 	// ------------------------------------------------
-	// 1. 3Dオブジェクトの描画 (深度有効)
+	// 3Dオブジェクトの描画 (深度有効)
 	// ------------------------------------------------
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
@@ -333,7 +333,7 @@ void SceneTitle::Draw()
 	}
 
 	// ------------------------------------------------
-	// 2. UIの描画 (AlphaToCoverage有効 & 深度有効)
+	// UIの描画 (AlphaToCoverage有効 & 深度有効)
 	// ------------------------------------------------
 
 	if (m_pDepthStateUI)

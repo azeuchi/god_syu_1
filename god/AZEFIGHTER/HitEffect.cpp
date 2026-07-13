@@ -81,7 +81,7 @@ void HitEffect::Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4&
 {
 	if (!m_isActive) return;
 
-	// 1. Spriteクラスへの設定
+	// Spriteクラスへの設定
 	Sprite::SetView(view);
 	Sprite::SetProjection(projection);
 	Sprite::SetTexture(s_hitTexture);

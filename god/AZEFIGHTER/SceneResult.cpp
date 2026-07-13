@@ -20,7 +20,7 @@ void SceneResult::Init()
 	m_pImage->Load("Assets/Texture/background2.png", 640, 360.0f, 1280, 720.0f);
 	m_returntitle->Load("Assets/Texture/PressEnter.png", 640, 550, 500, 200.0f);
 
-	// 1. 透過設定の作成 (BlendState)
+	// 透過設定の作成 (BlendState)
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = FALSE;
 	blendDesc.IndependentBlendEnable = FALSE;
@@ -34,7 +34,7 @@ void SceneResult::Init()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
 
-	// 2. 奥行き無効設定の作成 (DepthStencilState)
+	// 奥行き無効設定の作成 (DepthStencilState)
 	
 	D3D11_DEPTH_STENCIL_DESC depthDescUI = {};
 	depthDescUI.DepthEnable = FALSE; //  奥行き判定をOFFにする
@@ -77,14 +77,14 @@ void SceneResult::Draw()
 	if (vs) vs->Bind();
 	if (ps) ps->Bind();
 
-	// 1. 透過を有効にする
+	// 透過を有効にする
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	if (m_pBlendState)
 	{
 		GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
 	}
 
-	// 2. 奥行き判定を無効にする (2D重ね合わせ用)
+	// 奥行き判定を無効にする (2D重ね合わせ用)
 	if (m_pDepthStateUI)
 	{
 		GetContext()->OMSetDepthStencilState(m_pDepthStateUI, 0);
