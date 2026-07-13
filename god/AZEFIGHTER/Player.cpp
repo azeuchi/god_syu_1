@@ -189,7 +189,7 @@ void Player::InitDefaultParameters()
 		ab.keyframes.push_back({ 0.0f, { {0.76f, 1.7f}, {0.454f, 0.157f} } });
 		p.hitboxes.push_back(ab);
 
-		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0666667f; p.knockback = 0.223f;
+		p.damage = 100; p.hitFrame = 2; p.blockFrame = -2; p.hitStop = 0.0333333f; p.knockback = 0.223f;
 		p.isDown = false;
 		p.attackLevel = AttackLevel::HIGH; // è„íiîªíË
 

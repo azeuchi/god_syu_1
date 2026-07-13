@@ -270,11 +270,17 @@ void SceneRoot::Update(float tick)
 		}
 #endif
 
-		// ゲームセットになったらリザルトへ (静的フラグをチェック)
-		if (SceneGame::s_isGameSet)
+		// 決着後のメニューからの遷移要求をチェック
+		// （リザルトシーンへは行かず、ゲームシーン内でメニューを出す方式に変更）
+		if (SceneGame::s_requestTitle)
 		{
-			Transition(SCENE_RESULT);
-			SceneGame::s_isGameSet = false; // フラグを戻しておく
+			SceneGame::s_requestTitle = false;
+			Transition(SCENE_TITLE);
+		}
+		if (SceneGame::s_requestConfig)
+		{
+			SceneGame::s_requestConfig = false;
+			Transition(SCENE_KEYCONFIG);
 		}
 
 		break;

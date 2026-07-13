@@ -22,10 +22,18 @@ public:
 
 	// SceneRootから参照するための静的フラグ
 	static bool s_isGameSet;
+	static bool s_requestTitle;    // タイトルへ戻る要求
+	static bool s_requestConfig;   // キーコンフィグへ移る要求
 
 private:
 	// 次のラウンドのために位置やHPをリセットする関数
 	void ResetRound();
+
+	// 決着後の選択メニュー
+	void ResetMatch();       // 試合全体をやり直す
+	void DrawResultMenu();   // 左側の選択メニューを描画
+	bool m_isResultMenu = false;
+	int m_resultMenuIndex = 0;
 
 	// カメラシェイク（Trauma方式）
 	void AddCameraTrauma(float amount, float dirX); // ヒット時に揺れを加える

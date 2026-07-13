@@ -12,7 +12,7 @@ public:
 	inline static float s_maxOffset  = 0.22f; // 揺れ幅の最大（ワールド単位）
 	inline static float s_decay      = 2.2f;  // traumaの減衰速度（毎秒）
 	inline static float s_kickRatio  = 0.6f;  // 初撃の指向性の強さ（0=ノイズのみ 1=方向のみ）
-	inline static float s_hitStopRef = 0.18f; // この長さのヒットストップでtrauma=1相当にする
+	inline static float s_hitStopRef = 0.08f; // この長さのヒットストップでtrauma=1相当にする（実技のヒットストップは0.05～0.067秒）
 
 	// 既定値（デバッグシーンのリセット用）
 	static void ResetParams()
@@ -20,7 +20,7 @@ public:
 		s_maxOffset = 0.22f;
 		s_decay = 2.2f;
 		s_kickRatio = 0.6f;
-		s_hitStopRef = 0.18f;
+		s_hitStopRef = 0.08f;
 	}
 
 	// ヒットストップ長から trauma 量を求める（0.0から1.0）
@@ -30,9 +30,11 @@ public:
 	}
 
 	// trauma に揺れを加える（0.0から1.0でクランプ）
+	// 加算ではなく大きい方を採用する。コンボの連続ヒットで揺れが積み上がって
+	// 最大値に張り付くのを防ぎ、1発ごとの揺れ量を保つため
 	static void AddTrauma(float& trauma, float amount)
 	{
-		trauma = std::clamp(trauma + amount, 0.0f, 1.0f);
+		trauma = std::clamp((std::max)(trauma, amount), 0.0f, 1.0f);
 	}
 
 	// 毎フレームの更新。traumaを減衰させ、今フレームの揺れオフセットを outOffset に書き込む。

@@ -21,6 +21,8 @@
 #include "PlayerAssetLoader.h"
 #include "SceneRoot.h"
 #include "Sound.h"
+#include "SimpleFont.h"
+#include <Xinput.h>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -45,6 +47,8 @@ const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセット�
 
 // 静的メンバ変数の実体定義
 bool SceneGame::s_isGameSet = false;
+bool SceneGame::s_requestTitle = false;
+bool SceneGame::s_requestConfig = false;
 
 /**
  * @brief シーンの初期化処理
@@ -68,7 +72,14 @@ void SceneGame::Init()
 	m_isRoundOver = false;
 	m_roundEndTimer = 0.0f;
 	s_isGameSet = false;
+	s_requestTitle = false;
+	s_requestConfig = false;
+	m_isResultMenu = false;
+	m_resultMenuIndex = 0;
 	m_isKOStage = false;
+
+	// 決着メニューの文字描画用フォント初期化
+	SimpleFont::Init(GetDevice(), GetContext());
 
 	// スロー演出用初期化
 	m_isSlowMotion = false;
@@ -317,6 +328,8 @@ void SceneGame::Init()
 
 void SceneGame::Uninit()
 {
+	SimpleFont::Uninit();
+
 	if (m_uiManager)
 	{
 		delete m_uiManager;
@@ -412,6 +425,19 @@ void SceneGame::ResetRound()
 	DebugLog::log(DebugLog::INFO_LOG, "--- Round Start Sequence ---");
 }
 
+/**
+ * @brief 試合全体をやり直す（再戦）
+ * 勝敗数も0に戻し、READYフェーズから仕切り直す
+ */
+void SceneGame::ResetMatch()
+{
+	m_isResultMenu = false;
+	m_resultMenuIndex = 0;
+	m_winCountP1 = 0;
+	m_winCountP2 = 0;
+	ResetRound(); // 勝敗数0なのでREADYフェーズから開始される
+}
+
 
 void SceneGame::Update(float tick)
 {
@@ -424,6 +450,42 @@ void SceneGame::Update(float tick)
 	if (IsKeyTrigger(VK_F2) && player) player->Debug_SetHp(1);
 	if (IsKeyTrigger(VK_F3)) { if (player) player->RefillHp(); if (player2) player2->RefillHp(); }
 #endif
+
+	// ==========================================================
+	// 決着後の選択メニュー
+	// リザルトシーンへは行かず、KO時の画面のまま止めてメニュー操作だけ受け付ける
+	// ==========================================================
+	if (m_isResultMenu)
+	{
+		const int itemCount = 3;
+		auto menuUp = [&]() {
+			if (IsKeyTrigger(VK_UP)) return true;
+			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_UP)) return true;
+			return false;
+			};
+		auto menuDown = [&]() {
+			if (IsKeyTrigger(VK_DOWN)) return true;
+			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_DOWN)) return true;
+			return false;
+			};
+		auto menuConfirm = [&]() {
+			if (IsKeyTrigger(VK_RETURN)) return true;
+			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_A)) return true;
+			return false;
+			};
+
+		if (menuDown()) m_resultMenuIndex = (m_resultMenuIndex + 1) % itemCount;
+		if (menuUp())   m_resultMenuIndex = (m_resultMenuIndex - 1 + itemCount) % itemCount;
+
+		if (menuConfirm())
+		{
+			if (m_resultMenuIndex == 0)      ResetMatch();          // 再戦
+			else if (m_resultMenuIndex == 1) s_requestConfig = true; // キーコンフィグへ
+			else if (m_resultMenuIndex == 2) s_requestTitle = true;  // タイトルへ
+		}
+
+		return; // ゲーム進行は止めたまま
+	}
 
 	// ==========================================================
 	// ラウンド開始演出 (フェーズ管理)
@@ -578,7 +640,9 @@ void SceneGame::Update(float tick)
 		{
 			if (m_winCountP1 >= ROUND_TO_WIN || m_winCountP2 >= ROUND_TO_WIN)
 			{
-				s_isGameSet = true;
+				// リザルトシーンへは遷移せず、KO時の画面のまま左に選択メニューを出す
+				m_isResultMenu = true;
+				m_resultMenuIndex = 0;
 			}
 			else
 			{
@@ -1064,7 +1128,57 @@ void SceneGame::Draw()
 		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2, ROUND_TO_WIN);
 	}
 
+	// 決着後の選択メニュー（KO画面の上に重ねて描画）
+	if (m_isResultMenu)
+	{
+		DrawResultMenu();
+	}
+
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 	GetContext()->RSSetState(nullptr);
+}
+
+/**
+ * @brief 決着後、画面左に出す選択メニューの描画（1280x720基準）
+ */
+void SceneGame::DrawResultMenu()
+{
+	// ピクセル座標(px,py,pw,ph)を左上基準でNDCの矩形として登録するヘルパー
+	auto rectPx = [](float px, float py, float pw, float ph, DirectX::XMFLOAT4 col) {
+		float cx = px + pw * 0.5f;
+		float cy = py + ph * 0.5f;
+		float ndcX = (cx / 1280.0f) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (cy / 720.0f) * 2.0f;
+		float ndcW = (pw / 1280.0f) * 2.0f;
+		float ndcH = (ph / 720.0f) * 2.0f;
+		SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, col, nullptr);
+		};
+
+	const wchar_t* items[3] = { L"再戦", L"キーコンフィグへ", L"タイトルへ" };
+
+	SimpleUI::Clear();
+	// 背景の半透明パネル
+	rectPx(40.0f, 292.0f, 380.0f, 280.0f, { 0.05f, 0.05f, 0.08f, 0.62f });
+	// 各項目の枠（選択中は赤で強調）
+	for (int i = 0; i < 3; ++i)
+	{
+		DirectX::XMFLOAT4 col = (i == m_resultMenuIndex)
+			? DirectX::XMFLOAT4(0.72f, 0.12f, 0.14f, 0.95f)
+			: DirectX::XMFLOAT4(0.16f, 0.16f, 0.19f, 0.78f);
+		rectPx(60.0f, (float)(336 + i * 64), 340.0f, 52.0f, col);
+	}
+	SimpleUI::DrawAll();
+
+	// 文字
+	SimpleFont::Begin();
+	SimpleFont::Draw(L"RESULT", 60.0f, 300.0f, 30.0f, { 1.0f, 1.0f, 1.0f, 1.0f });
+	for (int i = 0; i < 3; ++i)
+	{
+		DirectX::XMFLOAT4 tc = (i == m_resultMenuIndex)
+			? DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+			: DirectX::XMFLOAT4(0.80f, 0.80f, 0.85f, 1.0f);
+		SimpleFont::Draw(items[i], 84.0f, (float)(344 + i * 64), 26.0f, tc);
+	}
+	SimpleFont::End();
 }
