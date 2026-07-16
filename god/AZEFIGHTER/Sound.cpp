@@ -6,8 +6,15 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <cctype>
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
 
 #pragma comment(lib, "xaudio2.lib")
+#pragma comment(lib, "mfplat.lib")
+#pragma comment(lib, "mfreadwrite.lib")
+#pragma comment(lib, "mfuuid.lib")
 
 namespace
 {
@@ -29,6 +36,89 @@ namespace
 
 	IXAudio2SourceVoice* g_pBgmVoice = nullptr;
 	std::string g_bgmPath;
+	float g_bgmBaseVolume = 1.0f; // PlayBGMで指定された元の音量
+	float g_bgmFade = 1.0f;       // 暗転に合わせてかける倍率
+
+	// 拡張子がwavかどうか
+	bool IsWavPath(const std::string& path)
+	{
+		if (path.size() < 4) return false;
+		std::string ext = path.substr(path.size() - 4);
+		for (auto& c : ext) c = (char)tolower((unsigned char)c);
+		return ext == ".wav";
+	}
+
+	// mp3などをMedia Foundationでデコードし、PCMとして取り出す
+	bool DecodeByMediaFoundation(const std::string& path, WavData& out)
+	{
+		int wlen = MultiByteToWideChar(CP_ACP, 0, path.c_str(), -1, nullptr, 0);
+		if (wlen <= 0) return false;
+		std::wstring wpath((size_t)wlen, L'\0');
+		MultiByteToWideChar(CP_ACP, 0, path.c_str(), -1, &wpath[0], wlen);
+
+		IMFSourceReader* reader = nullptr;
+		if (FAILED(MFCreateSourceReaderFromURL(wpath.c_str(), nullptr, &reader))) return false;
+
+		IMFMediaType* pcmType = nullptr;
+		IMFMediaType* actualType = nullptr;
+		WAVEFORMATEX* wfx = nullptr;
+		bool ok = false;
+
+		// 出力をPCM指定にしてデコーダを挟ませる
+		if (SUCCEEDED(MFCreateMediaType(&pcmType)) &&
+			SUCCEEDED(pcmType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) &&
+			SUCCEEDED(pcmType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM)) &&
+			SUCCEEDED(reader->SetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_AUDIO_STREAM, nullptr, pcmType)) &&
+			SUCCEEDED(reader->GetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_AUDIO_STREAM, &actualType)))
+		{
+			UINT32 fmtSize = 0;
+			if (SUCCEEDED(MFCreateWaveFormatExFromMFMediaType(actualType, &wfx, &fmtSize)))
+			{
+				out.format.assign((BYTE*)wfx, (BYTE*)wfx + fmtSize);
+				ok = true;
+
+				// 最後まで読み進めて波形をつなげる
+				for (;;)
+				{
+					DWORD flags = 0;
+					IMFSample* sample = nullptr;
+					if (FAILED(reader->ReadSample((DWORD)MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, nullptr, &flags, nullptr, &sample)))
+					{
+						ok = false;
+						if (sample) sample->Release();
+						break;
+					}
+					if (flags & MF_SOURCE_READERF_ENDOFSTREAM)
+					{
+						if (sample) sample->Release();
+						break;
+					}
+					if (!sample) continue;
+
+					IMFMediaBuffer* buffer = nullptr;
+					if (SUCCEEDED(sample->ConvertToContiguousBuffer(&buffer)))
+					{
+						BYTE* p = nullptr;
+						DWORD len = 0;
+						if (SUCCEEDED(buffer->Lock(&p, nullptr, &len)))
+						{
+							out.data.insert(out.data.end(), p, p + len);
+							buffer->Unlock();
+						}
+						buffer->Release();
+					}
+					sample->Release();
+				}
+			}
+		}
+
+		if (wfx) CoTaskMemFree(wfx);
+		if (actualType) actualType->Release();
+		if (pcmType) pcmType->Release();
+		reader->Release();
+
+		return ok && !out.format.empty() && !out.data.empty();
+	}
 
 	// WAVファイル（RIFF）を読み込む
 	const WavData* LoadWav(const std::string& path)
@@ -37,6 +127,14 @@ namespace
 		if (it != g_wavCache.end()) return &it->second;
 
 		WavData& w = g_wavCache[path];
+
+		// wav以外（mp3など）はMedia Foundation側に任せる
+		if (!IsWavPath(path))
+		{
+			w.valid = DecodeByMediaFoundation(path, w);
+			if (!w.valid) DebugLog::log(DebugLog::INFO_LOG, "Sound: decode failed %s", path.c_str());
+			return &w;
+		}
 
 		std::ifstream file(path, std::ios::binary);
 		if (!file)
@@ -133,6 +231,12 @@ bool Sound::Init()
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	g_comInitialized = SUCCEEDED(hr);
 
+	// mp3などのデコードにMedia Foundationを使う
+	if (FAILED(MFStartup(MF_VERSION)))
+	{
+		DebugLog::log(DebugLog::INFO_LOG, "Sound: MFStartup failed");
+	}
+
 	if (FAILED(XAudio2Create(&g_pXAudio)))
 	{
 		DebugLog::log(DebugLog::INFO_LOG, "Sound: XAudio2Create failed");
@@ -156,6 +260,7 @@ void Sound::Uninit()
 	if (g_pMaster) { g_pMaster->DestroyVoice(); g_pMaster = nullptr; }
 	if (g_pXAudio) { g_pXAudio->Release(); g_pXAudio = nullptr; }
 	g_wavCache.clear();
+	MFShutdown();
 	if (g_comInitialized) CoUninitialize();
 }
 
@@ -174,10 +279,12 @@ void Sound::PlayBGM(const char* path, float volume)
 {
 	if (!g_pXAudio || !path) return;
 
+	g_bgmBaseVolume = volume;
+
 	// 同じ曲なら音量だけ合わせて続行
 	if (g_pBgmVoice && g_bgmPath == path)
 	{
-		g_pBgmVoice->SetVolume(volume);
+		g_pBgmVoice->SetVolume(g_bgmBaseVolume * g_bgmFade);
 		return;
 	}
 
@@ -185,7 +292,7 @@ void Sound::PlayBGM(const char* path, float volume)
 	if (!w->valid) return;
 
 	StopBGM();
-	g_pBgmVoice = StartVoice(w, volume, true);
+	g_pBgmVoice = StartVoice(w, g_bgmBaseVolume * g_bgmFade, true);
 	if (g_pBgmVoice) g_bgmPath = path;
 }
 
@@ -199,5 +306,14 @@ void Sound::StopBGM()
 
 void Sound::SetBGMVolume(float volume)
 {
-	if (g_pBgmVoice) g_pBgmVoice->SetVolume(volume);
+	g_bgmBaseVolume = volume;
+	if (g_pBgmVoice) g_pBgmVoice->SetVolume(g_bgmBaseVolume * g_bgmFade);
+}
+
+void Sound::SetBGMFade(float factor)
+{
+	if (factor < 0.0f) factor = 0.0f;
+	if (factor > 1.0f) factor = 1.0f;
+	g_bgmFade = factor;
+	if (g_pBgmVoice) g_pBgmVoice->SetVolume(g_bgmBaseVolume * g_bgmFade);
 }

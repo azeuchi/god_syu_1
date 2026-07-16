@@ -14,6 +14,7 @@
 #include "Geometory.h"
 #include "SimpleUI.h"
 #include "SimpleFont.h"
+#include "Sound.h"
 #include <stdio.h>
 #include <algorithm>
 #include <Xinput.h>
@@ -39,6 +40,8 @@ void SceneKeyConfig::Init()
 
 	// フォントシステムの初期化 (DirectWrite版)
 	SimpleFont::Init(GetDevice(), GetContext());
+
+	Sound::PlayBGM("Assets/Sound/BGM/config.mp3", 0.4f);
 
 	// トップメニューの項目を設定
 	m_topItems = {
@@ -194,29 +197,34 @@ void SceneKeyConfig::RefreshConfigPointers()
 void SceneKeyConfig::Update(float tick)
 {
 	auto isMenuUp = [&]() {
-		if (IsKeyTrigger(VK_UP)) return true;
-		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_UP)) return true;
-		return false;
+		bool pressed = IsKeyTrigger(VK_UP);
+		for (int i = 0; i < 4 && !pressed; ++i) pressed = IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_UP);
+		if (pressed) Sound::PlaySE("Assets/Sound/SE/UI/MoveSlider.mp3");
+		return pressed;
 		};
 	auto isMenuDown = [&]() {
-		if (IsKeyTrigger(VK_DOWN)) return true;
-		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_DOWN)) return true;
-		return false;
+		bool pressed = IsKeyTrigger(VK_DOWN);
+		for (int i = 0; i < 4 && !pressed; ++i) pressed = IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_DOWN);
+		if (pressed) Sound::PlaySE("Assets/Sound/SE/UI/MoveSlider.mp3");
+		return pressed;
 		};
 	auto isMenuLeft = [&]() {
-		if (IsKeyTrigger(VK_LEFT)) return true;
-		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_LEFT)) return true;
-		return false;
+		bool pressed = IsKeyTrigger(VK_LEFT);
+		for (int i = 0; i < 4 && !pressed; ++i) pressed = IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_LEFT);
+		if (pressed) Sound::PlaySE("Assets/Sound/SE/UI/MoveSlider.mp3");
+		return pressed;
 		};
 	auto isMenuRight = [&]() {
-		if (IsKeyTrigger(VK_RIGHT)) return true;
-		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_RIGHT)) return true;
-		return false;
+		bool pressed = IsKeyTrigger(VK_RIGHT);
+		for (int i = 0; i < 4 && !pressed; ++i) pressed = IsPadTrigger(i, XINPUT_GAMEPAD_DPAD_RIGHT);
+		if (pressed) Sound::PlaySE("Assets/Sound/SE/UI/MoveSlider.mp3");
+		return pressed;
 		};
 	auto isMenuConfirm = [&]() {
-		if (IsKeyTrigger(VK_RETURN)) return true;
-		for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_A)) return true;
-		return false;
+		bool pressed = IsKeyTrigger(VK_RETURN);
+		for (int i = 0; i < 4 && !pressed; ++i) pressed = IsPadTrigger(i, XINPUT_GAMEPAD_A);
+		if (pressed) Sound::PlaySE("Assets/Sound/SE/UI/決定ボタンを押す6.mp3");
+		return pressed;
 		};
 	auto isMenuCancel = [&]() {
 		if (IsKeyTrigger(VK_BACK) || IsKeyTrigger(VK_ESCAPE)) return true;

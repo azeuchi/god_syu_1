@@ -17,7 +17,7 @@ void SceneTitle::Init()
 {
 	DebugLog::log(DebugLog::INFO_LOG, "--- Title Scene Init ---");
 
-	Sound::PlayBGM("Assets/Sound/bgm_title.wav", 0.4f);
+	Sound::PlayBGM("Assets/Sound/BGM/title.mp3", 0.4f);
 
 	// シェーダーの読み込み
 	Shader* vsSkin = GetObj<Shader>("VS_SkinMeshAnimation");

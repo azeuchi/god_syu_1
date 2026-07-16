@@ -68,7 +68,7 @@ void Projectile::Launch(Player* owner, float speed, int damage, float size, bool
 	m_isRight = isRight;
 	m_isActive = true;
 	m_spawnTimer = 0.0f;
-	Sound::PlaySE("Assets/Sound/hadouken.wav");
+	Sound::PlaySE("Assets/Sound/SE/Game/波動拳.mp3");
 
 	// プレイヤーの少し前から発射
 	m_position = owner->GetPosition();

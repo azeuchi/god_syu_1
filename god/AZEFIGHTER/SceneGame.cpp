@@ -323,7 +323,7 @@ void SceneGame::Init()
 	// 初期位置設定
 	ResetRound();
 
-	Sound::PlayBGM("Assets/Sound/bgm_battle.wav", 0.4f);
+	Sound::PlayBGM("Assets/Sound/BGM/ゲームシーン.mp3", 0.4f);
 }
 
 void SceneGame::Uninit()
@@ -474,11 +474,17 @@ void SceneGame::Update(float tick)
 			return false;
 			};
 
-		if (menuDown()) m_resultMenuIndex = (m_resultMenuIndex + 1) % itemCount;
-		if (menuUp())   m_resultMenuIndex = (m_resultMenuIndex - 1 + itemCount) % itemCount;
+		if (menuDown() || menuUp())
+		{
+			int dir = menuDown() ? 1 : -1;
+			m_resultMenuIndex = (m_resultMenuIndex + dir + itemCount) % itemCount;
+			Sound::PlaySE("Assets/Sound/SE/UI/MoveSlider.mp3");
+		}
 
 		if (menuConfirm())
 		{
+			Sound::PlaySE("Assets/Sound/SE/UI/決定ボタンを押す6.mp3");
+
 			if (m_resultMenuIndex == 0)      ResetMatch();          // 再戦
 			else if (m_resultMenuIndex == 1) s_requestConfig = true; // キーコンフィグへ
 			else if (m_resultMenuIndex == 2) s_requestTitle = true;  // タイトルへ
@@ -679,7 +685,11 @@ void SceneGame::Update(float tick)
 		// ヒット・ガードの効果音
 		if (result.shakeTimerP1 > 0.0f || result.shakeTimerP2 > 0.0f)
 		{
-			Sound::PlaySE(result.wasBlocked ? "Assets/Sound/guard.wav" : "Assets/Sound/hit.wav");
+			// ガード＞飛び道具＞通常打撃の順に鳴らし分ける
+			const char* seFile = "Assets/Sound/SE/Game/attack.mp3";
+			if (result.wasBlocked)         seFile = "Assets/Sound/SE/Game/Hit-Block02-1(High).mp3";
+			else if (result.wasProjectile) seFile = "Assets/Sound/SE/Game/波動拳ヒット.mp3";
+			Sound::PlaySE(seFile);
 		}
 
 		// 結果の適用

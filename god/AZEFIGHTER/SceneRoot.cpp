@@ -16,6 +16,7 @@
 #include "SceneKeyConfig.h"
 #include "SceneTraining.h"
 #include "DebugLog.h"
+#include "Sound.h"
 
 #define STR(var) #var
 
@@ -230,6 +231,9 @@ void SceneRoot::Update(float tick)
 		m_fadeAlpha -= fadeTick * FADE_SPEED;
 		if (m_fadeAlpha < 0.0f) m_fadeAlpha = 0.0f;
 	}
+
+	// 画面の暗転に合わせてBGMも絞る。ラウンド切替のフェード(s_sceneFade)では曲を止めない
+	Sound::SetBGMFade(1.0f - m_fadeAlpha);
 
 
 	//----------------------------------------------------------

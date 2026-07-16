@@ -1,5 +1,6 @@
 #include "Player.h"
-#include "Input.h" 
+#include "Input.h"
+#include "Sound.h"
 #include <DirectXCollision.h>
 #include "Geometory.h" 
 #include <fstream>
@@ -470,6 +471,7 @@ void Player::UpdatePhysics(float tick)
 			m_velocity.y = 0.0f;
 			m_velocity.x = 0.0f;
 			m_isJumping = false;
+			Sound::PlaySE("Assets/Sound/SE/Game/ジャンプの着地.mp3");
 		}
 	}
 }
@@ -709,6 +711,7 @@ void Player::Jump()
 	if (!m_isJumping) {
 		m_velocity.y = 19.0f; // ジャンプ初速
 		m_isJumping = true;
+		Sound::PlaySE("Assets/Sound/SE/Game/ジャンプ.mp3");
 	}
 }
 

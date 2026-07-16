@@ -13,6 +13,7 @@ struct CollisionResult
 	float shakeTimerP1;
 	float shakeTimerP2;
 	bool wasBlocked;
+	bool wasProjectile; // 飛び道具のヒットか（打撃と音を分けるため）
 	int dbgStun;
 
 	CollisionResult()
@@ -23,6 +24,7 @@ struct CollisionResult
 		, shakeTimerP1(0.0f)
 		, shakeTimerP2(0.0f)
 		, wasBlocked(false)
+		, wasProjectile(false)
 		, dbgStun(0)
 	{
 	}

@@ -238,6 +238,7 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 
 		if (projHit)
 		{
+			result.wasProjectile = true;
 			proj->Deactivate();
 			SpawnHitEffect(effects, projHitPos);
 			defender->ReceiveDamage(proj->GetDamage(), AttackLevel::HIGH);
