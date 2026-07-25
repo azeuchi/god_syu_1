@@ -794,11 +794,11 @@ void SceneDebug::DrawImGui()
 				if (ImGui::SliderInt("開始フレーム", &cancelStartF, 0, totalFrames)) params.cancelStart = cancelStartF * FRAME_TIME_60FPS;
 				if (ImGui::SliderInt("終了フレーム", &cancelEndF, 0, totalFrames)) params.cancelEnd = cancelEndF * FRAME_TIME_60FPS;
 
-				ImGui::Checkbox("→弱P", &params.cancelToLight);
-				ImGui::SameLine(); ImGui::Checkbox("→中P", &params.cancelToMedium);
-				ImGui::SameLine(); ImGui::Checkbox("→強P", &params.cancelToHeavyPunch);
-				ImGui::Checkbox("→中K", &params.cancelToMediumKick);
-				ImGui::SameLine(); ImGui::Checkbox("→強K", &params.cancelToHeavy);
+				ImGui::Checkbox("弱P", &params.cancelToLight);
+				ImGui::SameLine(); ImGui::Checkbox("中P", &params.cancelToMedium);
+				ImGui::SameLine(); ImGui::Checkbox("強P", &params.cancelToHeavyPunch);
+				ImGui::Checkbox("中K", &params.cancelToMediumKick);
+				ImGui::SameLine(); ImGui::Checkbox("強K", &params.cancelToHeavy);
 			}
 			ImGui::TreePop();
 		}
