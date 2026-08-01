@@ -35,6 +35,7 @@ PadConfig g_padConfigP2 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XI
 
 InputDeviceType g_inputDeviceP1 = InputDeviceType::KEYBOARD;
 InputDeviceType g_inputDeviceP2 = InputDeviceType::PAD_0;
+bool Player::s_variableSpeed = true;
 
 namespace {
 	// アニメーション中の指定フレームにおける当たり判定の位置とサイズを計算するヘルパー関数
@@ -508,7 +509,7 @@ void Player::UpdateAnimation(float tick)
 			{
 				m_pActiveAttackParams = nullptr;
 			}
-			else
+			else if (s_variableSpeed)
 			{
 				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
 				{

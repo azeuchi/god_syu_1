@@ -46,8 +46,9 @@ public:
 			return;
 		}
 
-		// trauma^2 で立ち上がりを鋭く、終わり際をなめらかにする
-		float shake = trauma * trauma;
+		// trauma^2 だと弱・中攻撃の揺れがほぼゼロに潰れるため、低い側を持ち上げた曲線にする
+		// 線形成分を混ぜることで、弱い当たりでもカメラの動きを感じられるようにする
+		float shake = trauma * (0.55f + 0.45f * trauma);
 		float amp = s_maxOffset * shake;
 
 		// ノイズ成分（-1.0から1.0）

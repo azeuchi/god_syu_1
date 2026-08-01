@@ -30,6 +30,9 @@ using namespace DirectX::SimpleMath;
 // UI用テクスチャ管理（グローバル）
 Texture* g_uiTex = nullptr;
 
+// 緩急オン/オフを切り替えた直後だけ画面に状態を出すためのタイマー
+static float s_variableToggleTimer = 0.0f;
+
 // パラメータ設定ファイルのパス
 const char* SETTINGS_FILE = "player_settings.ini";
 
@@ -450,6 +453,14 @@ void SceneGame::Update(float tick)
 	if (IsKeyTrigger(VK_F2) && player) player->Debug_SetHp(1);
 	if (IsKeyTrigger(VK_F3)) { if (player) player->RefillHp(); if (player2) player2->RefillHp(); }
 #endif
+
+	// 緩急（可変フレーム再生）のオン/オフ切り替え。等速との見比べ用にリリースでも有効
+	if (IsKeyTrigger(VK_F5))
+	{
+		Player::s_variableSpeed = !Player::s_variableSpeed;
+		s_variableToggleTimer = 1.6f;
+	}
+	if (s_variableToggleTimer > 0.0f) s_variableToggleTimer -= tick;
 
 	// ==========================================================
 	// 決着後の選択メニュー
@@ -1142,6 +1153,22 @@ void SceneGame::Draw()
 	if (m_isResultMenu)
 	{
 		DrawResultMenu();
+	}
+
+	// 緩急オン/オフの状態表示（切り替え直後だけ画面上部に出す）
+	if (s_variableToggleTimer > 0.0f)
+	{
+		bool on = Player::s_variableSpeed;
+		float pw = 240.0f, ph = 56.0f, px = (1280.0f - pw) * 0.5f, py = 66.0f;
+		SimpleUI::Clear();
+		float ndcX = ((px + pw * 0.5f) / 1280.0f) * 2.0f - 1.0f;
+		float ndcY = 1.0f - ((py + ph * 0.5f) / 720.0f) * 2.0f;
+		SimpleUI::AddRect(ndcX, ndcY, (pw / 1280.0f) * 2.0f, (ph / 720.0f) * 2.0f, DirectX::XMFLOAT4(0.05f, 0.05f, 0.08f, 0.7f), nullptr);
+		SimpleUI::DrawAll();
+		SimpleFont::Begin();
+		DirectX::XMFLOAT4 col = on ? DirectX::XMFLOAT4(0.56f, 0.78f, 0.46f, 1.0f) : DirectX::XMFLOAT4(0.86f, 0.86f, 0.90f, 1.0f);
+		SimpleFont::Draw(on ? L"緩急　ON" : L"緩急　OFF", px + 60.0f, py + 12.0f, 28.0f, col);
+		SimpleFont::End();
 	}
 
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);

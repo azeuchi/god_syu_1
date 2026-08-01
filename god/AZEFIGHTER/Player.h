@@ -227,6 +227,7 @@ public:
 	const PlayerInputs& GetInputs() const;
 	void SetInjectedInputs(const PlayerInputs& in);
 	void RefillHp() { m_hp = m_maxHp; }
+	static bool s_variableSpeed; // 緩急（可変フレーム再生）のオン/オフ。等速と見比べる用
 #ifdef _DEBUG
 	// デバッグコマンド用
 	void Debug_SetHp(int hp) { m_hp = hp; }
