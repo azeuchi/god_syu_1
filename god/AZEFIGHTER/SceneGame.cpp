@@ -34,7 +34,7 @@ Texture* g_uiTex = nullptr;
 static float s_variableToggleTimer = 0.0f;
 
 // パラメータ設定ファイルのパス
-const char* SETTINGS_FILE = "player_settings.ini";
+const char* SETTINGS_FILE = "Param/player_settings.ini";
 
 // ステージとカメラの移動制限範囲
 const float STAGE_LIMIT_X = 6.0f;

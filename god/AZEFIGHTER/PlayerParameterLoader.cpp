@@ -148,17 +148,17 @@ void PlayerParameterLoader::LoadSettings(Player* player)
 {
 	if (!player) return;
 
-	LoadCommonSettings(player, "Param_Common.ini");
+	LoadCommonSettings(player, "Param/Param_Common.ini");
 
-	LoadAttackParams(player->GetLightPunchParams(), "Param_LightPunch.ini");
-	LoadAttackParams(player->GetMediumPunchParams(), "Param_MediumPunch.ini");
-	LoadAttackParams(player->GetHeavyPunchParams(), "Param_HeavyPunch.ini");
-	LoadAttackParams(player->GetMediumKickParams(), "Param_MediumKick.ini");
-	LoadAttackParams(player->GetHeavyKickParams(), "Param_HeavyKick.ini");
+	LoadAttackParams(player->GetLightPunchParams(), "Param/Param_LightPunch.ini");
+	LoadAttackParams(player->GetMediumPunchParams(), "Param/Param_MediumPunch.ini");
+	LoadAttackParams(player->GetHeavyPunchParams(), "Param/Param_HeavyPunch.ini");
+	LoadAttackParams(player->GetMediumKickParams(), "Param/Param_MediumKick.ini");
+	LoadAttackParams(player->GetHeavyKickParams(), "Param/Param_HeavyKick.ini");
 
-	LoadAttackParams(player->GetHadoukenLParams(), "Param_HadoukenL.ini");
-	LoadAttackParams(player->GetHadoukenMParams(), "Param_HadoukenM.ini");
-	LoadAttackParams(player->GetHadoukenHParams(), "Param_HadoukenH.ini");
+	LoadAttackParams(player->GetHadoukenLParams(), "Param/Param_HadoukenL.ini");
+	LoadAttackParams(player->GetHadoukenMParams(), "Param/Param_HadoukenM.ini");
+	LoadAttackParams(player->GetHadoukenHParams(), "Param/Param_HadoukenH.ini");
 }
 
 void PlayerParameterLoader::CopyParameters(Player* src, Player* dst)

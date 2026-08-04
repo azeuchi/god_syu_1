@@ -1,5 +1,6 @@
 ﻿// SceneDebug.cpp
 #include "math.h"
+#include <filesystem>
 #include "SceneDebug.h"
 #include "Geometory.h"
 #include "DebugLog.h"
@@ -69,9 +70,12 @@ void SceneDebug::SavePlayerSettings()
 	Player* player = GetObj<Player>("Player");
 	if (!player) return;
 
+	// 保存先フォルダが無ければ作る（初回や削除時でも保存できるように）
+	std::filesystem::create_directories("Param");
+
 	// 共通設定の保存
 	{
-		std::ofstream ofs("Param_Common.ini");
+		std::ofstream ofs("Param/Param_Common.ini");
 		if (ofs.is_open())
 		{
 			ofs << player->GetMoveSpeed() << std::endl;
@@ -159,15 +163,15 @@ void SceneDebug::SavePlayerSettings()
 		};
 
 	// 各ファイルの保存実行
-	SaveOneAttack("Param_LightPunch.ini", player->GetLightPunchParams());
-	SaveOneAttack("Param_MediumPunch.ini", player->GetMediumPunchParams());
-	SaveOneAttack("Param_HeavyPunch.ini", player->GetHeavyPunchParams());
-	SaveOneAttack("Param_MediumKick.ini", player->GetMediumKickParams());
-	SaveOneAttack("Param_HeavyKick.ini", player->GetHeavyKickParams());
+	SaveOneAttack("Param/Param_LightPunch.ini", player->GetLightPunchParams());
+	SaveOneAttack("Param/Param_MediumPunch.ini", player->GetMediumPunchParams());
+	SaveOneAttack("Param/Param_HeavyPunch.ini", player->GetHeavyPunchParams());
+	SaveOneAttack("Param/Param_MediumKick.ini", player->GetMediumKickParams());
+	SaveOneAttack("Param/Param_HeavyKick.ini", player->GetHeavyKickParams());
 
-	SaveOneAttack("Param_HadoukenL.ini", player->GetHadoukenLParams());
-	SaveOneAttack("Param_HadoukenM.ini", player->GetHadoukenMParams());
-	SaveOneAttack("Param_HadoukenH.ini", player->GetHadoukenHParams());
+	SaveOneAttack("Param/Param_HadoukenL.ini", player->GetHadoukenLParams());
+	SaveOneAttack("Param/Param_HadoukenM.ini", player->GetHadoukenMParams());
+	SaveOneAttack("Param/Param_HadoukenH.ini", player->GetHadoukenHParams());
 
 	DebugLog::log(DebugLog::INFO_LOG, "設定を分割ファイルとして保存しました。");
 }
