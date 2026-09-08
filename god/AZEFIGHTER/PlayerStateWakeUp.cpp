@@ -22,7 +22,7 @@ void PlayerStateWakeUp::Update(Player* player, float tick)
 	// ­‚µ—]—T‚ğ‚Á‚Ä”»’è
 	if (currentFrame >= totalFrame - 1)
 	{
-		player->SetState(new PlayerStateIdle());
+		player->SetState(std::make_unique<PlayerStateIdle>());
 		return;
 	}
 }

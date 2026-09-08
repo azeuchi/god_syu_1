@@ -12,12 +12,7 @@ Image2D::Image2D()
 
 Image2D::~Image2D()
 {
-	// 使い終わったらテクスチャをメモリから削除
-	if (m_texture)
-	{
-		delete m_texture;
-		m_texture = nullptr;
-	}
+	// テクスチャは unique_ptr が解放する
 }
 
 void Image2D::Load(const char* filePath, float x, float y, float w, float h)
@@ -28,7 +23,7 @@ void Image2D::Load(const char* filePath, float x, float y, float w, float h)
 	m_height = h;
 
 	// テクスチャ読み込み
-	m_texture = new Texture();
+	m_texture = std::make_unique<Texture>();
 	if (FAILED(m_texture->Create(filePath)))
 	{
 
@@ -46,7 +41,7 @@ void Image2D::Draw()
 	float ndcH = (m_height / SCREEN_H) * 2.0f;
 
 	// SimpleUIに登録 
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture.get());
 }
 
 // 場所と透明度を指定して描画
@@ -59,5 +54,5 @@ void Image2D::Draw(float x, float y, float w, float h, float alpha)
 	float ndcW = (w / SCREEN_W) * 2.0f;
 	float ndcH = (h / SCREEN_H) * 2.0f;
 
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1.0f, 1.0f, 1.0f, alpha }, m_texture);
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, { 1.0f, 1.0f, 1.0f, alpha }, m_texture.get());
 }

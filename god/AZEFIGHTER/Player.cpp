@@ -123,28 +123,20 @@ Player::Player()
 	, m_hasHit(false)
 	, m_pActiveAttackParams(nullptr)
 	, m_animSpeed(1.0f)
-	, m_projectile(new Projectile())
+	, m_projectile(std::make_unique<Projectile>())
 	, m_attackTimer(0.0f)
 {
 	// 初期アニメーションとステートの設定
 	m_currentAnim = { "Idle", 0 };
 	m_previousAnim = { "Idle", 0 };
-	SetState(new PlayerStateIdle());
+	SetState(std::make_unique<PlayerStateIdle>());
 
 	InitDefaultParameters();
 }
 
 Player::~Player()
 {
-	// ステートと飛び道具のメモリ解放
-	if (m_currentState) {
-		delete m_currentState;
-		m_currentState = nullptr;
-	}
-	if (m_projectile) {
-		delete m_projectile;
-		m_projectile = nullptr;
-	}
+	// ステートと飛び道具は unique_ptr が解放する
 }
 
 // プレイヤーの移動速度や、各種攻撃技の初期パラメータを設定する
@@ -544,30 +536,18 @@ void Player::UpdateModelBlend()
 }
 
 // プレイヤーのステート（待機、歩行、ジャンプ、攻撃など）を切り替える
-void Player::SetState(PlayerState* newState)
+void Player::SetState(std::unique_ptr<PlayerState> newState)
 {
-	if (newState != nullptr)
-	{
+	if (newState == nullptr) return;
 
-		// 体力が0以下なら死亡ステート以外への遷移を拒否
-		if (m_hp <= 0 && !newState->IsDeathState())
-		{
-			delete newState;
-			return;
-		}
+	// 体力が0以下なら死亡ステート以外への遷移を拒否
+	if (m_hp <= 0 && !newState->IsDeathState()) return;
 
-		if (m_currentState) {
-			// すでに死亡状態なら、他の状態による上書きをブロック
-			if (m_currentState->IsDeathState() && m_hp <= 0) {
-				delete newState;
-				return;
-			}
-			delete m_currentState;
-		}
+	// すでに死亡状態なら、他の状態による上書きをブロック
+	if (m_currentState && m_currentState->IsDeathState() && m_hp <= 0) return;
 
-		m_currentState = newState;
-		m_currentState->OnEnter(this);
-	}
+	m_currentState = std::move(newState);
+	m_currentState->OnEnter(this);
 }
 
 // 現在のステートが無敵かどうかを判定
@@ -1012,7 +992,7 @@ void Player::ReceiveDamage(int damage, AttackLevel atkLevel)
 	{
 		m_hp = 0;
 		// HPが0になったら死亡ステートへ遷移
-		SetState(new PlayerStateDeath());
+		SetState(std::make_unique<PlayerStateDeath>());
 	}
 }
 
@@ -1032,7 +1012,7 @@ void Player::Reset()
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 	if (m_projectile) m_projectile->Deactivate();
-	SetState(new PlayerStateIdle());
+	SetState(std::make_unique<PlayerStateIdle>());
 }
 
 bool Player::CanFireProjectile() const

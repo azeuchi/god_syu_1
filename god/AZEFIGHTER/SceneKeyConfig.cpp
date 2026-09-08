@@ -28,6 +28,8 @@ const float CAMERA_LIMIT_X = 4.0f;
 bool SceneKeyConfig::s_isConfigSet = false;
 bool SceneKeyConfig::s_requestDebug = false;
 
+SceneKeyConfig::~SceneKeyConfig() = default;
+
 void SceneKeyConfig::Init()
 {
 	s_isConfigSet = false;
@@ -109,7 +111,7 @@ void SceneKeyConfig::Init()
 	m_playerRenderer.Setup(this);
 
 	// スカイドームを用意
-	m_skyDome = new SkyDome();
+	m_skyDome = std::make_unique<SkyDome>();
 	m_skyDome->Setup(this);
 
 
@@ -159,7 +161,6 @@ void SceneKeyConfig::Uninit()
 {
 	SimpleFont::Uninit();
 
-	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 }
 
 void SceneKeyConfig::RefreshConfigPointers()

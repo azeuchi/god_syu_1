@@ -176,6 +176,8 @@ void SceneDebug::SavePlayerSettings()
 	DebugLog::log(DebugLog::INFO_LOG, "設定を分割ファイルとして保存しました。");
 }
 
+SceneDebug::~SceneDebug() = default;
+
 void SceneDebug::Init()
 {
 	// --- シェーダー読み込み ---
@@ -197,7 +199,7 @@ void SceneDebug::Init()
 	}
 
 	// --- スカイドームを用意 ---
-	m_skyDome = new SkyDome();
+	m_skyDome = std::make_unique<SkyDome>();
 	m_skyDome->Setup(this);
 
 	// --- プレイヤー描画ヘルパーを用意---
@@ -238,7 +240,6 @@ void SceneDebug::Uninit()
 		g_uiTex_debug = nullptr;
 	}
 
-	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 }
 
 void SceneDebug::Update(float tick)

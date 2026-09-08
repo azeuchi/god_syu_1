@@ -197,13 +197,13 @@ void SceneGame::Init()
 	}
 	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
 	skyModel->SetPixelShader(GetObj<Shader>("PS_TexColor"));
-	m_skyDome = new SkyDome();
+	m_skyDome = std::make_unique<SkyDome>();
 	m_skyDome->Init(skyModel);
 
 	// ==================================================
 	// UIマネージャの初期化
 	// ==================================================
-	m_uiManager = new BattleUIManager();
+	m_uiManager = std::make_unique<BattleUIManager>();
 	m_uiManager->Init();
 
 
@@ -333,13 +333,7 @@ void SceneGame::Uninit()
 {
 	SimpleFont::Uninit();
 
-	if (m_uiManager)
-	{
-		delete m_uiManager;
-		m_uiManager = nullptr;
-	}
-
-	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
+	// UI管理とスカイドームは unique_ptr が解放する
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
 
 	// 描画設定の解放

@@ -2,6 +2,7 @@
 #define __SCENE_TRAINING_H__
 
 #include "SceneBase.hpp"
+#include <memory>
 #include "Player.h"     // PlayerInputs
 #include "HitEffectPool.h"
 #include "SkyDome.h"
@@ -40,7 +41,7 @@ private:
 	PlayerRenderer m_playerRenderer;
 
 	// 背景スカイドーム
-	SkyDome* m_skyDome = nullptr;
+	std::unique_ptr<SkyDome> m_skyDome;
 
 	bool m_showImGui = true;
 

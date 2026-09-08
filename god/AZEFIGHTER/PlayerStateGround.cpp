@@ -25,7 +25,7 @@ void PlayerStateGround::Update(Player* player, float tick)
 		else if (inputs.MediumPunch) strength = 1;
 		else strength = 0;
 
-		player->SetState(new Hadouken(strength));
+		player->SetState(std::make_unique<Hadouken>(strength));
 		return;
 	}
 
@@ -33,49 +33,49 @@ void PlayerStateGround::Update(Player* player, float tick)
 	if (inputs.LightPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
-		player->SetState(new LightPunch());
+		player->SetState(std::make_unique<LightPunch>());
 		return;
 	}
 	// 攻撃2 (Medium Punch)
 	else if (inputs.MediumPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
-		player->SetState(new MediumPunch());
+		player->SetState(std::make_unique<MediumPunch>());
 		return;
 	}
 	// 攻撃3 (Heavy Punch)
 	else if (inputs.HeavyPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
-		player->SetState(new HeavyPunch());
+		player->SetState(std::make_unique<HeavyPunch>());
 		return;
 	}
 	// 攻撃4 (Medium Kick) Kキー
 	else if (inputs.MediumKick)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumKickParams());
-		player->SetState(new MediumKick());
+		player->SetState(std::make_unique<MediumKick>());
 		return;
 	}
 	// 攻撃5 (Heavy Kick) Lキー
 	else if (inputs.HeavyKick)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
-		player->SetState(new HeavyKick());
+		player->SetState(std::make_unique<HeavyKick>());
 		return;
 	}
 	// ジャンプ
 	else if (inputs.jump && !player->GetIsJumping())
 	{
 		player->Jump();
-		player->SetState(new PlayerStateJump());
+		player->SetState(std::make_unique<PlayerStateJump>());
 		return;
 	}
 	// しゃがみ
 	// 「下入力があり」かつ「現在自分がしゃがみステートではない」場合のみ遷移
 	else if (inputs.moveDown && !IsCrouch())
 	{
-		player->SetState(new PlayerStateCrouch());
+		player->SetState(std::make_unique<PlayerStateCrouch>());
 		return;
 	}
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include <memory>
 #include <DirectXMath.h>
 
 class Image2D
@@ -34,7 +35,7 @@ public:
 	void SetColor(float r, float g, float b, float a) { m_color = { r, g, b, a }; }
 
 private:
-	Texture* m_texture;
+	std::unique_ptr<Texture> m_texture;
 	float m_x, m_y;
 	float m_width, m_height;
 	DirectX::XMFLOAT4 m_color; // êFï€ë∂óp

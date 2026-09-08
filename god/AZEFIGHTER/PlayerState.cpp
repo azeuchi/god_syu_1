@@ -31,7 +31,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 	if (params.cancelToLight && inputs.LightPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetLightPunchParams());
-		player->SetState(new LightPunch());
+		player->SetState(std::make_unique<LightPunch>());
 		return true;
 	}
 
@@ -39,7 +39,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 	if (params.cancelToMedium && inputs.MediumPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
-		player->SetState(new MediumPunch());
+		player->SetState(std::make_unique<MediumPunch>());
 		return true;
 	}
 
@@ -47,7 +47,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 	if (params.cancelToHeavyPunch && inputs.HeavyPunch)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
-		player->SetState(new HeavyPunch());
+		player->SetState(std::make_unique<HeavyPunch>());
 		return true;
 	}
 
@@ -55,7 +55,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 	if (params.cancelToMediumKick && inputs.MediumKick)
 	{
 		player->SetCurrentAttackParams(&player->GetMediumKickParams());
-		player->SetState(new MediumKick());
+		player->SetState(std::make_unique<MediumKick>());
 		return true;
 	}
 
@@ -63,7 +63,7 @@ bool PlayerState::CheckCancel(Player* player, float stateTimer, const AttackPara
 	if (params.cancelToHeavy && inputs.HeavyKick)
 	{
 		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
-		player->SetState(new HeavyKick());
+		player->SetState(std::make_unique<HeavyKick>());
 		return true;
 	}
 

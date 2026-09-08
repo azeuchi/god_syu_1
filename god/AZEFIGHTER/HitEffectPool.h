@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include <DirectXMath.h>
 
 class HitEffect;
@@ -15,8 +16,8 @@ public:
 	void Draw(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& proj);
 
 	// BattleCollision::UpdateInteractions Ç…ìnÇ∑ÇΩÇﬂÇÃé¿ëÃéQè∆
-	std::vector<HitEffect*>& Raw() { return m_effects; }
+	std::vector<std::unique_ptr<HitEffect>>& Raw() { return m_effects; }
 
 private:
-	std::vector<HitEffect*> m_effects;
+	std::vector<std::unique_ptr<HitEffect>> m_effects;
 };

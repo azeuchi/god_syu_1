@@ -43,7 +43,7 @@ void MediumPunch::Update(Player* player, float tick)
 	// I—¹”»’è
 	if (m_stateTimer >= params.totalDuration)
 	{
-		player->SetState(new PlayerStateIdle());
+		player->SetState(std::make_unique<PlayerStateIdle>());
 		return;
 	}
 

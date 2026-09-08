@@ -34,12 +34,12 @@ void PlayerStateWalkBack::UpdateBehavior(Player* player, float tick)
 		float moveDot = player->GetForwardMoveDot();
 
 		if (moveDot < 0.5f && moveDot > -0.5f) {
-			player->SetState(new PlayerStateIdle());
+			player->SetState(std::make_unique<PlayerStateIdle>());
 			return;
 		}
 
 		if (moveDot > 0.5f) {
-			player->SetState(new PlayerStateWalk());
+			player->SetState(std::make_unique<PlayerStateWalk>());
 			return;
 		}
 	}

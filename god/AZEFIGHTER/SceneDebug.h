@@ -2,6 +2,7 @@
 #define __SCENE_DEBUG_H__
 
 #include "SceneBase.hpp"
+#include <memory>
 #include "PlayerRenderer.h"
 #include <d3d11.h>
 
@@ -28,6 +29,9 @@ public:
 	void Update(float tick); // 更新処理 (アニメーション進行、入力処理)
 	void Draw();   // 描画処理 (モデル描画、GUI描画)
 
+	// SkyDome を前方宣言のまま unique_ptr で持つため、デストラクタは cpp 側で定義する
+	~SceneDebug();
+
 private:
 	float m_fps = 0.0f; // 現在のFPS
 	bool m_showImGui;   // GUIの表示/非表示フラグ
@@ -39,7 +43,7 @@ private:
 	bool m_isAttacking = false;
 
 	// 背景スカイドーム
-	SkyDome* m_skyDome = nullptr;
+	std::unique_ptr<SkyDome> m_skyDome;
 	PlayerRenderer m_playerRenderer;
 
 	// アニメーション一時停止フラグ

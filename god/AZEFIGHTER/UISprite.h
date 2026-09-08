@@ -1,6 +1,7 @@
 #pragma once
 #include <DirectXMath.h>
 #include "Texture.h"
+#include <memory>
 
 class UISprite
 {
@@ -30,7 +31,7 @@ public:
 	void SetActive(bool active) { m_isActive = active; } // ï\é¶/îÒï\é¶êÿÇËë÷Ç¶
 
 private:
-	Texture* m_texture;
+	std::unique_ptr<Texture> m_texture;
 	DirectX::XMFLOAT2 m_position;
 	DirectX::XMFLOAT2 m_size;
 	DirectX::XMFLOAT4 m_color;

@@ -23,7 +23,7 @@ void PlayerStateCrouch::UpdateBehavior(Player* player, float tick)
 	// ‰º“ü—Í‚ª‚È‚­‚È‚Á‚½‚çA—§‚¿ó‘Ô(Idle)‚É–ß‚é
 	if (!inputs.moveDown)
 	{
-		player->SetState(new PlayerStateIdle());
+		player->SetState(std::make_unique<PlayerStateIdle>());
 		return;
 	}
 

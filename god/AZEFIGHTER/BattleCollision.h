@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "HitEffect.h"
 #include <vector>
+#include <memory>
 
 // 衝突処理の結果を受け取るための構造体
 struct CollisionResult
@@ -38,7 +39,7 @@ public:
 		Player* p1,
 		Player* p2,
 		float tick,
-		std::vector<HitEffect*>& effects,
+		std::vector<std::unique_ptr<HitEffect>>& effects,
 		float stageLimitX
 	);
 
@@ -50,7 +51,7 @@ private:
 	static void CheckAttackHit(
 		Player* attacker,
 		Player* defender,
-		std::vector<HitEffect*>& effects,
+		std::vector<std::unique_ptr<HitEffect>>& effects,
 		CollisionResult& result,
 		float stageLimitX,
 		bool isP1Attacking // AttackerがP1かどうか
@@ -60,14 +61,14 @@ private:
 	static void CheckProjectileHit(
 		Player* attacker,
 		Player* defender,
-		std::vector<HitEffect*>& effects,
+		std::vector<std::unique_ptr<HitEffect>>& effects,
 		CollisionResult& result,
 		float stageLimitX,
 		bool isP1Attacking
 	);
 
 	// エフェクト再生ヘルパー
-	static void SpawnHitEffect(std::vector<HitEffect*>& effects, const DirectX::XMFLOAT3& pos);
+	static void SpawnHitEffect(std::vector<std::unique_ptr<HitEffect>>& effects, const DirectX::XMFLOAT3& pos);
 
 	// くらい判定取得ヘルパー
 	static std::vector<DirectX::BoundingBox> GetTargetHurtboxes(const Player* target);

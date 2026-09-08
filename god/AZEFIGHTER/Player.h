@@ -4,6 +4,7 @@
 #include <DirectXCollision.h>
 #include <string>
 #include <vector>
+#include <memory>
 #include "Geometory.h"
 
 // 前方宣言
@@ -217,7 +218,7 @@ public:
 	void SetCurrentFrame(float frame);
 
 	void Update(float tick);
-	void SetState(PlayerState* newState);
+	void SetState(std::unique_ptr<PlayerState> newState);
 
 	bool IsInvincible() const;
 
@@ -340,7 +341,7 @@ public:
 	void OnHit() { m_hasHit = true; }
 
 	// 飛び道具制御
-	Projectile* GetProjectile() { return m_projectile; }
+	Projectile* GetProjectile() { return m_projectile.get(); }
 	bool CanFireProjectile() const;
 
 	// コマンド判定
@@ -395,7 +396,7 @@ private:
 	bool m_isAttacking = false;
 
 	// ステートパターン用ポインタ
-	PlayerState* m_currentState;
+	std::unique_ptr<PlayerState> m_currentState;
 	// プレイヤーの操作タイプ（人間かAIか）
 	PlayerInputType m_inputType;
 	// 現在の入力状況
@@ -441,7 +442,7 @@ private:
 	bool m_hasHit = false;
 
 	// 飛び道具インスタンス
-	Projectile* m_projectile = nullptr;
+	std::unique_ptr<Projectile> m_projectile;
 
 	// コマンドバッファ
 	// 必殺技コマンド入力を保持するタイマー

@@ -1,5 +1,6 @@
 #pragma once
 #include "Image2D.h"
+#include <memory>
 #include <DirectXMath.h>
 #include <d3d11.h>
 
@@ -35,11 +36,11 @@ public:
 
 private:
 	// HPバー
-	Image2D* m_hpBar;
-	Image2D* m_enemyhpBar;
+	std::unique_ptr<Image2D> m_hpBar;
+	std::unique_ptr<Image2D> m_enemyhpBar;
 
-	Image2D* m_hpFrame;
-	Image2D* m_enemyhpFrame;
+	std::unique_ptr<Image2D> m_hpFrame;
+	std::unique_ptr<Image2D> m_enemyhpFrame;
 
 	DirectX::XMFLOAT2 m_hpBarPos;      // 1Pの初期座標
 	DirectX::XMFLOAT2 m_enemyHpBarPos; // 2Pの初期座標
@@ -51,15 +52,15 @@ private:
 	float m_barHeight;                    // HPバーの高さを管理する変数
 
 	// フェード用画像
-	Image2D* m_fadeBlack;
+	std::unique_ptr<Image2D> m_fadeBlack;
 	float m_currentFadeAlpha;          // フェードの現在の透明度を保持
 
 	// ラウンド開始演出用画像
-	Image2D* m_imgRound1;
-	Image2D* m_imgRound2;
-	Image2D* m_imgFinalRound;
-	Image2D* m_imgFight;
-	Image2D* m_imgKO;
+	std::unique_ptr<Image2D> m_imgRound1;
+	std::unique_ptr<Image2D> m_imgRound2;
+	std::unique_ptr<Image2D> m_imgFinalRound;
+	std::unique_ptr<Image2D> m_imgFight;
+	std::unique_ptr<Image2D> m_imgKO;
 
 	// 描画設定
 	ID3D11DepthStencilState* m_pDepthStateUI; // UI用 (Depth ON, ALWAYS)

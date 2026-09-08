@@ -12,17 +12,13 @@ UISprite::UISprite()
 
 UISprite::~UISprite()
 {
-	if (m_texture)
-	{
-		delete m_texture;
-		m_texture = nullptr;
-	}
+	// テクスチャは unique_ptr が解放する
 }
 
 void UISprite::Init(const char* fileName, float x, float y, float width, float height)
 {
 	// テクスチャの読み込み
-	m_texture = new Texture();
+	m_texture = std::make_unique<Texture>();
 
 	m_texture->Create(fileName);
 
@@ -48,5 +44,5 @@ void UISprite::Draw()
 	float ndcH = (m_size.y / SCREEN_HEIGHT) * 2.0f;
 
 	// SimpleUI に登録
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture);
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture.get());
 }

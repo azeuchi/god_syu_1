@@ -46,38 +46,38 @@ void BattleUIManager::Init()
 	m_barMaxWidth = 500.0f;
 	m_currentFadeAlpha = 0.0f;
 
-	m_hpBar = new Image2D();
+	m_hpBar = std::make_unique<Image2D>();
 	m_hpBar->Load("Assets/Texture/hp.png", m_hpBarPos.x, m_hpBarPos.y, m_barMaxWidth, m_barHeight);
 
-	m_enemyhpBar = new Image2D();
+	m_enemyhpBar = std::make_unique<Image2D>();
 	m_enemyhpBar->Load("Assets/Texture/hp2.png", m_enemyHpBarPos.x, m_enemyHpBarPos.y, m_barMaxWidth, m_barHeight);
 
-	m_hpFrame = new Image2D();
+	m_hpFrame = std::make_unique<Image2D>();
 	m_hpFrame->Load("Assets/Texture/hpframe.png", 330.0f, 80.0f, 550.0f, 80.0f);
 
-	m_enemyhpFrame = new Image2D();
+	m_enemyhpFrame = std::make_unique<Image2D>();
 	m_enemyhpFrame->Load("Assets/Texture/hpframe2.png", 950.0f, 80.0f, 550.0f, 80.0f);
 
 	// フェード用画像
-	m_fadeBlack = new Image2D();
+	m_fadeBlack = std::make_unique<Image2D>();
 	m_fadeBlack->Load("Assets/Texture/black.png", 640.0f, 360.0f, 1280.0f, 720.0f);
 	m_fadeBlack->SetColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// ラウンドコール画像
-	m_imgRound1 = new Image2D();
+	m_imgRound1 = std::make_unique<Image2D>();
 	m_imgRound1->Load("Assets/Texture/ROUND1.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
-	m_imgRound2 = new Image2D();
+	m_imgRound2 = std::make_unique<Image2D>();
 	m_imgRound2->Load("Assets/Texture/ROUND2.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
-	m_imgFinalRound = new Image2D();
+	m_imgFinalRound = std::make_unique<Image2D>();
 	m_imgFinalRound->Load("Assets/Texture/FINALROUND.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
-	m_imgFight = new Image2D();
+	m_imgFight = std::make_unique<Image2D>();
 	m_imgFight->Load("Assets/Texture/FIGHT.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
 	// KO画像
-	m_imgKO = new Image2D();
+	m_imgKO = std::make_unique<Image2D>();
 	m_imgKO->Load("Assets/Texture/KO.png", 640.0f, 360.0f, 800.0f, 350.0f);
 
 	// UI用の深度ステート
@@ -105,19 +105,10 @@ void BattleUIManager::Init()
 
 void BattleUIManager::Uninit()
 {
-	if (m_hpBar) { delete m_hpBar; m_hpBar = nullptr; }
-	if (m_enemyhpBar) { delete m_enemyhpBar; m_enemyhpBar = nullptr; }
-	if (m_fadeBlack) { delete m_fadeBlack; m_fadeBlack = nullptr; }
-
-	if (m_hpFrame) { delete m_hpFrame; m_hpFrame = nullptr; }
-	if (m_enemyhpFrame) { delete m_enemyhpFrame; m_enemyhpFrame = nullptr; }
+	// 画像は unique_ptr が保持しているため、明示的な解放は不要
 
 
-	if (m_imgRound1) { delete m_imgRound1; m_imgRound1 = nullptr; }
-	if (m_imgRound2) { delete m_imgRound2; m_imgRound2 = nullptr; }
-	if (m_imgFinalRound) { delete m_imgFinalRound; m_imgFinalRound = nullptr; }
-	if (m_imgFight) { delete m_imgFight; m_imgFight = nullptr; }
-	if (m_imgKO) { delete m_imgKO; m_imgKO = nullptr; }
+
 
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }

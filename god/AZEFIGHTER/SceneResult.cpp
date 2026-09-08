@@ -14,8 +14,8 @@ void SceneResult::Init()
 	psColor->Load("Assets/Shader/PS_TexColor.cso");
 
 	// Image2Dのインスタンス生成
-	m_pImage = new Image2D();
-	m_returntitle = new Image2D();
+	m_pImage = std::make_unique<Image2D>();
+	m_returntitle = std::make_unique<Image2D>();
 	// 画像読み込み
 	m_pImage->Load("Assets/Texture/background2.png", 640, 360.0f, 1280, 720.0f);
 	m_returntitle->Load("Assets/Texture/PressEnter.png", 640, 550, 500, 200.0f);
@@ -48,17 +48,7 @@ void SceneResult::Uninit()
 {
 	DebugLog::log(DebugLog::INFO_LOG, "--- Result Scene Uninit ---");
 
-	// 使い終わったらメモリ解放
-	if (m_pImage)
-	{
-		delete m_pImage;
-		m_pImage = nullptr;
-	}
-	if (m_returntitle)
-	{
-		delete m_returntitle;
-		m_returntitle = nullptr;
-	}
+	// 画像は unique_ptr が解放する
 
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }

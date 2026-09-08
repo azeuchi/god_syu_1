@@ -8,7 +8,7 @@ void PlayerStateAir::Update(Player* player, float tick)
 	if (!player->GetIsJumping())
 	{
 		// ’…’n‚µ‚½‚ç‘Ò‹@ó‘Ô‚Ö‘JˆÚ
-		player->SetState(new PlayerStateIdle());
+		player->SetState(std::make_unique<PlayerStateIdle>());
 		return;
 	}
 

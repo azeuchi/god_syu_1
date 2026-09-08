@@ -54,7 +54,7 @@ void SceneTraining::Init()
 	m_playerRenderer.Setup(this);
 
 	// --- スカイドームを用意 ---
-	m_skyDome = new SkyDome();
+	m_skyDome = std::make_unique<SkyDome>();
 	m_skyDome->Setup(this);
 
 	// --- 1P（操作キャラ）---
@@ -100,7 +100,6 @@ void SceneTraining::Init()
 
 void SceneTraining::Uninit()
 {
-	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
 }
 
 PlayerInputs SceneTraining::BuildDummyInputs(Player* dummy, float tick)

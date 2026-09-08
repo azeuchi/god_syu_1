@@ -63,7 +63,7 @@ void PlayerStateDown::Update(Player* player, float tick)
 		if (m_groundTimer >= DOWN_TIME)
 		{
 			// ‹N‚«ã‚ª‚è‚ÖˆÚs
-			player->SetState(new PlayerStateWakeUp());
+			player->SetState(std::make_unique<PlayerStateWakeUp>());
 		}
 	}
 }

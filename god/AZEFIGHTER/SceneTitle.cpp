@@ -47,11 +47,11 @@ void SceneTitle::Init()
 	skyModel->Load("Assets/Model/SkyDome/SkyDome.fbx", 1.0f, true, true);
 	skyModel->SetTexture("Assets/Model/SkyDome/SkyDome.png");
 	skyModel->SetPixelShader((PixelShader*)psColor);
-	m_skyDome = new SkyDome();
+	m_skyDome = std::make_unique<SkyDome>();
 	m_skyDome->Init(skyModel);
 
 	// モデルの生成と読み込み
-	m_pTitleModel = new Model();
+	m_pTitleModel = std::make_unique<Model>();
 	if (m_pTitleModel->Load("Assets/Model/knight/Idle.fbx", 0.017f, true, false))
 	{
 		m_pTitleModel->LoadAnimation("Assets/Model/knight/Idle.fbx", "Idle", true);
@@ -69,9 +69,9 @@ void SceneTitle::Init()
 	m_blendFactor = 1.0f;
 
 	// Image2Dのインスタンス生成
-	m_pImage = new Image2D();
-	m_PressEnter = new Image2D();
-	m_pParticleImg = new Image2D();
+	m_pImage = std::make_unique<Image2D>();
+	m_PressEnter = std::make_unique<Image2D>();
+	m_pParticleImg = std::make_unique<Image2D>();
 
 	// 画像読み込み
 	m_pImage->Load("Assets/Texture/AZEFIGHTER.png", 650.0f, 100.0f, 676, 369.0f);
@@ -143,18 +143,7 @@ void SceneTitle::Uninit()
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 
-	if (m_pImage)
-	{
-		delete m_pImage;
-		delete m_PressEnter;
-		delete m_pParticleImg;
-		m_pImage = nullptr;
-		m_PressEnter = nullptr;
-		m_pParticleImg = nullptr;
-	}
-
-	if (m_pTitleModel) { delete m_pTitleModel; m_pTitleModel = nullptr; }
-	if (m_skyDome) { delete m_skyDome; m_skyDome = nullptr; }
+	// 画像・モデル・スカイドームは unique_ptr が解放する
 
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pDepthStateUI) { m_pDepthStateUI->Release(); m_pDepthStateUI = nullptr; }

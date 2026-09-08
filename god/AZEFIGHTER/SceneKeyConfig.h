@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneBase.hpp"
+#include <memory>
 #include <vector>
 #include <DirectXMath.h>
 #include <d3d11.h>
@@ -40,6 +41,9 @@ public:
 	void Uninit();
 	void Update(float tick);
 	void Draw();
+
+	// SkyDome を前方宣言のまま unique_ptr で持つため、デストラクタは cpp 側で定義する
+	~SceneKeyConfig();
 
 	static bool s_isConfigSet;
 	// デバッグシーンへの遷移要求（SceneRootが監視）
@@ -84,5 +88,5 @@ private:
 	PlayerRenderer m_playerRenderer;
 
 	// 背景スカイドーム
-	SkyDome* m_skyDome = nullptr;
+	std::unique_ptr<SkyDome> m_skyDome;
 };

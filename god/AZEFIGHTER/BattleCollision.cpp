@@ -18,7 +18,7 @@ namespace
 #include "Projectile.h"
 #include <algorithm>
 
-CollisionResult BattleCollision::UpdateInteractions(Player* p1, Player* p2, float tick, std::vector<HitEffect*>& effects, float stageLimitX)
+CollisionResult BattleCollision::UpdateInteractions(Player* p1, Player* p2, float tick, std::vector<std::unique_ptr<HitEffect>>& effects, float stageLimitX)
 {
 	CollisionResult result;
 
@@ -112,7 +112,7 @@ void BattleCollision::ResolvePushback(Player* p1, Player* p2, float stageLimitX)
 	}
 }
 
-void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::vector<HitEffect*>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
+void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::vector<std::unique_ptr<HitEffect>>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
 {
 	bool hit = false;
 	DirectX::XMFLOAT3 hitPos = defender->GetPosition();
@@ -190,11 +190,11 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 		}
 		else if (isDown)
 		{
-			defender->SetState(new PlayerStateDown());
+			defender->SetState(std::make_unique<PlayerStateDown>());
 		}
 		else
 		{
-			defender->SetState(new PlayerStateDamage(stun));
+			defender->SetState(std::make_unique<PlayerStateDamage>(stun));
 		}
 
 		result.dbgStun = stun;
@@ -217,7 +217,7 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 	}
 }
 
-void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std::vector<HitEffect*>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
+void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std::vector<std::unique_ptr<HitEffect>>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
 {
 	Projectile* proj = attacker->GetProjectile();
 	if (proj && proj->IsActive())
@@ -267,7 +267,7 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 
 			if (!defender->TryGuard(AttackLevel::HIGH))
 			{
-				defender->SetState(new PlayerStateDamage(15));
+				defender->SetState(std::make_unique<PlayerStateDamage>(15));
 			}
 			result.hitStopTimer = 0.1f;
 
@@ -288,9 +288,9 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 	}
 }
 
-void BattleCollision::SpawnHitEffect(std::vector<HitEffect*>& effects, const DirectX::XMFLOAT3& pos)
+void BattleCollision::SpawnHitEffect(std::vector<std::unique_ptr<HitEffect>>& effects, const DirectX::XMFLOAT3& pos)
 {
-	for (auto effect : effects)
+	for (auto& effect : effects)
 	{
 		if (!effect->IsActive())
 		{

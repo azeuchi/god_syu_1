@@ -2,6 +2,7 @@
 #define __SCENE_RESULT_H__
 
 #include "SceneBase.hpp"
+#include <memory>
 #include "Image2D.h" 
 #include <d3d11.h>
 
@@ -14,8 +15,8 @@ public:
 	void Draw() override;
 
 private:
-	Image2D* m_pImage = nullptr; // 画像管理用ポインタ
-	Image2D* m_returntitle = nullptr;
+	std::unique_ptr<Image2D> m_pImage; // 画像管理用ポインタ
+	std::unique_ptr<Image2D> m_returntitle;
 
 	// 透過処理用
 	ID3D11BlendState* m_pBlendState = nullptr;

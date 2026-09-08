@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneBase.hpp"
+#include <memory>
 #include "SkyDome.h"
 #include <DirectXMath.h> 
 #include <d3d11.h>       
@@ -41,9 +42,9 @@ private:
 
 private:
 	// UIマネージャ
-	BattleUIManager* m_uiManager;
+	std::unique_ptr<BattleUIManager> m_uiManager;
 
-	SkyDome* m_skyDome;
+	std::unique_ptr<SkyDome> m_skyDome;
 
 	// プレイヤー描画の共通ヘルパー
 	PlayerRenderer m_playerRenderer;

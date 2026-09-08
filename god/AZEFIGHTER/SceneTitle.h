@@ -2,6 +2,7 @@
 #define __SCENE_TITLE_H__
 
 #include "SceneBase.hpp"
+#include <memory>
 #include "Image2D.h"
 #include "Model.h"
 #include "SkyDome.h"
@@ -29,18 +30,18 @@ public:
 
 private:
 	// 画像管理用ポインタ
-	Image2D* m_pImage = nullptr;
-	Image2D* m_PressEnter = nullptr;
+	std::unique_ptr<Image2D> m_pImage;
+	std::unique_ptr<Image2D> m_PressEnter;
 	float m_blinkTimer = 0.0f;
 
 	// パーティクル管理用
-	Image2D* m_pParticleImg = nullptr;
+	std::unique_ptr<Image2D> m_pParticleImg;
 	std::vector<Particle> m_particles;
 	float m_spawnTimer = 0.0f;
 
 	// 3D演出用ポインタ
-	Model* m_pTitleModel = nullptr;
-	SkyDome* m_skyDome = nullptr;
+	std::unique_ptr<Model> m_pTitleModel;
+	std::unique_ptr<SkyDome> m_skyDome;
 
 	// アニメーション制御
 	std::string m_currentAnimName;

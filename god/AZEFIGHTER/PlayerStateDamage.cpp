@@ -45,7 +45,7 @@ void PlayerStateDamage::Update(Player* player, float tick)
 	{
 		// I—¹‚É‘¬“x‚ğ1.0‚É–ß‚µ‚Ä‚¨‚­
 		player->SetAnimationSpeed(1.0f);
-		player->SetState(new PlayerStateIdle());
+		player->SetState(std::make_unique<PlayerStateIdle>());
 		return;
 	}
 }
