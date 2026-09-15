@@ -8,6 +8,7 @@
 #include "BattleUIManager.h" // UI管理クラス
 #include "BattleCollision.h" // 衝突判定管理クラス
 #include "PlayerRenderer.h"
+#include "CpuController.h"
 
 /**
  * @brief メインのゲームシーン
@@ -33,6 +34,7 @@ private:
 	// 決着後の選択メニュー
 	void ResetMatch();       // 試合全体をやり直す
 	void DrawResultMenu();   // 左側の選択メニューを描画
+	void DrawCpuDebug();     // CPUの思考表示（F6）
 	bool m_isResultMenu = false;
 	int m_resultMenuIndex = 0;
 
@@ -45,6 +47,10 @@ private:
 	std::unique_ptr<BattleUIManager> m_uiManager;
 
 	std::unique_ptr<SkyDome> m_skyDome;
+
+	// CPU戦のときだけ生成する。nullptr なら2人対戦
+	std::unique_ptr<CpuController> m_cpu;
+	bool m_showCpuDebug = false;
 
 	// プレイヤー描画の共通ヘルパー
 	PlayerRenderer m_playerRenderer;

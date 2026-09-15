@@ -418,8 +418,9 @@ void Player::PollInputs()
 		break;
 
 	case PlayerInputType::AI:
+	case PlayerInputType::CPU:
+		// 外で組み立てた入力をそのまま使う。このあと入力バッファやコマンド判定を人間と同じように通る
 		m_inputs = m_injectedInputs;
-		// AIの入力ロジックは別途実装
 		break;
 	}
 }
@@ -450,7 +451,7 @@ void Player::UpdateInputBuffer(float tick)
 void Player::UpdatePhysics(float tick)
 {
 	if (m_isJumping) {
-		m_velocity.y -= 55.0f * tick; // 重力
+		m_velocity.y -= GRAVITY * tick;
 	}
 
 	m_position.x += m_velocity.x * tick;
@@ -558,6 +559,16 @@ bool Player::IsInvincible() const
 		return m_currentState->IsInvincible();
 	}
 	return false;
+}
+
+bool Player::IsInHitstun() const
+{
+	return m_currentState && m_currentState->IsHitstun();
+}
+
+bool Player::IsActionable() const
+{
+	return m_currentState && m_currentState->IsInterruptible() && !m_isJumping && m_hp > 0;
 }
 
 // 指定した名前のアニメーションを再生する
@@ -690,7 +701,7 @@ void Player::SetVelocity(const DirectX::XMFLOAT3& vel)
 void Player::Jump()
 {
 	if (!m_isJumping) {
-		m_velocity.y = 19.0f; // ジャンプ初速
+		m_velocity.y = JUMP_VELOCITY;
 		m_isJumping = true;
 		Sound::PlaySE("Assets/Sound/SE/Game/ジャンプ.mp3");
 	}

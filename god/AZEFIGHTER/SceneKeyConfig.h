@@ -7,6 +7,7 @@
 #include "Player.h"
 #include "PlayerRenderer.h"
 #include "HitEffectPool.h"
+#include "MatchConfig.h"
 
 class HitEffect;
 class SkyDome;
@@ -17,13 +18,26 @@ enum class MenuState
 	TopMenu,     // トップメニュー
 	ConfigP1,    // 1Pのキーコンフィグ画面
 	ConfigP2,    // 2Pのキーコンフィグ画面
-	TrainingMode // トレーニングモード（UI非表示で自由に動かせる）
+	TrainingMode, // トレーニングモード（UI非表示で自由に動かせる）
+	CpuSelect     // CPU戦の強さを選ぶ
+};
+
+// トップメニューで決定したときの動作
+enum class TopMenuAction
+{
+	ConfigP1,
+	ConfigP2,
+	Training,
+	VsPlayer,
+	VsCpu,
+	Debug
 };
 
 // トップメニューの項目情報 (DirectWriteに合わせてワイド文字列にする)
 struct TopMenuItem
 {
 	const wchar_t* label;
+	TopMenuAction action; // 並び順を変えても動作がずれないよう、番号ではなく動作で持つ
 };
 
 // コンフィグ画面の項目情報 (DirectWriteに合わせてワイド文字列にする)
@@ -53,6 +67,9 @@ private:
 	// 指定したピクセル座標とサイズで単色の四角形を描画する
 	void DrawRectPixel(float px, float py, float pw, float ph, DirectX::XMFLOAT4 color);
 
+	// CPU戦の強さを選ぶ小窓を、VS CPU の項目の下に描く
+	void DrawCpuSelect();
+
 	// 仮想キーコードから表示用の文字列を取得する
 	const wchar_t* GetKeyName(int vk);
 
@@ -69,6 +86,7 @@ private:
 
 	// トップメニュー用変数
 	int m_topSelectedIndex;
+	int m_cpuSelectedIndex = (int)CpuLevel::NORMAL;
 	std::vector<TopMenuItem> m_topItems;
 
 	// コンフィグメニュー用変数

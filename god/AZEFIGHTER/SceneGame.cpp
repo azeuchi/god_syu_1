@@ -246,6 +246,11 @@ void SceneGame::Init()
 	}
 	PlayerAssetLoader::LoadCommonAnimations(player2);
 
+	// メニューで VS CPU を選んだときだけ、2Pを CPU に任せる
+	if (MatchConfig::vsCpu) m_cpu = std::make_unique<CpuController>(MatchConfig::cpuLevel);
+	else m_cpu.reset();
+	m_showCpuDebug = false;
+
 	// 初期位置設定
 	player2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	player2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });
@@ -334,6 +339,9 @@ void SceneGame::Uninit()
 	SimpleFont::Uninit();
 
 	// UI管理とスカイドームは unique_ptr が解放する
+
+	// グローバルのテクスチャは D3D デバイスが生きているうちに解放する。
+	// unique_ptr にすると解放がプログラム終了時になり、その時点ではデバイスが無いので落ちる
 	if (g_uiTex) { delete g_uiTex; g_uiTex = nullptr; }
 
 	// 描画設定の解放
@@ -410,6 +418,7 @@ void SceneGame::ResetRound()
 		player2->Reset();
 		player2->SetInputType(PlayerInputType::AI);
 	}
+	if (m_cpu && player2) m_cpu->Reset(*player2);
 
 	// カメラリセット
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
@@ -455,6 +464,13 @@ void SceneGame::Update(float tick)
 		s_variableToggleTimer = 1.6f;
 	}
 	if (s_variableToggleTimer > 0.0f) s_variableToggleTimer -= tick;
+
+	// CPUの思考表示。資料の撮影や挙動の確認に使うのでリリースでも有効
+	if (IsKeyTrigger(VK_F6))
+	{
+		m_showCpuDebug = !m_showCpuDebug;
+		if (m_cpu) m_cpu->SetDebugEnabled(m_showCpuDebug);
+	}
 
 	// ==========================================================
 	// 決着後の選択メニュー
@@ -532,7 +548,7 @@ void SceneGame::Update(float tick)
 
 				// 操作権限をプレイヤーに戻す
 				if (player) player->SetInputType(PlayerInputType::PLAYER_1);
-				if (player2) player2->SetInputType(PlayerInputType::PLAYER_2);
+				if (player2) player2->SetInputType(m_cpu ? PlayerInputType::CPU : PlayerInputType::PLAYER_2);
 				DebugLog::log(DebugLog::INFO_LOG, "--- FIGHT! ---");
 			}
 		}
@@ -673,6 +689,9 @@ void SceneGame::Update(float tick)
 			playerTick = 0.0f; // 時間停止
 		}
 
+		// 反応の遅れは実時間で数え、相手の技の進み具合はヒットストップで止まる時間で予測させる
+		if (m_cpu && player && player2) m_cpu->Update(*player2, *player, tick, playerTick);
+
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
 
@@ -706,6 +725,7 @@ void SceneGame::Update(float tick)
 
 			if (player) player->SetInputType(PlayerInputType::AI);
 			if (player2) player2->SetInputType(PlayerInputType::AI);
+			if (m_cpu && player2) m_cpu->Reset(*player2);
 
 			// KOフェーズへ移行（UI描画用）
 			m_currentPhase = RoundPhase::KO_CALL;
@@ -1165,6 +1185,8 @@ void SceneGame::Draw()
 		SimpleFont::End();
 	}
 
+	if (m_cpu) DrawCpuDebug();
+
 	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
 	GetContext()->OMSetDepthStencilState(nullptr, 0);
 	GetContext()->RSSetState(nullptr);
@@ -1211,5 +1233,37 @@ void SceneGame::DrawResultMenu()
 			: DirectX::XMFLOAT4(0.80f, 0.80f, 0.85f, 1.0f);
 		SimpleFont::Draw(items[i], 84.0f, (float)(344 + i * 64), 26.0f, tc);
 	}
+	SimpleFont::End();
+}
+
+/**
+ * @brief CPUの思考表示（1280x720基準）
+ * F6 で切り替える。消しているときは操作の案内だけ小さく出す
+ */
+void SceneGame::DrawCpuDebug()
+{
+	if (!m_showCpuDebug)
+	{
+		SimpleFont::Begin();
+		SimpleFont::Draw(L"F6：CPUの思考を表示", 1080.0f, 690.0f, 15.0f, { 1.0f, 1.0f, 1.0f, 0.55f });
+		SimpleFont::End();
+		return;
+	}
+
+	const CpuDebugInfo& info = m_cpu->GetDebugInfo();
+	const float pw = 600.0f, ph = 148.0f;
+	const float px = 1280.0f - pw - 20.0f, py = 720.0f - ph - 20.0f;
+
+	SimpleUI::Clear();
+	float ndcX = ((px + pw * 0.5f) / 1280.0f) * 2.0f - 1.0f;
+	float ndcY = 1.0f - ((py + ph * 0.5f) / 720.0f) * 2.0f;
+	SimpleUI::AddRect(ndcX, ndcY, (pw / 1280.0f) * 2.0f, (ph / 720.0f) * 2.0f, DirectX::XMFLOAT4(0.05f, 0.05f, 0.08f, 0.72f), nullptr);
+	SimpleUI::DrawAll();
+
+	SimpleFont::Begin();
+	SimpleFont::Draw(info.header.c_str(), px + 16.0f, py + 10.0f, 18.0f, { 0.95f, 0.80f, 0.35f, 1.0f });
+	SimpleFont::Draw(info.perception.c_str(), px + 16.0f, py + 42.0f, 18.0f, { 0.80f, 0.85f, 0.95f, 1.0f });
+	SimpleFont::Draw(info.decision.c_str(), px + 16.0f, py + 74.0f, 24.0f, { 1.0f, 1.0f, 1.0f, 1.0f });
+	SimpleFont::Draw(info.reason.c_str(), px + 16.0f, py + 110.0f, 17.0f, { 0.86f, 0.86f, 0.90f, 1.0f });
 	SimpleFont::End();
 }

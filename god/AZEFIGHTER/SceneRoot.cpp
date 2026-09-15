@@ -17,6 +17,7 @@
 #include "SceneTraining.h"
 #include "DebugLog.h"
 #include "Sound.h"
+#include "MatchConfig.h"
 
 #define STR(var) #var
 
@@ -294,6 +295,7 @@ void SceneRoot::Update(float tick)
 		// Nキーでゲーム画面に戻る
 		if (IsKeyTrigger('N'))
 		{
+			MatchConfig::vsCpu = false;
 			Transition(SCENE_GAME);
 		}
 		// GUIボタン「Go to Training」でトレーニングへ
@@ -310,6 +312,7 @@ void SceneRoot::Update(float tick)
 		if (SceneTraining::s_requestGoGame)
 		{
 			SceneTraining::s_requestGoGame = false;
+			MatchConfig::vsCpu = false;
 			Transition(SCENE_GAME);
 		}
 		if (SceneTraining::s_requestGoDebug)

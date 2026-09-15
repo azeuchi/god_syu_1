@@ -39,6 +39,12 @@ public:
 	virtual bool IsInvincible() const { return false; }
 
 	/**
+	 * @brief この状態はのけぞり中か？
+	 * CPU がヒット確認（当たったのかガードされたのか）に使う
+	 */
+	virtual bool IsHitstun() const { return false; }
+
+	/**
 	 * @brief この状態は死亡状態か？
 	 * 上書き防止チェックのために追加
 	 */

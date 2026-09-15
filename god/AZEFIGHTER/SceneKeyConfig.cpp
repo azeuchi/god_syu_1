@@ -15,6 +15,7 @@
 #include "SimpleUI.h"
 #include "SimpleFont.h"
 #include "Sound.h"
+#include "CpuController.h"
 #include <stdio.h>
 #include <algorithm>
 #include <Xinput.h>
@@ -24,6 +25,11 @@ using namespace DirectX::SimpleMath;
 
 // カメラの移動を制限する範囲
 const float CAMERA_LIMIT_X = 4.0f;
+
+// トップメニューの配置。6項目が画面幅(1280)に収まるように幅と間隔を決めている
+const float TOP_ITEM_X = 30.0f;
+const float TOP_ITEM_STEP = 205.0f;
+const float TOP_ITEM_W = 190.0f;
 
 bool SceneKeyConfig::s_isConfigSet = false;
 bool SceneKeyConfig::s_requestDebug = false;
@@ -47,12 +53,14 @@ void SceneKeyConfig::Init()
 
 	// トップメニューの項目を設定
 	m_topItems = {
-		{ L"Player 1 Config" },
-		{ L"Player 2 Config" },
-		{ L"Training Mode" },
-		{ L"Game Start" },
-		{ L"Debug Room" }
+		{ L"Player 1 Config", TopMenuAction::ConfigP1 },
+		{ L"Player 2 Config", TopMenuAction::ConfigP2 },
+		{ L"Training Mode",   TopMenuAction::Training },
+		{ L"VS Player",       TopMenuAction::VsPlayer },
+		{ L"VS CPU",          TopMenuAction::VsCpu },
+		{ L"Debug Room",      TopMenuAction::Debug }
 	};
+	m_cpuSelectedIndex = (int)MatchConfig::cpuLevel;
 
 	// 選択されているデバイスが接続されていない場合はキーボードに戻す
 	if (g_inputDeviceP1 != InputDeviceType::KEYBOARD && !IsPadConnected((int)g_inputDeviceP1 - 1))
@@ -289,37 +297,53 @@ void SceneKeyConfig::Update(float tick)
 			// 決定キーで遷移
 			if (isMenuConfirm())
 			{
-				if (m_topSelectedIndex == 0)
+				switch (m_topItems[m_topSelectedIndex].action)
 				{
-					// 1P設定を開く。展開アニメーションのためにスケールを0にリセットする
+				case TopMenuAction::ConfigP1:
+					// 展開アニメーションのためにスケールを0にリセットする
 					m_menuState = MenuState::ConfigP1;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
-				}
-				else if (m_topSelectedIndex == 1)
-				{
-					// 2P設定を開く
+					break;
+				case TopMenuAction::ConfigP2:
 					m_menuState = MenuState::ConfigP2;
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
-				}
-				else if (m_topSelectedIndex == 2)
-				{
+					break;
+				case TopMenuAction::Training:
 					// トレーニングモードに移行し、両プレイヤーの操作権限を与える
 					m_menuState = MenuState::TrainingMode;
 					if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::PLAYER_1);
 					if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::PLAYER_2);
-				}
-				else if (m_topSelectedIndex == 3)
-				{
-					// ゲームスタート
+					break;
+				case TopMenuAction::VsPlayer:
+					MatchConfig::vsCpu = false;
 					s_isConfigSet = true;
-				}
-				else if (m_topSelectedIndex == 4)
-				{
-					// デバッグシーンへ
+					break;
+				case TopMenuAction::VsCpu:
+					m_menuState = MenuState::CpuSelect;
+					break;
+				case TopMenuAction::Debug:
 					s_requestDebug = true;
+					break;
 				}
+			}
+		}
+		else if (m_menuState == MenuState::CpuSelect)
+		{
+			const int levelCount = (int)CpuLevel::COUNT;
+			if (isMenuDown()) m_cpuSelectedIndex = (m_cpuSelectedIndex + 1) % levelCount;
+			if (isMenuUp())   m_cpuSelectedIndex = (m_cpuSelectedIndex - 1 + levelCount) % levelCount;
+
+			if (isMenuConfirm())
+			{
+				MatchConfig::vsCpu = true;
+				MatchConfig::cpuLevel = (CpuLevel)m_cpuSelectedIndex;
+				s_isConfigSet = true;
+			}
+			if (isMenuCancel())
+			{
+				m_menuState = MenuState::TopMenu;
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
@@ -613,13 +637,13 @@ void SceneKeyConfig::Draw()
 		// 画面上部にトップメニュー用の少し明るめのネイビーブルー背景を描画
 		DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
 
-		if (m_menuState == MenuState::TopMenu)
+		if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
 		{
 			// トップメニューの項目枠を描画
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
-				DrawRectPixel((float)(50 + i * 250), 50.0f, 200.0f, 50.0f, color);
+				DrawRectPixel(TOP_ITEM_X + i * TOP_ITEM_STEP, 50.0f, TOP_ITEM_W, 50.0f, color);
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
@@ -648,12 +672,12 @@ void SceneKeyConfig::Draw()
 		// ここからDirectWriteによるフォントの描画処理
 		SimpleFont::Begin();
 
-		if (m_menuState == MenuState::TopMenu)
+		if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
 		{
 			for (int i = 0; i < m_topItems.size(); ++i)
 			{
 				DirectX::XMFLOAT4 textColor = (i == m_topSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
-				SimpleFont::Draw(m_topItems[i].label, (float)(70 + i * 250), 60.0f, 24.0f, textColor);
+				SimpleFont::Draw(m_topItems[i].label, TOP_ITEM_X + i * TOP_ITEM_STEP + 14.0f, 62.0f, 22.0f, textColor);
 			}
 		}
 		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
@@ -696,7 +720,48 @@ void SceneKeyConfig::Draw()
 		}
 
 		SimpleFont::End();
+
+		if (m_menuState == MenuState::CpuSelect) DrawCpuSelect();
 	}
 
 	GetContext()->RSSetState(nullptr);
+}
+
+void SceneKeyConfig::DrawCpuSelect()
+{
+	int anchorIndex = 0;
+	for (int i = 0; i < (int)m_topItems.size(); ++i)
+	{
+		if (m_topItems[i].action == TopMenuAction::VsCpu) anchorIndex = i;
+	}
+
+	const int levelCount = (int)CpuLevel::COUNT;
+	const float x = TOP_ITEM_X + anchorIndex * TOP_ITEM_STEP;
+	const float top = 165.0f, rowH = 52.0f, rowGap = 8.0f, width = 250.0f;
+	const float listBottom = top + levelCount * (rowH + rowGap);
+
+	SimpleUI::Clear();
+	DrawRectPixel(x - 10.0f, top - 10.0f, width + 20.0f, listBottom - top + 44.0f, { 0.0f, 0.15f, 0.3f, 0.85f });
+	for (int i = 0; i < levelCount; ++i)
+	{
+		XMFLOAT4 color = (i == m_cpuSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
+		DrawRectPixel(x, top + i * (rowH + rowGap), width, rowH, color);
+	}
+	SimpleUI::DrawAll();
+
+	SimpleFont::Begin();
+	for (int i = 0; i < levelCount; ++i)
+	{
+		const CpuProfile& profile = CpuController::GetProfile((CpuLevel)i);
+		XMFLOAT4 textColor = (i == m_cpuSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
+		const float rowY = top + i * (rowH + rowGap);
+		SimpleFont::Draw(profile.name, x + 14.0f, rowY + 10.0f, 22.0f, textColor);
+
+		// 強さの差がいちばん出る反応速度を、CPU本体と同じ値からそのまま表示する
+		wchar_t detail[32];
+		swprintf_s(detail, L"反応 %dF", profile.reactionFrames);
+		SimpleFont::Draw(detail, x + 150.0f, rowY + 15.0f, 17.0f, textColor);
+	}
+	SimpleFont::Draw(L"↑↓ 選択　Enter 決定　Esc 戻る", x, listBottom + 4.0f, 15.0f, { 0.8f, 0.9f, 1.0f, 1.0f });
+	SimpleFont::End();
 }

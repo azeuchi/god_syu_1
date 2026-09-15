@@ -16,6 +16,7 @@ public:
 
 	// やられ中は他の行動でキャンセルできない (操作不能)
 	bool IsInterruptible() const override { return false; }
+	bool IsHitstun() const override { return true; }
 
 private:
 	float m_stateTimer = 0.0f;

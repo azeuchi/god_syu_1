@@ -6,6 +6,7 @@
 #include <memory>
 #include <functional>
 #include <unordered_map>
+#include <string_view>
 #include "Shader.h"
 #include "MeshBuffer.h"
 #include "Texture.h"
@@ -76,6 +77,16 @@ public:
 		std::vector<WEIGHT> weights;
 	};
 
+	// const char* や string_view のまま検索できるようにするハッシュ。
+	// これが無いと、検索のたびにキーの std::string が作られてメモリ確保が起きる
+	struct TransparentStringHash
+	{
+		using is_transparent = void;
+		size_t operator()(std::string_view s) const { return std::hash<std::string_view>{}(s); }
+	};
+	using BoneMap = std::unordered_map<std::string, BONE, TransparentStringHash, std::equal_to<>>;
+	using AnimMap = std::unordered_map<std::string, std::shared_ptr<const aiScene>, TransparentStringHash, std::equal_to<>>;
+
 	struct CBBoneCombMatrix {
 		XMFLOAT4X4 BoneCombMtx[400];
 	};
@@ -87,7 +98,7 @@ private:
 		const aiScene* scene;
 		Meshes meshes;
 		Materials materials;
-		std::unordered_map<std::string, BONE> bones;
+		BoneMap bones;
 	};
 
 	// アニメーションデータのキャッシュ用構造体
@@ -155,11 +166,16 @@ private:
 	static std::shared_ptr<PixelShader> m_defPS;
 	std::vector<Matrix> m_bonecombmtxcontainer;
 
-	std::unordered_map<std::string, BONE> m_Bone;
+	// 姿勢計算の作業用バッファ。毎フレーム確保し直さずに使い回す
+	std::vector<Matrix> m_poseNew;
+	std::vector<Matrix> m_poseOld;
+	std::vector<Matrix> m_poseBlended;
+
+	BoneMap m_Bone;
 	ID3D11Buffer* m_BoneCombMtxCBuffer = nullptr;
 
 	// アニメーションシーンの管理もshared_ptrに変更
-	std::unordered_map<std::string, std::shared_ptr<const aiScene>> m_Animation;
+	AnimMap m_Animation;
 
 private:
 	Meshes m_meshes;

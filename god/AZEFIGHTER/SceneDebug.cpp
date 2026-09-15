@@ -235,6 +235,8 @@ void SceneDebug::Init()
 
 void SceneDebug::Uninit()
 {
+	// グローバルのテクスチャは D3D デバイスが生きているうちに解放する。
+	// unique_ptr にすると解放がプログラム終了時になり、その時点ではデバイスが無いので落ちる
 	if (g_uiTex_debug) {
 		delete g_uiTex_debug;
 		g_uiTex_debug = nullptr;

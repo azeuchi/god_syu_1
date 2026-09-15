@@ -435,60 +435,54 @@ void Model::UpdateAnimation(const char* AnimationName, int Frame)
 
 void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor)
 {
-	// 結果を格納するコンテナ
-	std::vector<Matrix> blendedLocalPose;
-	blendedLocalPose.resize(m_Bone.size());
+	// 新しいアニメーションのローカル行列（親に対する姿勢）を取得
+	SampleAnimationKeys(newAnimName, newFrame, m_poseNew);
 
-	// 新旧それぞれのローカル行列（親に対する姿勢）を取得
+	// ブレンド中でなければ、前のアニメーションは取り出すだけ無駄なのでそのまま使う
+	const std::vector<Matrix>* pPose = &m_poseNew;
 
-	std::vector<Matrix> newLocalPose, oldLocalPose;
-	SampleAnimationKeys(newAnimName, newFrame, newLocalPose);
-	SampleAnimationKeys(oldAnimName, oldFrame, oldLocalPose);
-
-	// ローカル空間で補間計算を行う
-	size_t boneCount = m_Bone.size();
-	for (size_t i = 0; i < boneCount; ++i)
+	if (blendFactor < 1.0f)
 	{
+		SampleAnimationKeys(oldAnimName, oldFrame, m_poseOld);
 
-		if (blendFactor >= 1.0f)
+		const size_t boneCount = m_Bone.size();
+		m_poseBlended.resize(boneCount);
+
+		for (size_t i = 0; i < boneCount; ++i)
 		{
-			blendedLocalPose[i] = newLocalPose[i];
-			continue;
+			Vector3 oldScale, oldTrans, newScale, newTrans;
+			Quaternion oldRot, newRot;
+
+			// 行列をスケール・回転・移動に分解する
+			m_poseOld[i].Decompose(oldScale, oldRot, oldTrans);
+			m_poseNew[i].Decompose(newScale, newRot, newTrans);
+
+			// スケールと位置は線形補間
+			Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
+			Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
+
+			// 回転は球面線形補間。ドット積が負なら、遠回りしないように回転を反転させる
+			if (oldRot.Dot(newRot) < 0.0f)
+			{
+				newRot = -newRot;
+			}
+			Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
+
+			m_poseBlended[i] = Matrix::CreateScale(finalScale) *
+				Matrix::CreateFromQuaternion(finalRot) *
+				Matrix::CreateTranslation(finalTrans);
 		}
 
-		Vector3 oldScale, oldTrans, newScale, newTrans;
-		Quaternion oldRot, newRot;
-
-		// 行列を成分分解 (Scale, Rotation, Translation)
-		oldLocalPose[i].Decompose(oldScale, oldRot, oldTrans);
-		newLocalPose[i].Decompose(newScale, newRot, newTrans);
-
-		// 線形補間 (Lerp) と 球面線形補間 (Slerp)
-		// スケールと位置は線形補間
-		Vector3 finalScale = Vector3::Lerp(oldScale, newScale, blendFactor);
-		Vector3 finalTrans = Vector3::Lerp(oldTrans, newTrans, blendFactor);
-
-		// 回転はクォータニオン球面線形補間 (Slerp)
-		// ドット積が負の場合は、遠回りしないように回転を反転させる処理を入れる
-		if (oldRot.Dot(newRot) < 0.0f)
-		{
-			newRot = -newRot;
-		}
-		Quaternion finalRot = Quaternion::Slerp(oldRot, newRot, blendFactor);
-
-		// 再合成して「ブレンド済みローカル行列」を作る
-		blendedLocalPose[i] = Matrix::CreateScale(finalScale) *
-			Matrix::CreateFromQuaternion(finalRot) *
-			Matrix::CreateTranslation(finalTrans);
+		pPose = &m_poseBlended;
 	}
 
-	// ブレンド済みのローカル行列を使って、再帰的にグローバル行列とオフセット行列を計算
+	// ローカル行列を使って、再帰的にグローバル行列とオフセット行列を計算
 	m_bonecombmtxcontainer.resize(m_Bone.size());
 	Matrix rootMatrix = Matrix::Identity;
 
-	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, blendedLocalPose, m_bonecombmtxcontainer);
+	CalculateBoneMatrixRecursive(m_pScene->mRootNode, rootMatrix, *pPose, m_bonecombmtxcontainer);
 
-	// シェーダー用に転置して更新 
+	// シェーダー用に転置して更新
 	for (auto& bcmtx : m_bonecombmtxcontainer)
 	{
 		bcmtx.Transpose();
@@ -514,11 +508,11 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 {
 	const aiScene* animation = nullptr;
 	// 指定されたアニメーションが存在するかチェック
-	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
+	auto animIt = m_Animation.find(animName);
+	if (animIt != m_Animation.end() && animIt->second != nullptr)
 	{
-		auto& scenePtr = m_Animation.at(animName);
-		if (scenePtr->HasAnimations())
-			animation = scenePtr.get();
+		if (animIt->second->HasAnimations())
+			animation = animIt->second.get();
 	}
 	// なければシーンのデフォルトアニメーションを使用
 	else if (m_pScene && m_pScene->HasAnimations())
@@ -527,11 +521,7 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 	}
 
 	// 初期化：すべてのボーンを単位行列にする（アニメーションキーがないボーン対策）
-	outLocalMatrices.resize(m_Bone.size());
-	for (auto& matrix : outLocalMatrices)
-	{
-		matrix = Matrix::Identity;
-	}
+	outLocalMatrices.assign(m_Bone.size(), Matrix::Identity);
 
 	if (!animation) return;
 
@@ -543,9 +533,10 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 	{
 		aiNodeAnim* nodeAnim = anim->mChannels[c];
 		// ボーンリストにないノードは処理不要なのでスキップ
-		if (m_Bone.count(nodeAnim->mNodeName.C_Str()) == 0) continue;
+		auto boneIt = m_Bone.find(std::string_view(nodeAnim->mNodeName.C_Str(), nodeAnim->mNodeName.length));
+		if (boneIt == m_Bone.end()) continue;
 
-		BONE* bone = &m_Bone[nodeAnim->mNodeName.C_Str()];
+		const BONE& bone = boneIt->second;
 
 		// 現在のフレームにおける 回転(Rotation) を取得
 		int rotFrame = frame % nodeAnim->mNumRotationKeys;
@@ -565,35 +556,36 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 		Matrix transMat = Matrix::CreateTranslation(pos.x, pos.y, pos.z);
 
 		// S * R * T の順で掛けてローカル行列を作成し格納
-		outLocalMatrices[bone->idx] = scaleMat * rotMat * transMat;
+		outLocalMatrices[bone.idx] = scaleMat * rotMat * transMat;
 	}
 }
 
 // 親行列とローカル行列を掛け合わせてグローバル行列を作る再帰関数
 void Model::CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose)
 {
-	std::string nodeName = node->mName.C_Str();
 	// Assimpの初期ノード変換行列を取得
 	Matrix nodeTransform = aiMtxToDxMtx(node->mTransformation);
 
+	// ボーンの検索は1回だけ行い、以降はその結果を使い回す
+	auto boneIt = m_Bone.find(std::string_view(node->mName.C_Str(), node->mName.length));
+	const bool isBone = (boneIt != m_Bone.end());
+
 	// このノードがボーンとして登録されていれば、アニメーションのローカル行列で上書きする
-	if (m_Bone.count(nodeName) > 0)
+	if (isBone)
 	{
-		int boneIdx = m_Bone[nodeName].idx;
 		// animMatrices には SampleAnimationKeys で計算したローカル変形行列が入っている
-		nodeTransform = animMatrices[boneIdx];
+		nodeTransform = animMatrices[boneIt->second.idx];
 	}
 
-	// 親の行列と掛けて、このノードのグローバル行列（モデル空間での位置）にする
+	// 親の行列と掛けて、このノードのグローバル行列にする
 	Matrix globalTransform = nodeTransform * parentMatrix;
 
 	// ボーンとして登録されているなら、オフセット行列を掛けて最終的なスキニング行列を作成
-	if (m_Bone.count(nodeName) > 0)
+	if (isBone)
 	{
-		int boneIdx = m_Bone[nodeName].idx;
 		// OffsetMatrix: モデル空間の頂点をボーン空間へ戻す行列
 		// globalTransform: ボーン空間の頂点を動いた後のモデル空間へ送る行列
-		outPose[boneIdx] = m_Bone[nodeName].OffsetMatrix * globalTransform;
+		outPose[boneIt->second.idx] = boneIt->second.OffsetMatrix * globalTransform;
 	}
 
 	// 子ノードへ再帰
@@ -731,13 +723,13 @@ DirectX::SimpleMath::Matrix Model::aiMtxToDxMtx(const aiMatrix4x4& aimatrix) {
 //  アニメーションの総フレーム数を取得
 int Model::GetAnimationTotalFrame(const char* animName)
 {
-	if (m_Animation.count(animName) > 0 && m_Animation.at(animName) != nullptr)
+	auto it = m_Animation.find(animName);
+	if (it != m_Animation.end() && it->second != nullptr)
 	{
-		const auto& scenePtr = m_Animation.at(animName);
-		if (scenePtr->HasAnimations())
+		if (it->second->HasAnimations())
 		{
 			// Duration は「ティック数」ですが、通常はフレーム数として扱えます
-			return (int)scenePtr->mAnimations[0]->mDuration;
+			return (int)it->second->mAnimations[0]->mDuration;
 		}
 	}
 	// 見つからない場合は適当に長い値を返しておく（0除算防止）

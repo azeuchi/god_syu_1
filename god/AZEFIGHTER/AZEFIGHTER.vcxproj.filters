@@ -153,6 +153,9 @@
     <ClCompile Include="MediumPunch.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
+    <ClCompile Include="CpuController.cpp">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClCompile>
     <ClCompile Include="Player.cpp">
       <Filter>ソース ファイル\Player</Filter>
     </ClCompile>
@@ -427,6 +430,12 @@
     </ClInclude>
     <ClInclude Include="BattleUIManager.h">
       <Filter>ソース ファイル\System</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuController.h">
+      <Filter>ソース ファイル\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="MatchConfig.h">
+      <Filter>ヘッダー ファイル\App</Filter>
     </ClInclude>
     <ClInclude Include="BattleCollision.h">
       <Filter>ソース ファイル\System</Filter>

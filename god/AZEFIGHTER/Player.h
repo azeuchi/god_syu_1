@@ -62,7 +62,8 @@ enum class PlayerInputType
 {
 	PLAYER_1, // 1P
 	PLAYER_2, // 2P
-	AI        // AI
+	AI,       // 注入された入力で動く。歩き状態には遷移しない（ラウンド前後の操作ロック、トレーニングのダミー）
+	CPU       // 注入された入力で動く。状態遷移は人間と同じ（CPU対戦）
 };
 
 //ステート
@@ -221,6 +222,9 @@ public:
 	void SetState(std::unique_ptr<PlayerState> newState);
 
 	bool IsInvincible() const;
+	bool IsInHitstun() const;
+	// 自分の意思で次の行動を始められるか（攻撃中・のけぞり中・ダウン中・空中は不可）
+	bool IsActionable() const;
 
 	void SetInputType(PlayerInputType type);
 	PlayerInputType GetInputType() const;
@@ -229,6 +233,8 @@ public:
 	void SetInjectedInputs(const PlayerInputs& in);
 	void RefillHp() { m_hp = m_maxHp; }
 	static bool s_variableSpeed; // 緩急（可変フレーム再生）のオン/オフ。等速と見比べる用
+	static constexpr float GRAVITY = 55.0f;       // 重力加速度。CPUが着地のタイミングを予測するのにも使う
+	static constexpr float JUMP_VELOCITY = 19.0f; // ジャンプの初速
 #ifdef _DEBUG
 	// デバッグコマンド用
 	void Debug_SetHp(int hp) { m_hp = hp; }
@@ -316,6 +322,16 @@ public:
 	void SetCurrentAttackParams(AttackParams* params);
 	AttackParams* GetCurrentAttackParams() const;
 
+	// 読み取り専用のパラメータ参照。CPU が相手の技のフレームデータを読むのに使う
+	const AttackParams& GetLightPunchParams() const { return m_lightPunchParams; }
+	const AttackParams& GetMediumPunchParams() const { return m_mediumPunchParams; }
+	const AttackParams& GetHeavyPunchParams() const { return m_heavyPunchParams; }
+	const AttackParams& GetMediumKickParams() const { return m_mediumKickParams; }
+	const AttackParams& GetHeavyKickParams() const { return m_heavyKickParams; }
+	const AttackParams& GetHadoukenLParams() const { return m_hadoukenLParams; }
+	const AttackParams& GetHadoukenMParams() const { return m_hadoukenMParams; }
+	const AttackParams& GetHadoukenHParams() const { return m_hadoukenHParams; }
+
 	void Debug_SetAnimation(const char* name, bool forceRestart = true) {
 		PlayAnimation(name, forceRestart);
 		m_blendFactor = 1.0f;
@@ -342,6 +358,7 @@ public:
 
 	// 飛び道具制御
 	Projectile* GetProjectile() { return m_projectile.get(); }
+	const Projectile* GetProjectile() const { return m_projectile.get(); }
 	bool CanFireProjectile() const;
 
 	// コマンド判定
