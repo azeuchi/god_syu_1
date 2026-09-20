@@ -1,5 +1,6 @@
 ﻿#include "CpuController.h"
 #include "Projectile.h"
+#include "Shoryuken.h"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -21,6 +22,11 @@ namespace
 	const float PROJECTILE_REACT_SEC = 0.4f;
 	// 通常技が届かず、この距離より離れているときだけ波動拳を選択肢に入れる
 	const float FIREBALL_MIN_DISTANCE = 4.0f;
+
+	// 昇竜拳のコマンド（下2F → 離す1F → 下＋パンチ1F）を入れ終わるまでのフレーム数。
+	// 発生にこのぶんを足して、反撃や対空に間に合うかを判断する
+	const int SHORYUKEN_STEP_FRAMES[3] = { 2, 1, 1 };
+	const int SHORYUKEN_INPUT_FRAMES = SHORYUKEN_STEP_FRAMES[0] + SHORYUKEN_STEP_FRAMES[1] + SHORYUKEN_STEP_FRAMES[2];
 	// 連携をガードされたら、硬直が解けたあとしばらく後ろを入れておく
 	const float GUARD_AFTER_BLOCK_SEC = 0.4f;
 
@@ -143,6 +149,7 @@ void CpuController::Reset(Player& self)
 	m_scriptLength = 0;
 	m_scriptStep = 0;
 	m_scriptFrame = 0;
+	m_scriptCommitted = false;
 
 	m_prevInput = {};
 	m_debug.decision.clear();
@@ -200,19 +207,28 @@ void CpuController::Update(Player& self, const Player& opponent, float realTick,
 		m_hitstunGuardRolled = false;
 		m_ownMove = nullptr;
 
-		const bool reacted =
-			ThinkDefense(self, opponent, seen, in) ||
-			ThinkPunish(self, opponent, seen, in) ||
-			ThinkAntiAir(self, seen, in);
-
-		if (reacted)
+		if (m_scriptCommitted && RunScript(in))
 		{
-			// 入力途中のコマンドより、目の前の状況への対応を優先する
-			m_scriptLength = 0;
+			// 反応して出すと決めた必殺技のコマンドを入れている途中
 		}
-		else if (!GuardAfterBlock(self, realTick, in) && !RunScript(in))
+		else
 		{
-			ThinkNeutral(self, opponent, seen, realTick, in);
+			m_scriptCommitted = false;
+
+			const bool reacted =
+				ThinkDefense(self, opponent, seen, in) ||
+				ThinkPunish(self, opponent, seen, in) ||
+				ThinkAntiAir(self, seen, in);
+
+			if (reacted)
+			{
+				// 立ち回りで入れ始めたコマンドより、目の前の状況への対応を優先する
+				if (!m_scriptCommitted) m_scriptLength = 0;
+			}
+			else if (!GuardAfterBlock(self, realTick, in) && !RunScript(in))
+			{
+				ThinkNeutral(self, opponent, seen, realTick, in);
+			}
 		}
 	}
 
@@ -427,7 +443,7 @@ bool CpuController::ThinkDefense(const Player& self, const Player& opponent, con
 	const bool facingRight = FacingRight(self);
 
 	// 打撃。見えた時点の経過時間に、見てから今までの時間を足して「今どこまで進んでいるか」を出す
-	if (seen.move != MOVE_NONE && seen.move < NORMAL_MOVE_COUNT)
+	if (IsStrike(seen.move))
 	{
 		const AttackParams& attack = ParamsOf(opponent, seen.move);
 		const float elapsedNow = seen.moveElapsed + (m_gameClock - seen.gameTime);
@@ -513,7 +529,7 @@ bool CpuController::ThinkPunish(const Player& self, const Player& opponent, cons
 	if (seen.move == MOVE_NONE || seen.invincible) return false;
 
 	const AttackParams& attack = ParamsOf(opponent, seen.move);
-	const bool isFireball = (seen.move >= MOVE_FIREBALL_L);
+	const bool isFireball = IsFireball(seen.move);
 	const float elapsedNow = seen.moveElapsed + (m_gameClock - seen.gameTime);
 
 	// 攻撃判定が残っているあいだは反撃ではなくガードの場面
@@ -525,12 +541,20 @@ bool CpuController::ThinkPunish(const Player& self, const Player& opponent, cons
 	const bool facingRight = FacingRight(self);
 	const XMFLOAT3 myPos = self.GetPosition();
 
+	// 候補は通常技すべてと強昇竜拳。昇竜拳はコマンドを入れ終わるまでのフレームも発生に含める
+	int candidates[NORMAL_MOVE_COUNT + 1];
+	int candidateCount = 0;
+	for (int id = 0; id < NORMAL_MOVE_COUNT; ++id) candidates[candidateCount++] = id;
+	candidates[candidateCount++] = MOVE_SHORYUKEN_H;
+
 	int best = MOVE_NONE;
 	int bestStartup = 0;
-	for (int id = 0; id < NORMAL_MOVE_COUNT; ++id)
+	for (int c = 0; c < candidateCount; ++c)
 	{
+		const int id = candidates[c];
 		const AttackParams& mine = ParamsOf(self, id);
-		const int startup = ToFrames(mine.hitboxStart) + 1;
+		const int inputFrames = (id == MOVE_SHORYUKEN_H) ? SHORYUKEN_INPUT_FRAMES : 0;
+		const int startup = inputFrames + ToFrames(mine.hitboxStart) + 1;
 		if (startup > recoveryLeft) continue;
 		if (!HitboxReaches(mine, myPos.x, myPos.y, facingRight, seen.hurt.data(), seen.hurtCount, 0.0f, 0.0f, ATTACK_REACH_SCALE)) continue;
 
@@ -542,9 +566,17 @@ bool CpuController::ThinkPunish(const Player& self, const Player& opponent, cons
 	}
 	if (best == MOVE_NONE) return false;
 
-	PressMove(best, in);
-	// 相手が動けないのは分かっているので、当たったあとも確認し直さずに繋ぐ
-	InheritCombo(ComboDecision::HIT_CONFIRMED);
+	if (best == MOVE_SHORYUKEN_H)
+	{
+		StartShoryukenScript(2);
+		RunScript(in);
+	}
+	else
+	{
+		PressMove(best, in);
+		// 相手が動けないのは分かっているので、当たったあとも確認し直さずに繋ぐ
+		InheritCombo(ComboDecision::HIT_CONFIRMED);
+	}
 
 	Explain(L"反撃", [&] {
 		return Format(L"%s の硬直残り%dF ≧ %s の発生%dF", MoveName(seen.move), recoveryLeft, MoveName(best), bestStartup);
@@ -569,6 +601,37 @@ bool CpuController::ThinkAntiAir(const Player& self, const Snapshot& seen, Playe
 
 	const bool facingRight = FacingRight(self);
 	const XMFLOAT3 myPos = self.GetPosition();
+
+	// 空中の相手を、出始め無敵の昇竜拳で迎え撃てるか。
+	// コマンド入力後に攻撃判定が出ている間を何か所か取り、そのときの相手の位置（放物線）と
+	// 自分の位置（Shoryuken と同じ上昇速度の放物線）で判定が重なるかを調べる
+	{
+		const AttackParams& srk = ParamsOf(self, MOVE_SHORYUKEN_H);
+		const float inputSec = SHORYUKEN_INPUT_FRAMES * FRAME_SEC;
+		const float takeoff = inputSec + srk.totalDuration * Shoryuken::TAKEOFF_RATIO;
+		const float rise = Shoryuken::RiseVelocity(srk);
+		const float dir = facingRight ? 1.0f : -1.0f;
+		const int samples = 4;
+		for (int i = 0; i < samples; ++i)
+		{
+			const float t = inputSec + srk.hitboxStart + (srk.hitboxEnd - srk.hitboxStart) * (float)i / (samples - 1);
+			const float targetY = y + vy * t - 0.5f * g * t * t;
+			if (targetY <= 0.0f) break;
+
+			const float air = (std::max)(t - takeoff, 0.0f);
+			const float myY = myPos.y + rise * air - 0.5f * g * air * air;
+			const float myX = myPos.x + dir * srk.forwardSpeed * air;
+			if (!HitboxReaches(srk, myX, myY, facingRight, seen.hurt.data(), seen.hurtCount,
+				seen.vx * (dt + t), targetY - seen.y, ATTACK_REACH_SCALE)) continue;
+
+			StartShoryukenScript(2);
+			RunScript(in);
+			Explain(L"昇竜拳で対空", [&] {
+				return Format(L"%dF後、高さ%.1fの相手に判定が重なる（無敵%dF）", ToFrames(t), targetY, ToFrames(srk.invincibleEnd));
+				});
+			return true;
+		}
+	}
 
 	int best = MOVE_NONE;
 	bool anyReach = false;
@@ -808,6 +871,29 @@ void CpuController::StartFireballScript(bool facingRight, int strength)
 	m_scriptLength = 3;
 	m_scriptStep = 0;
 	m_scriptFrame = 0;
+	m_scriptCommitted = false;
+}
+
+// 下 → 離す → 下＋パンチ。下を押した瞬間を2回数える判定なので、間に一度離す
+void CpuController::StartShoryukenScript(int strength)
+{
+	PlayerInputs down;
+	down.moveDown = true;
+
+	PlayerInputs release;
+
+	PlayerInputs downPunch = down;
+	if (strength == 0)      downPunch.LightPunch = true;
+	else if (strength == 1) downPunch.MediumPunch = true;
+	else                    downPunch.HeavyPunch = true;
+
+	m_script[0] = { down, SHORYUKEN_STEP_FRAMES[0] };
+	m_script[1] = { release, SHORYUKEN_STEP_FRAMES[1] };
+	m_script[2] = { downPunch, SHORYUKEN_STEP_FRAMES[2] };
+	m_scriptLength = 3;
+	m_scriptStep = 0;
+	m_scriptFrame = 0;
+	m_scriptCommitted = true;
 }
 
 bool CpuController::RunScript(PlayerInputs& in)
@@ -854,16 +940,16 @@ int CpuController::RandomRange(int minValue, int maxValue)
 
 const AttackParams& CpuController::ParamsOf(const Player& player, int move)
 {
+	if (move >= 0 && move < NORMAL_MOVE_COUNT) return player.GetNormalParams((NormalMove)move);
+
 	switch (move)
 	{
-	case MOVE_LP:         return player.GetLightPunchParams();
-	case MOVE_MP:         return player.GetMediumPunchParams();
-	case MOVE_HP:         return player.GetHeavyPunchParams();
-	case MOVE_MK:         return player.GetMediumKickParams();
-	case MOVE_HK:         return player.GetHeavyKickParams();
-	case MOVE_FIREBALL_L: return player.GetHadoukenLParams();
-	case MOVE_FIREBALL_M: return player.GetHadoukenMParams();
-	default:              return player.GetHadoukenHParams();
+	case MOVE_FIREBALL_L:  return player.GetHadoukenLParams();
+	case MOVE_FIREBALL_M:  return player.GetHadoukenMParams();
+	case MOVE_FIREBALL_H:  return player.GetHadoukenHParams();
+	case MOVE_SHORYUKEN_L: return player.GetShoryukenLParams();
+	case MOVE_SHORYUKEN_M: return player.GetShoryukenMParams();
+	default:               return player.GetShoryukenHParams();
 	}
 }
 
@@ -898,36 +984,28 @@ int CpuController::CollectHurtboxes(const Player& player, std::array<BoundingBox
 
 bool CpuController::CancelAllowed(const AttackParams& from, int to)
 {
-	switch (to)
-	{
-	case MOVE_LP: return from.cancelToLight;
-	case MOVE_MP: return from.cancelToMedium;
-	case MOVE_HP: return from.cancelToHeavyPunch;
-	case MOVE_MK: return from.cancelToMediumKick;
-	case MOVE_HK: return from.cancelToHeavy;
-	default:      return false;
-	}
+	if (to < 0 || to >= NORMAL_MOVE_COUNT) return false;
+	return CanCancelInto(from, GetNormalMoveInfo((NormalMove)to).button);
 }
 
+// 通常技のボタンを押す。しゃがみ技は同じフレームに下も入れる
 void CpuController::PressMove(int move, PlayerInputs& in)
 {
-	switch (move)
-	{
-	case MOVE_LP: in.LightPunch = true;  break;
-	case MOVE_MP: in.MediumPunch = true; break;
-	case MOVE_HP: in.HeavyPunch = true;  break;
-	case MOVE_MK: in.MediumKick = true;  break;
-	case MOVE_HK: in.HeavyKick = true;   break;
-	default: break;
-	}
+	if (move < 0 || move >= NORMAL_MOVE_COUNT) return;
+
+	const NormalMoveInfo& info = GetNormalMoveInfo((NormalMove)move);
+	SetButtonPressed(in, info.button, true);
+	if (info.crouch) in.moveDown = true;
 }
 
 const wchar_t* CpuController::MoveName(int move)
 {
 	static const wchar_t* NAMES[MOVE_COUNT] =
 	{
-		L"弱パンチ", L"中パンチ", L"強パンチ", L"中キック", L"強キック",
-		L"弱波動拳", L"中波動拳", L"強波動拳"
+		L"弱パンチ", L"中パンチ", L"強パンチ", L"弱キック", L"中キック", L"強キック",
+		L"しゃがみ弱P", L"しゃがみ中P", L"しゃがみ強P", L"しゃがみ弱K", L"しゃがみ中K", L"しゃがみ強K",
+		L"弱波動拳", L"中波動拳", L"強波動拳",
+		L"弱昇竜拳", L"中昇竜拳", L"強昇竜拳"
 	};
 	return (move >= 0 && move < MOVE_COUNT) ? NAMES[move] : L"なし";
 }

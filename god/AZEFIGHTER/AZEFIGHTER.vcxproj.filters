@@ -144,13 +144,7 @@
     <ClCompile Include="PlayerStateWalkBack.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
-    <ClCompile Include="LightPunch.cpp">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClCompile>
     <ClCompile Include="PlayerStateJump.cpp">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClCompile>
-    <ClCompile Include="MediumPunch.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="CpuController.cpp">
@@ -192,17 +186,8 @@
     <ClCompile Include="PlayerStateCrouch.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
-    <ClCompile Include="HeavyKick.cpp">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClCompile>
     <ClCompile Include="SceneRoot.cpp">
       <Filter>ソース ファイル\App\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="HeavyPunch.cpp">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClCompile>
-    <ClCompile Include="MediumKick.cpp">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="PlayerStateDown.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
@@ -220,6 +205,15 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClCompile>
     <ClCompile Include="Hadouken.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoryuken.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="NormalAttack.cpp">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClCompile>
+    <ClCompile Include="NormalMoves.cpp">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClCompile>
     <ClCompile Include="BattleUIManager.cpp">
@@ -329,17 +323,11 @@
     <ClInclude Include="PlayerStateWalkBack.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
-    <ClInclude Include="LightPunch.h">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClInclude>
     <ClInclude Include="PlayerStateJump.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="Player.h">
       <Filter>ソース ファイル\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="MediumPunch.h">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="SceneDebug.h">
       <Filter>ヘッダー ファイル\App\Scene</Filter>
@@ -363,15 +351,6 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateCrouch.h">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClInclude>
-    <ClInclude Include="HeavyKick.h">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClInclude>
-    <ClInclude Include="HeavyPunch.h">
-      <Filter>ソース ファイル\Player\PlayerState</Filter>
-    </ClInclude>
-    <ClInclude Include="MediumKick.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="PlayerStateDown.h">
@@ -426,6 +405,15 @@
       <Filter>ソース ファイル\Player</Filter>
     </ClInclude>
     <ClInclude Include="Hadouken.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoryuken.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="NormalAttack.h">
+      <Filter>ソース ファイル\Player\PlayerState</Filter>
+    </ClInclude>
+    <ClInclude Include="NormalMoves.h">
       <Filter>ソース ファイル\Player\PlayerState</Filter>
     </ClInclude>
     <ClInclude Include="BattleUIManager.h">

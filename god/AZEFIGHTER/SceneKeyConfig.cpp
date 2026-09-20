@@ -31,6 +31,9 @@ const float TOP_ITEM_X = 30.0f;
 const float TOP_ITEM_STEP = 205.0f;
 const float TOP_ITEM_W = 190.0f;
 
+// キーコンフィグの1行の高さ。項目が画面の下にはみ出さない間隔にしている
+const int CONFIG_ROW_STEP = 42;
+
 bool SceneKeyConfig::s_isConfigSet = false;
 bool SceneKeyConfig::s_requestDebug = false;
 
@@ -182,6 +185,7 @@ void SceneKeyConfig::RefreshConfigPointers()
 		{ L"L Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.lightPunch : &g_padConfigP1.lightPunch, false },
 		{ L"M Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.mediumPunch : &g_padConfigP1.mediumPunch, false },
 		{ L"H Punch", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.heavyPunch : &g_padConfigP1.heavyPunch, false },
+		{ L"L Kick", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.lightKick : &g_padConfigP1.lightKick, false },
 		{ L"M Kick", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.mediumKick : &g_padConfigP1.mediumKick, false },
 		{ L"H Kick", (g_inputDeviceP1 == InputDeviceType::KEYBOARD) ? &g_keyConfigP1.heavyKick : &g_padConfigP1.heavyKick, false },
 		{ L"Back", nullptr, false }
@@ -196,6 +200,7 @@ void SceneKeyConfig::RefreshConfigPointers()
 		{ L"L Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.lightPunch : &g_padConfigP2.lightPunch, false },
 		{ L"M Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.mediumPunch : &g_padConfigP2.mediumPunch, false },
 		{ L"H Punch", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.heavyPunch : &g_padConfigP2.heavyPunch, false },
+		{ L"L Kick", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.lightKick : &g_padConfigP2.lightKick, false },
 		{ L"M Kick", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.mediumKick : &g_padConfigP2.mediumKick, false },
 		{ L"H Kick", (g_inputDeviceP2 == InputDeviceType::KEYBOARD) ? &g_keyConfigP2.heavyKick : &g_padConfigP2.heavyKick, false },
 		{ L"Back", nullptr, false }
@@ -661,7 +666,7 @@ void SceneKeyConfig::Draw()
 				for (int i = 0; i < currentItems.size(); ++i)
 				{
 					DirectX::XMFLOAT4 color = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 0.7f, 0.0f, 0.9f) : XMFLOAT4(0.3f, 0.3f, 0.3f, 0.8f);
-					DrawRectPixel(70.0f, (float)(170 + i * 45), 360.0f, 40.0f, color);
+					DrawRectPixel(70.0f, (float)(170 + i * CONFIG_ROW_STEP), 360.0f, 40.0f, color);
 				}
 			}
 		}
@@ -696,23 +701,23 @@ void SceneKeyConfig::Draw()
 					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
 
 					// アクション名を描画 (例: Light Punch)
-					SimpleFont::Draw(currentItems[i].label, 80.0f, (float)(175 + i * 45), 20.0f, textColor);
+					SimpleFont::Draw(currentItems[i].label, 80.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
 
 					// 現在の割り当てキー、または待機中のメッセージを描画
 					if (currentItems[i].isDeviceSelect)
 					{
-						SimpleFont::Draw(GetDeviceName(currentDevice), 250.0f, (float)(175 + i * 45), 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
+						SimpleFont::Draw(GetDeviceName(currentDevice), 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
 					}
 					else if (currentItems[i].keyPtr != nullptr)
 					{
 						if (m_waitBindKeyPtr == currentItems[i].keyPtr)
 						{
-							SimpleFont::Draw(L"Press Any Button...", 250.0f, (float)(175 + i * 45), 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
+							SimpleFont::Draw(L"Press Any Button...", 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
 						}
 						else
 						{
 							const wchar_t* btnName = (currentDevice == InputDeviceType::KEYBOARD) ? GetKeyName(*currentItems[i].keyPtr) : GetPadButtonName(*currentItems[i].keyPtr);
-							SimpleFont::Draw(btnName, 250.0f, (float)(175 + i * 45), 20.0f, textColor);
+							SimpleFont::Draw(btnName, 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
 						}
 					}
 				}

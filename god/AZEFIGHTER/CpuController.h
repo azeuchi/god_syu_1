@@ -63,11 +63,14 @@ private:
 	enum MoveId
 	{
 		MOVE_NONE = -1,
-		MOVE_LP, MOVE_MP, MOVE_HP, MOVE_MK, MOVE_HK,
+		// 通常技は NormalMove と同じ並びにして、番号をそのまま変換できるようにしている
+		MOVE_LP, MOVE_MP, MOVE_HP, MOVE_LK, MOVE_MK, MOVE_HK,
+		MOVE_CROUCH_LP, MOVE_CROUCH_MP, MOVE_CROUCH_HP, MOVE_CROUCH_LK, MOVE_CROUCH_MK, MOVE_CROUCH_HK,
 		MOVE_FIREBALL_L, MOVE_FIREBALL_M, MOVE_FIREBALL_H,
+		MOVE_SHORYUKEN_L, MOVE_SHORYUKEN_M, MOVE_SHORYUKEN_H,
 		MOVE_COUNT
 	};
-	static constexpr int NORMAL_MOVE_COUNT = MOVE_FIREBALL_L;
+	static_assert(MOVE_FIREBALL_L == NORMAL_MOVE_COUNT, "CPU の通常技の並びが NormalMove とずれている");
 
 	// 観測を何フレーム分さかのぼれるか。最も遅い反応速度より十分長くしておく
 	static constexpr int HISTORY_SIZE = 128;
@@ -139,6 +142,7 @@ private:
 
 	// 補助
 	void StartFireballScript(bool facingRight, int strength);
+	void StartShoryukenScript(int strength);
 	void InheritCombo(ComboDecision decision);
 	bool InThreatRange(const Player& self, const Player& opponent, const Snapshot& seen) const;
 	void RememberOpponentHabit(const Player& opponent, const Snapshot& seen);
@@ -156,6 +160,9 @@ private:
 	static int IdentifyMove(const Player& player);
 	static int CollectHurtboxes(const Player& player, std::array<DirectX::BoundingBox, MAX_HURTBOXES>& out);
 	static bool CancelAllowed(const AttackParams& from, int to);
+	static bool IsFireball(int move) { return move >= MOVE_FIREBALL_L && move <= MOVE_FIREBALL_H; }
+	// 体に攻撃判定が出る技（通常技と昇竜拳）。見てガードするか、硬直に反撃するかの対象
+	static bool IsStrike(int move) { return (move >= 0 && move < NORMAL_MOVE_COUNT) || (move >= MOVE_SHORYUKEN_L && move <= MOVE_SHORYUKEN_H); }
 	static void PressMove(int move, PlayerInputs& in);
 	static const wchar_t* MoveName(int move);
 
@@ -210,6 +217,8 @@ private:
 	int m_scriptLength = 0;
 	int m_scriptStep = 0;
 	int m_scriptFrame = 0;
+	// 反応して出すと決めた必殺技のコマンド。入れ終わるまで、ほかの判断で上書きしない
+	bool m_scriptCommitted = false;
 
 	PlayerInputs m_prevInput;
 

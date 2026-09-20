@@ -2,20 +2,28 @@
 #include "Player.h"
 
 // 遷移先のステート
-#include "LightPunch.h"
-#include "MediumPunch.h"
-#include "HeavyPunch.h"
-#include "MediumKick.h"
-#include "HeavyKick.h" 
+#include "NormalAttack.h"
 #include "PlayerStateJump.h"
 #include "PlayerStateCrouch.h"
 #include "Hadouken.h"
+#include "Shoryuken.h"
 
 void PlayerStateGround::Update(Player* player, float tick)
 {
 	// --- 共通の遷移チェック (攻撃・ジャンプ・しゃがみ) ---
 
 	const PlayerInputs& inputs = player->GetInputs();
+
+	// 昇竜拳を波動拳より先に判定する。2回目の下を斜め下前で入れると、波動拳のコマンドとも重なるため
+	if (player->CheckShoryukenCommand())
+	{
+		int strength = 0;
+		if (inputs.HeavyPunch) strength = 2;
+		else if (inputs.MediumPunch) strength = 1;
+
+		player->SetState(std::make_unique<Shoryuken>(strength));
+		return;
+	}
 
 	// 波動拳コマンドチェック
 	if (player->CanFireProjectile() && player->CheckHadoukenCommand())
@@ -29,43 +37,18 @@ void PlayerStateGround::Update(Player* player, float tick)
 		return;
 	}
 
-	// 攻撃1 (Light Punch)
-	if (inputs.LightPunch)
+	// 通常技。下を入れていればしゃがみ技になる
+	for (int i = 0; i < ATTACK_BUTTON_COUNT; ++i)
 	{
-		player->SetCurrentAttackParams(&player->GetLightPunchParams());
-		player->SetState(std::make_unique<LightPunch>());
+		const AttackButton button = (AttackButton)i;
+		if (!IsButtonPressed(inputs, button)) continue;
+
+		NormalAttack::Start(player, FindNormalMove(button, inputs.moveDown));
 		return;
 	}
-	// 攻撃2 (Medium Punch)
-	else if (inputs.MediumPunch)
-	{
-		player->SetCurrentAttackParams(&player->GetMediumPunchParams());
-		player->SetState(std::make_unique<MediumPunch>());
-		return;
-	}
-	// 攻撃3 (Heavy Punch)
-	else if (inputs.HeavyPunch)
-	{
-		player->SetCurrentAttackParams(&player->GetHeavyPunchParams());
-		player->SetState(std::make_unique<HeavyPunch>());
-		return;
-	}
-	// 攻撃4 (Medium Kick) Kキー
-	else if (inputs.MediumKick)
-	{
-		player->SetCurrentAttackParams(&player->GetMediumKickParams());
-		player->SetState(std::make_unique<MediumKick>());
-		return;
-	}
-	// 攻撃5 (Heavy Kick) Lキー
-	else if (inputs.HeavyKick)
-	{
-		player->SetCurrentAttackParams(&player->GetHeavyKickParams());
-		player->SetState(std::make_unique<HeavyKick>());
-		return;
-	}
+
 	// ジャンプ
-	else if (inputs.jump && !player->GetIsJumping())
+	if (inputs.jump && !player->GetIsJumping())
 	{
 		player->Jump();
 		player->SetState(std::make_unique<PlayerStateJump>());

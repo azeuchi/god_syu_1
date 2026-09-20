@@ -141,6 +141,19 @@ void PlayerParameterLoader::LoadAttackParams(AttackParams& p, const char* filePa
 		ifs >> p.projectileSpeed >> p.projectileSize;
 	}
 
+	// 無敵・前進速度はあとから足した項目。古いファイルには無いので、読めなければ今の値のまま
+	float invincibleEnd = 0.0f;
+	float forwardSpeed = 0.0f;
+	if (ifs >> invincibleEnd >> forwardSpeed)
+	{
+		p.invincibleEnd = invincibleEnd;
+		p.forwardSpeed = forwardSpeed;
+	}
+
+	// 弱Kへのキャンセルも、弱Kを足したときに増えた項目
+	bool cancelToLightKick = false;
+	if (ifs >> cancelToLightKick) p.cancelToLightKick = cancelToLightKick;
+
 	ifs.close();
 }
 
@@ -150,15 +163,19 @@ void PlayerParameterLoader::LoadSettings(Player* player)
 
 	LoadCommonSettings(player, "Param/Param_Common.ini");
 
-	LoadAttackParams(player->GetLightPunchParams(), "Param/Param_LightPunch.ini");
-	LoadAttackParams(player->GetMediumPunchParams(), "Param/Param_MediumPunch.ini");
-	LoadAttackParams(player->GetHeavyPunchParams(), "Param/Param_HeavyPunch.ini");
-	LoadAttackParams(player->GetMediumKickParams(), "Param/Param_MediumKick.ini");
-	LoadAttackParams(player->GetHeavyKickParams(), "Param/Param_HeavyKick.ini");
+	for (int i = 0; i < NORMAL_MOVE_COUNT; ++i)
+	{
+		const NormalMove move = (NormalMove)i;
+		LoadAttackParams(player->GetNormalParams(move), GetNormalMoveInfo(move).paramFile);
+	}
 
 	LoadAttackParams(player->GetHadoukenLParams(), "Param/Param_HadoukenL.ini");
 	LoadAttackParams(player->GetHadoukenMParams(), "Param/Param_HadoukenM.ini");
 	LoadAttackParams(player->GetHadoukenHParams(), "Param/Param_HadoukenH.ini");
+
+	LoadAttackParams(player->GetShoryukenLParams(), "Param/Param_ShoryukenL.ini");
+	LoadAttackParams(player->GetShoryukenMParams(), "Param/Param_ShoryukenM.ini");
+	LoadAttackParams(player->GetShoryukenHParams(), "Param/Param_ShoryukenH.ini");
 }
 
 void PlayerParameterLoader::CopyParameters(Player* src, Player* dst)
@@ -166,14 +183,16 @@ void PlayerParameterLoader::CopyParameters(Player* src, Player* dst)
 	if (!src || !dst) return;
 
 	// パラメータをコピー
-	dst->GetLightPunchParams() = src->GetLightPunchParams();
-	dst->GetMediumPunchParams() = src->GetMediumPunchParams();
-	dst->GetHeavyPunchParams() = src->GetHeavyPunchParams();
-	dst->GetMediumKickParams() = src->GetMediumKickParams();
-	dst->GetHeavyKickParams() = src->GetHeavyKickParams();
+	for (int i = 0; i < NORMAL_MOVE_COUNT; ++i)
+	{
+		dst->GetNormalParams((NormalMove)i) = src->GetNormalParams((NormalMove)i);
+	}
 	dst->GetHadoukenLParams() = src->GetHadoukenLParams();
 	dst->GetHadoukenMParams() = src->GetHadoukenMParams();
 	dst->GetHadoukenHParams() = src->GetHadoukenHParams();
+	dst->GetShoryukenLParams() = src->GetShoryukenLParams();
+	dst->GetShoryukenMParams() = src->GetShoryukenMParams();
+	dst->GetShoryukenHParams() = src->GetShoryukenHParams();
 
 	// 当たり判定情報のコピー
 	for (int i = 0; i < (int)HurtboxType::COUNT; ++i) {

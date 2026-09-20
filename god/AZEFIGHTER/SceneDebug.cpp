@@ -29,8 +29,22 @@ Texture* g_uiTex_debug = nullptr;
 
 const float FRAME_TIME_60FPS = 1.0f / 60.0f;
 
-// 0:LP, 1:MP, 2:HP, 3:MK, 4:HK, 5:Down, 6:WakeUp, 7:HadouL, 8:HadouM, 9:HadouH
+// 技の選択番号。0 から通常技を技の表（NormalMove）の順に並べ、そのあとに動作と必殺技を続ける
+enum DebugMoveType
+{
+	DEBUG_DOWN = NORMAL_MOVE_COUNT,
+	DEBUG_WAKEUP,
+	DEBUG_HADOU_L, DEBUG_HADOU_M, DEBUG_HADOU_H,
+	DEBUG_SHORYU_L, DEBUG_SHORYU_M, DEBUG_SHORYU_H,
+};
 static int s_currentAttackType = 0;
+
+static bool IsNormalType(int type) { return type >= 0 && type < NORMAL_MOVE_COUNT; }
+static bool IsShoryukenType(int type) { return type >= DEBUG_SHORYU_L && type <= DEBUG_SHORYU_H; }
+// 体に攻撃判定が出る技。発生・持続フレームを編集できる
+static bool IsStrikeType(int type) { return IsNormalType(type) || IsShoryukenType(type); }
+// フレームデータを持つ技。ダウン・起き上がり以外
+static bool HasFrameData(int type) { return type != DEBUG_DOWN && type != DEBUG_WAKEUP; }
 
 // カメラシェイク確認用（デバッグシーンでのプレビュー状態）
 static float s_dbgShakeTrauma = 0.0f;
@@ -39,13 +53,10 @@ static DirectX::XMFLOAT3 s_dbgShakeOffset = { 0.0f, 0.0f, 0.0f };
 
 static const char* GetCurrentAnimName()
 {
-	if (s_currentAttackType == 0) return "LightPunch";
-	if (s_currentAttackType == 1) return "MediumPunch";
-	if (s_currentAttackType == 2) return "HeavyPunch";
-	if (s_currentAttackType == 3) return "MediumKick";
-	if (s_currentAttackType == 4) return "HeavyKick";
-	if (s_currentAttackType == 5) return "Down";
-	if (s_currentAttackType == 6) return "WakeUp";
+	if (IsNormalType(s_currentAttackType)) return GetNormalMoveInfo((NormalMove)s_currentAttackType).animName;
+	if (s_currentAttackType == DEBUG_DOWN) return "Down";
+	if (s_currentAttackType == DEBUG_WAKEUP) return "WakeUp";
+	if (IsShoryukenType(s_currentAttackType)) return "Shoryuken";
 	return "Hadouken";
 }
 
@@ -159,19 +170,29 @@ void SceneDebug::SavePlayerSettings()
 		ofs << params.projectileSpeed << std::endl;
 		ofs << params.projectileSize << std::endl;
 
+		// 無敵・前進速度
+		ofs << params.invincibleEnd << std::endl;
+		ofs << params.forwardSpeed << std::endl;
+
+		// 弱Kへのキャンセル（弱Kを足したときに増えた項目なので末尾に置く）
+		ofs << params.cancelToLightKick << std::endl;
+
 		ofs.close();
 		};
 
 	// 各ファイルの保存実行
-	SaveOneAttack("Param/Param_LightPunch.ini", player->GetLightPunchParams());
-	SaveOneAttack("Param/Param_MediumPunch.ini", player->GetMediumPunchParams());
-	SaveOneAttack("Param/Param_HeavyPunch.ini", player->GetHeavyPunchParams());
-	SaveOneAttack("Param/Param_MediumKick.ini", player->GetMediumKickParams());
-	SaveOneAttack("Param/Param_HeavyKick.ini", player->GetHeavyKickParams());
+	for (int i = 0; i < NORMAL_MOVE_COUNT; ++i)
+	{
+		const NormalMove move = (NormalMove)i;
+		SaveOneAttack(GetNormalMoveInfo(move).paramFile, player->GetNormalParams(move));
+	}
 
 	SaveOneAttack("Param/Param_HadoukenL.ini", player->GetHadoukenLParams());
 	SaveOneAttack("Param/Param_HadoukenM.ini", player->GetHadoukenMParams());
 	SaveOneAttack("Param/Param_HadoukenH.ini", player->GetHadoukenHParams());
+	SaveOneAttack("Param/Param_ShoryukenL.ini", player->GetShoryukenLParams());
+	SaveOneAttack("Param/Param_ShoryukenM.ini", player->GetShoryukenMParams());
+	SaveOneAttack("Param/Param_ShoryukenH.ini", player->GetShoryukenHParams());
 
 	DebugLog::log(DebugLog::INFO_LOG, "設定を分割ファイルとして保存しました。");
 }
@@ -265,7 +286,7 @@ void SceneDebug::Update(float tick)
 	float speed = 1.0f;
 	const char* animName = GetCurrentAnimName();
 
-	if (m_isAttacking || s_currentAttackType <= 4 || s_currentAttackType >= 7) {
+	if (m_isAttacking || HasFrameData(s_currentAttackType)) {
 		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 
 		if (params) {
@@ -376,7 +397,7 @@ void SceneDebug::Draw()
 		// 判定ボックスの表示制御
 		// 現在フレームのくらい判定(緑)・攻撃判定(赤)を常に重ねて表示する。
 		// ----------------------------------------------------
-		bool isEditingAttack = (s_currentAttackType <= 4 || s_currentAttackType >= 7);
+		bool isEditingAttack = HasFrameData(s_currentAttackType);
 
 		if (isEditingAttack) {
 			// 攻撃判定は発生期間内だけ出ているものとして扱う
@@ -451,17 +472,18 @@ void SceneDebug::DrawImGui()
 	{
 		// 全攻撃技（名前と params ポインタ）
 		struct MoveEntry { const char* name; AttackParams* p; };
-		MoveEntry moves[] = {
-			{ "LP",      &player->GetLightPunchParams() },
-			{ "MP",      &player->GetMediumPunchParams() },
-			{ "HP",      &player->GetHeavyPunchParams() },
-			{ "MK",      &player->GetMediumKickParams() },
-			{ "HK",      &player->GetHeavyKickParams() },
-			{ "波動L", &player->GetHadoukenLParams() },
-			{ "波動M", &player->GetHadoukenMParams() },
-			{ "波動H", &player->GetHadoukenHParams() },
-		};
-		const int moveCount = 8;
+		std::vector<MoveEntry> moves;
+		for (int i = 0; i < NORMAL_MOVE_COUNT; ++i)
+		{
+			moves.push_back({ GetNormalMoveInfo((NormalMove)i).label, &player->GetNormalParams((NormalMove)i) });
+		}
+		moves.push_back({ "波動L", &player->GetHadoukenLParams() });
+		moves.push_back({ "波動M", &player->GetHadoukenMParams() });
+		moves.push_back({ "波動H", &player->GetHadoukenHParams() });
+		moves.push_back({ "昇竜L", &player->GetShoryukenLParams() });
+		moves.push_back({ "昇竜M", &player->GetShoryukenMParams() });
+		moves.push_back({ "昇竜H", &player->GetShoryukenHParams() });
+		const int moveCount = (int)moves.size();
 
 		// 秒 → フレーム（60FPS換算）
 		auto ToF = [](float sec) { return (int)std::lround(sec * 60.0f); };
@@ -505,24 +527,18 @@ void SceneDebug::DrawImGui()
 
 		// --- 連結ビュー（始動技を選ぶと、つながる技を一覧）---
 		static int s_comboStarter = 0;
-		const char* starterNames[] = { "LP","MP","HP","MK","HK","波動L","波動M","波動H" };
-		ImGui::Combo("始動技", &s_comboStarter, starterNames, moveCount);
+		std::vector<const char*> starterNames;
+		for (const MoveEntry& m : moves) starterNames.push_back(m.name);
+		ImGui::Combo("始動技", &s_comboStarter, starterNames.data(), moveCount);
 
 		AttackParams* a = moves[s_comboStarter].p;
 		int adv = NetAdv(a);
 		ImGui::Text("%s : ヒット時 %+d", starterNames[s_comboStarter], adv);
 
-		// キャンセル可否（ターゲットのカテゴリ別フラグ。波動拳はフラグ対象外）
+		// キャンセル可否。通常技はボタンごとのフラグで決まり、必殺技はキャンセルの対象外
 		auto CanCancelTo = [&](const AttackParams* from, int targetIndex) -> bool {
-			if (!from->cancelEnabled) return false;
-			switch (targetIndex) {
-			case 0: return from->cancelToLight;
-			case 1: return from->cancelToMedium;
-			case 2: return from->cancelToHeavyPunch;
-			case 3: return from->cancelToMediumKick;
-			case 4: return from->cancelToHeavy;
-			default: return false;
-			}
+			if (!from->cancelEnabled || !IsNormalType(targetIndex)) return false;
+			return CanCancelInto(*from, GetNormalMoveInfo((NormalMove)targetIndex).button);
 		};
 
 		ImGui::Text("繋がる技:");
@@ -549,22 +565,37 @@ void SceneDebug::DrawImGui()
 		ImGui::Text("技を選択:");
 
 		ImGui::Text("パンチ:"); ImGui::SameLine();
-		ImGui::RadioButton("L##P", &s_currentAttackType, 0); ImGui::SameLine();
-		ImGui::RadioButton("M##P", &s_currentAttackType, 1); ImGui::SameLine();
-		ImGui::RadioButton("H##P", &s_currentAttackType, 2);
+		ImGui::RadioButton("L##P", &s_currentAttackType, (int)NormalMove::LP); ImGui::SameLine();
+		ImGui::RadioButton("M##P", &s_currentAttackType, (int)NormalMove::MP); ImGui::SameLine();
+		ImGui::RadioButton("H##P", &s_currentAttackType, (int)NormalMove::HP);
 
 		ImGui::Text("キック:"); ImGui::SameLine();
-		ImGui::RadioButton("M##K", &s_currentAttackType, 3); ImGui::SameLine();
-		ImGui::RadioButton("H##K", &s_currentAttackType, 4);
+		ImGui::RadioButton("L##K", &s_currentAttackType, (int)NormalMove::LK); ImGui::SameLine();
+		ImGui::RadioButton("M##K", &s_currentAttackType, (int)NormalMove::MK); ImGui::SameLine();
+		ImGui::RadioButton("H##K", &s_currentAttackType, (int)NormalMove::HK);
+
+		ImGui::Text("屈P:"); ImGui::SameLine();
+		ImGui::RadioButton("L##CP", &s_currentAttackType, (int)NormalMove::CROUCH_LP); ImGui::SameLine();
+		ImGui::RadioButton("M##CP", &s_currentAttackType, (int)NormalMove::CROUCH_MP); ImGui::SameLine();
+		ImGui::RadioButton("H##CP", &s_currentAttackType, (int)NormalMove::CROUCH_HP);
+
+		ImGui::Text("屈K:"); ImGui::SameLine();
+		ImGui::RadioButton("L##CK", &s_currentAttackType, (int)NormalMove::CROUCH_LK); ImGui::SameLine();
+		ImGui::RadioButton("M##CK", &s_currentAttackType, (int)NormalMove::CROUCH_MK); ImGui::SameLine();
+		ImGui::RadioButton("H##CK", &s_currentAttackType, (int)NormalMove::CROUCH_HK);
 
 		ImGui::Text("必殺技:"); ImGui::SameLine();
-		ImGui::RadioButton("波動L", &s_currentAttackType, 7); ImGui::SameLine();
-		ImGui::RadioButton("波動M", &s_currentAttackType, 8); ImGui::SameLine();
-		ImGui::RadioButton("波動H", &s_currentAttackType, 9);
+		ImGui::RadioButton("波動L", &s_currentAttackType, DEBUG_HADOU_L); ImGui::SameLine();
+		ImGui::RadioButton("波動M", &s_currentAttackType, DEBUG_HADOU_M); ImGui::SameLine();
+		ImGui::RadioButton("波動H", &s_currentAttackType, DEBUG_HADOU_H);
+		ImGui::Dummy(ImVec2(ImGui::CalcTextSize("必殺技:").x, 0.0f)); ImGui::SameLine();
+		ImGui::RadioButton("昇竜L", &s_currentAttackType, DEBUG_SHORYU_L); ImGui::SameLine();
+		ImGui::RadioButton("昇竜M", &s_currentAttackType, DEBUG_SHORYU_M); ImGui::SameLine();
+		ImGui::RadioButton("昇竜H", &s_currentAttackType, DEBUG_SHORYU_H);
 
 		ImGui::Text("その他:"); ImGui::SameLine();
-		ImGui::RadioButton("ダウン", &s_currentAttackType, 5); ImGui::SameLine();
-		ImGui::RadioButton("起き上がり", &s_currentAttackType, 6);
+		ImGui::RadioButton("ダウン", &s_currentAttackType, DEBUG_DOWN); ImGui::SameLine();
+		ImGui::RadioButton("起き上がり", &s_currentAttackType, DEBUG_WAKEUP);
 
 		if (!m_isAttacking)
 		{
@@ -576,7 +607,8 @@ void SceneDebug::DrawImGui()
 				m_isPaused = startPaused;
 				m_currentFrame = 0;
 				m_animTimer = 0.0f;
-				player->SetIsCrouching(false);
+				// しゃがみ技はくらい判定もしゃがみの形で確認できるようにする
+				player->SetIsCrouching(IsNormalType(s_currentAttackType) && GetNormalMoveInfo((NormalMove)s_currentAttackType).crouch);
 				};
 
 			if (ImGui::Button("再生")) StartAttack(false);
@@ -632,7 +664,7 @@ void SceneDebug::DrawImGui()
 			params.totalDuration = totalFrames * FRAME_TIME_60FPS;
 		}
 
-		if (s_currentAttackType <= 4) {
+		if (IsStrikeType(s_currentAttackType)) {
 			ImGui::Text("攻撃判定区間(参考):");
 			if (ImGui::InputInt("開始フレーム", &startFrames)) {
 				if (startFrames < 0) startFrames = 0;
@@ -642,6 +674,14 @@ void SceneDebug::DrawImGui()
 				if (endFrames < 0) endFrames = 0;
 				params.hitboxEnd = endFrames * FRAME_TIME_60FPS;
 			}
+			if (IsShoryukenType(s_currentAttackType)) {
+				int invincibleFrames = static_cast<int>(std::round(params.invincibleEnd / FRAME_TIME_60FPS));
+				if (ImGui::InputInt("無敵終了フレーム", &invincibleFrames)) {
+					if (invincibleFrames < 0) invincibleFrames = 0;
+					params.invincibleEnd = invincibleFrames * FRAME_TIME_60FPS;
+				}
+			}
+			ImGui::SliderFloat("前進速度", &params.forwardSpeed, 0.0f, 10.0f);
 		}
 		else {
 			ImGui::Text("飛び道具設定:");
@@ -804,7 +844,8 @@ void SceneDebug::DrawImGui()
 				ImGui::Checkbox("弱P", &params.cancelToLight);
 				ImGui::SameLine(); ImGui::Checkbox("中P", &params.cancelToMedium);
 				ImGui::SameLine(); ImGui::Checkbox("強P", &params.cancelToHeavyPunch);
-				ImGui::Checkbox("中K", &params.cancelToMediumKick);
+				ImGui::Checkbox("弱K", &params.cancelToLightKick);
+				ImGui::SameLine(); ImGui::Checkbox("中K", &params.cancelToMediumKick);
 				ImGui::SameLine(); ImGui::Checkbox("強K", &params.cancelToHeavy);
 			}
 			ImGui::TreePop();
@@ -892,16 +933,16 @@ AttackParams* SceneDebug::GetSelectedParams(Player* player)
 {
 	if (!player) return nullptr;
 
+	if (IsNormalType(s_currentAttackType)) return &player->GetNormalParams((NormalMove)s_currentAttackType);
+
 	switch (s_currentAttackType)
 	{
-	case 0: return &player->GetLightPunchParams();
-	case 1: return &player->GetMediumPunchParams();
-	case 2: return &player->GetHeavyPunchParams();
-	case 3: return &player->GetMediumKickParams();
-	case 4: return &player->GetHeavyKickParams();
-	case 7: return &player->GetHadoukenLParams();
-	case 8: return &player->GetHadoukenMParams();
-	case 9: return &player->GetHadoukenHParams();
+	case DEBUG_HADOU_L: return &player->GetHadoukenLParams();
+	case DEBUG_HADOU_M: return &player->GetHadoukenMParams();
+	case DEBUG_HADOU_H: return &player->GetHadoukenHParams();
+	case DEBUG_SHORYU_L: return &player->GetShoryukenLParams();
+	case DEBUG_SHORYU_M: return &player->GetShoryukenMParams();
+	case DEBUG_SHORYU_H: return &player->GetShoryukenHParams();
 	default: return nullptr; // Down / WakeUp などフレームデータを持たない動作
 	}
 }
@@ -1009,6 +1050,11 @@ void SceneDebug::DrawTimeline(AttackParams* params)
 	for (const auto& wh : params->moveHurtboxes)
 	{
 		DrawBand(LANE_HURT, (float)wh.startFrame, (float)wh.endFrame, IM_COL32(99, 153, 34, 235));
+	}
+	// 無敵の区間は、くらい判定が効いていないことが分かるよう金色で上書きする
+	if (params->invincibleEnd > 0.0f)
+	{
+		DrawBand(LANE_HURT, 0.0f, std::round(params->invincibleEnd * toFrame), IM_COL32(240, 200, 60, 235));
 	}
 
 	// Cancel: 次の技へ移行できる窓（有効時のみ）

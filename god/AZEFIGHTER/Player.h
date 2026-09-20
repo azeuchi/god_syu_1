@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include "Geometory.h"
+#include "NormalMoves.h"
 
 // 前方宣言
 class PlayerState;
@@ -31,6 +32,7 @@ struct KeyConfig
 	int lightPunch;
 	int mediumPunch;
 	int heavyPunch;
+	int lightKick;
 	int mediumKick;
 	int heavyKick;
 };
@@ -44,6 +46,7 @@ struct PadConfig
 	int lightPunch;
 	int mediumPunch;
 	int heavyPunch;
+	int lightKick;
 	int mediumKick;
 	int heavyKick;
 };
@@ -78,6 +81,7 @@ struct PlayerInputs
 	bool LightPunch = false;
 	bool MediumPunch = false;
 	bool HeavyPunch = false;
+	bool LightKick = false;
 	bool MediumKick = false;
 	bool HeavyKick = false;
 };
@@ -192,6 +196,7 @@ struct AttackParams
 	bool cancelToLight = false;
 	bool cancelToMedium = false;
 	bool cancelToHeavyPunch = false;
+	bool cancelToLightKick = false;
 	bool cancelToMediumKick = false;
 	bool cancelToHeavy = false;
 
@@ -202,6 +207,12 @@ struct AttackParams
 	// 発射する飛び道具の速度とサイズ
 	float projectileSpeed = 5.0f;
 	float projectileSize = 1.0f;
+
+	// --- 無敵・移動 (昇竜拳など) ---
+	// 技の開始からこの時間まで、打撃も飛び道具も受けない (秒)
+	float invincibleEnd = 0.0f;
+	// 飛び上がるときの前方向の速さ
+	float forwardSpeed = 0.0f;
 };
 
 
@@ -308,29 +319,30 @@ public:
 	void UpdateAnimation(float tick);
 	void UpdateModelBlend();
 
-	AttackParams& GetLightPunchParams() { return m_lightPunchParams; }
-	AttackParams& GetMediumPunchParams() { return m_mediumPunchParams; }
-	AttackParams& GetHeavyPunchParams() { return m_heavyPunchParams; }
-	AttackParams& GetMediumKickParams() { return m_mediumKickParams; }
-	AttackParams& GetHeavyKickParams() { return m_heavyKickParams; }
+	// 通常技のパラメータ。NormalMove で引く
+	AttackParams& GetNormalParams(NormalMove move) { return m_normalParams[(int)move]; }
 
 	// 波動拳用パラメータ
 	AttackParams& GetHadoukenLParams() { return m_hadoukenLParams; }
 	AttackParams& GetHadoukenMParams() { return m_hadoukenMParams; }
 	AttackParams& GetHadoukenHParams() { return m_hadoukenHParams; }
 
+	// 昇竜拳用パラメータ
+	AttackParams& GetShoryukenLParams() { return m_shoryukenLParams; }
+	AttackParams& GetShoryukenMParams() { return m_shoryukenMParams; }
+	AttackParams& GetShoryukenHParams() { return m_shoryukenHParams; }
+
 	void SetCurrentAttackParams(AttackParams* params);
 	AttackParams* GetCurrentAttackParams() const;
 
 	// 読み取り専用のパラメータ参照。CPU が相手の技のフレームデータを読むのに使う
-	const AttackParams& GetLightPunchParams() const { return m_lightPunchParams; }
-	const AttackParams& GetMediumPunchParams() const { return m_mediumPunchParams; }
-	const AttackParams& GetHeavyPunchParams() const { return m_heavyPunchParams; }
-	const AttackParams& GetMediumKickParams() const { return m_mediumKickParams; }
-	const AttackParams& GetHeavyKickParams() const { return m_heavyKickParams; }
+	const AttackParams& GetNormalParams(NormalMove move) const { return m_normalParams[(int)move]; }
 	const AttackParams& GetHadoukenLParams() const { return m_hadoukenLParams; }
 	const AttackParams& GetHadoukenMParams() const { return m_hadoukenMParams; }
 	const AttackParams& GetHadoukenHParams() const { return m_hadoukenHParams; }
+	const AttackParams& GetShoryukenLParams() const { return m_shoryukenLParams; }
+	const AttackParams& GetShoryukenMParams() const { return m_shoryukenMParams; }
+	const AttackParams& GetShoryukenHParams() const { return m_shoryukenHParams; }
 
 	void Debug_SetAnimation(const char* name, bool forceRestart = true) {
 		PlayAnimation(name, forceRestart);
@@ -364,6 +376,7 @@ public:
 	// コマンド判定
 	void UpdateCommandTimer(float tick);
 	bool CheckHadoukenCommand() const;
+	bool CheckShoryukenCommand() const;
 
 	// ガード判定関連
 	bool IsGuarding() const;
@@ -420,7 +433,7 @@ private:
 	PlayerInputs m_inputs;
 	PlayerInputs m_injectedInputs;
 	bool m_guardAllLevels = false;
-	float m_atkBuf[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float m_atkBuf[ATTACK_BUTTON_COUNT] = {};
 	float m_attackElapsedSec = 0.0f;
 
 	// アニメーションブレンド用管理変数
@@ -434,16 +447,17 @@ private:
 	float m_animSpeed = 1.0f;
 
 	// 各攻撃技のパラメータ実体
-	AttackParams m_lightPunchParams;
-	AttackParams m_mediumPunchParams;
-	AttackParams m_heavyPunchParams;
-	AttackParams m_mediumKickParams;
-	AttackParams m_heavyKickParams;
+	AttackParams m_normalParams[NORMAL_MOVE_COUNT];
 
 	// 波動拳パラメータ
 	AttackParams m_hadoukenLParams;
 	AttackParams m_hadoukenMParams;
 	AttackParams m_hadoukenHParams;
+
+	// 昇竜拳パラメータ
+	AttackParams m_shoryukenLParams;
+	AttackParams m_shoryukenMParams;
+	AttackParams m_shoryukenHParams;
 
 	// 現在実行中の攻撃技のパラメータへのポインタ
 	AttackParams* m_pActiveAttackParams = nullptr;
@@ -465,6 +479,10 @@ private:
 	// 必殺技コマンド入力を保持するタイマー
 	float m_cmdTimerDown = 0.0f;
 	float m_cmdTimerDownForward = 0.0f;
+	// 昇竜拳 (下、下) の途中経過
+	float m_cmdTimerDownTap = 0.0f;   // 1回目の下を押してからの受付時間
+	float m_cmdTimerDownTwice = 0.0f; // 2回目の下を押してからの受付時間
+	bool m_prevMoveDown = false;      // 押した瞬間を取るための、前のフレームの下入力
 	// コマンドの入力受付猶予時間
 	const float CMD_WINDOW = 0.3f;
 };

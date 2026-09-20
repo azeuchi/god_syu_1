@@ -11,11 +11,6 @@
 // ステートパターン用
 #include "PlayerState.h" 
 #include "PlayerStateIdle.h" 
-#include "LightPunch.h" 
-#include "MediumPunch.h" 
-#include "HeavyPunch.h"
-#include "MediumKick.h"
-#include "HeavyKick.h" 
 #include "PlayerStateJump.h" 
 #include "PlayerStateDamage.h"
 #include "PlayerStateCrouch.h"
@@ -27,15 +22,34 @@
 #include <DirectXMath.h>
 #include <algorithm>
 
-KeyConfig g_keyConfigP1 = { 'W', 'S', 'A', 'D', 'U', 'I', 'O', 'K', 'L' };
-KeyConfig g_keyConfigP2 = { VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD3 };
+KeyConfig g_keyConfigP1 = { 'W', 'S', 'A', 'D', 'U', 'I', 'O', 'J', 'K', 'L' };
+KeyConfig g_keyConfigP2 = { VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD4, VK_NUMPAD6, VK_NUMPAD5, VK_NUMPAD3 };
 
-PadConfig g_padConfigP1 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
-PadConfig g_padConfigP2 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
+PadConfig g_padConfigP1 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_LEFT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
+PadConfig g_padConfigP2 = { XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_RIGHT_SHOULDER, XINPUT_GAMEPAD_LEFT_SHOULDER, XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B };
 
 InputDeviceType g_inputDeviceP1 = InputDeviceType::KEYBOARD;
 InputDeviceType g_inputDeviceP2 = InputDeviceType::PAD_0;
 bool Player::s_variableSpeed = true;
+
+namespace
+{
+	// 攻撃パラメータに従って再生しているアニメーションか。
+	// ここから外れたら（のけぞり等に切り替わったら）攻撃中の情報を消す
+	bool IsAttackAnimation(const char* name)
+	{
+		for (int i = 0; i < NORMAL_MOVE_COUNT; ++i)
+		{
+			if (strcmp(name, GetNormalMoveInfo((NormalMove)i).animName) == 0) return true;
+		}
+		const char* others[] = { "Hadouken", "Shoryuken", "Down", "WakeUp" };
+		for (const char* other : others)
+		{
+			if (strcmp(name, other) == 0) return true;
+		}
+		return false;
+	}
+}
 
 namespace {
 	// アニメーション中の指定フレームにおける当たり判定の位置とサイズを計算するヘルパー関数
@@ -172,7 +186,7 @@ void Player::InitDefaultParameters()
 
 	// --- 弱パンチの設定 ---
 	{
-		AttackParams& p = m_lightPunchParams;
+		AttackParams& p = GetNormalParams(NormalMove::LP);
 		p.totalDuration = 0.166667f;
 		p.hitboxStart = 0.0666667f; // 発生
 		p.hitboxEnd = 0.15f;        // 持続終了
@@ -197,7 +211,7 @@ void Player::InitDefaultParameters()
 
 	// --- 中パンチの設定 ---
 	{
-		AttackParams& p = m_mediumPunchParams;
+		AttackParams& p = GetNormalParams(NormalMove::MP);
 		p.totalDuration = 0.333333f;
 		p.hitboxStart = 0.1f;
 		p.hitboxEnd = 0.333333f;
@@ -223,7 +237,7 @@ void Player::InitDefaultParameters()
 
 	// --- 強パンチの設定 ---
 	{
-		AttackParams& p = m_heavyPunchParams;
+		AttackParams& p = GetNormalParams(NormalMove::HP);
 		p.totalDuration = 0.5f;
 		p.hitboxStart = 0.133333f;
 		p.hitboxEnd = 0.5f;
@@ -249,7 +263,7 @@ void Player::InitDefaultParameters()
 
 	// --- 中キックの設定 ---
 	{
-		AttackParams& p = m_mediumKickParams;
+		AttackParams& p = GetNormalParams(NormalMove::MK);
 		p.totalDuration = 0.416667f;
 		p.hitboxStart = 0.1f;
 		p.hitboxEnd = 0.416667f;
@@ -274,7 +288,7 @@ void Player::InitDefaultParameters()
 
 	// --- 強キックの設定 ---
 	{
-		AttackParams& p = m_heavyKickParams;
+		AttackParams& p = GetNormalParams(NormalMove::HK);
 		p.totalDuration = 0.5f;
 		p.hitboxStart = 0.133333f;
 		p.hitboxEnd = 0.5f;
@@ -298,6 +312,68 @@ void Player::InitDefaultParameters()
 			{ 17.0f, 30.0f, 0.345f });
 	}
 
+	// --- 立ち弱K・しゃがみ攻撃の設定 ---
+	// ini が読めなかったときの初期値。フレームは 60FPS 換算。判定の位置は Maya で測った手足の到達点に合わせている
+	{
+		struct NormalDefault
+		{
+			NormalMove move;
+			int startup, activeEnd, total;
+			DirectX::XMFLOAT2 offset, extents;
+			int damage, hitFrame, blockFrame;
+			float hitStop, knockback;
+			bool isDown;
+			AttackLevel level;
+			bool cancelTo[ATTACK_BUTTON_COUNT]; // LP, MP, HP, LK, MK, HK
+			bool legHurtbox;                    // 伸ばした足にも、くらい判定を出す
+		};
+		const NormalDefault defaults[] =
+		{
+			// 技                     発生 持続 全体  判定の中心        判定の半径       ダメ  有利 ガード  ヒットストップ ノックバック ダウン  段                 キャンセル先          足のくらい
+			{ NormalMove::LK,        4,  7, 14, { 0.80f, 0.42f }, { 0.30f, 0.18f }, 200, 2,  -1, 0.0333f, 0.2f, false, AttackLevel::HIGH, { 1, 1, 0, 1, 0, 0 }, false },
+			{ NormalMove::CROUCH_LP, 4,  6, 12, { 0.95f, 1.24f }, { 0.30f, 0.14f }, 100, 2,  -1, 0.0333f, 0.2f, false, AttackLevel::HIGH, { 1, 1, 0, 1, 0, 0 }, false },
+			{ NormalMove::CROUCH_MP, 5,  8, 18, { 1.07f, 1.30f }, { 0.33f, 0.14f }, 400, 4,  -2, 0.05f,   0.2f, false, AttackLevel::HIGH, { 0, 0, 1, 0, 0, 1 }, false },
+			{ NormalMove::CROUCH_HP, 6, 12, 32, { 0.50f, 1.80f }, { 0.35f, 0.55f }, 700, 3,  -8, 0.0667f, 0.3f, false, AttackLevel::HIGH, { 0, 0, 0, 0, 0, 0 }, false },
+			{ NormalMove::CROUCH_LK, 4,  6, 13, { 1.05f, 0.20f }, { 0.30f, 0.15f }, 150, 2,  -1, 0.0333f, 0.2f, false, AttackLevel::LOW,  { 1, 0, 0, 1, 0, 0 }, false },
+			{ NormalMove::CROUCH_MK, 7, 10, 24, { 1.22f, 0.20f }, { 0.33f, 0.15f }, 400, 3,  -4, 0.05f,   0.3f, false, AttackLevel::LOW,  { 0, 0, 0, 0, 0, 0 }, true  },
+			{ NormalMove::CROUCH_HK, 8, 11, 34, { 1.05f, 0.18f }, { 0.35f, 0.16f }, 800, 0, -14, 0.0667f, 0.5f, true,  AttackLevel::LOW,  { 0, 0, 0, 0, 0, 0 }, true  },
+		};
+		for (const NormalDefault& d : defaults)
+		{
+			AttackParams& p = GetNormalParams(d.move);
+			p.totalDuration = d.total / 60.0f;
+			p.hitboxStart = d.startup / 60.0f;
+			p.hitboxEnd = d.activeEnd / 60.0f;
+
+			p.hitboxes.clear();
+			AnimatedBox ab;
+			ab.keyframes.push_back({ 0.0f, { d.offset, d.extents } });
+			p.hitboxes.push_back(ab);
+
+			InitDefaultHurtboxes(p.moveHurtboxes);
+			if (d.legHurtbox)
+			{
+				// 足を伸ばしている間は足先も打たれる。空振りを見て差し返せるようにするため
+				p.moveHurtboxes.push_back({ { d.offset.x - 0.1f, d.offset.y }, { d.extents.x, d.extents.y + 0.05f }, d.startup, d.activeEnd + 6 });
+			}
+
+			p.damage = d.damage; p.hitFrame = d.hitFrame; p.blockFrame = d.blockFrame;
+			p.hitStop = d.hitStop; p.knockback = d.knockback; p.isDown = d.isDown;
+			p.attackLevel = d.level;
+
+			p.cancelToLight = d.cancelTo[0]; p.cancelToMedium = d.cancelTo[1]; p.cancelToHeavyPunch = d.cancelTo[2];
+			p.cancelToLightKick = d.cancelTo[3]; p.cancelToMediumKick = d.cancelTo[4]; p.cancelToHeavy = d.cancelTo[5];
+			p.cancelEnabled = false;
+			for (bool c : d.cancelTo) p.cancelEnabled = p.cancelEnabled || c;
+			p.cancelStart = p.hitboxStart;
+			p.cancelEnd = p.totalDuration;
+			p.speedModifiers.clear();
+		}
+
+		// しゃがみ強Pは踏み込みながら打ち上げる。Maya 側では、この前進の分だけ後ろ足を引いてある
+		GetNormalParams(NormalMove::CROUCH_HP).forwardSpeed = 3.0f;
+	}
+
 	// --- 波動拳 (弱/中/強) の設定 ---
 	{
 		InitDefaultHurtboxes(m_hadoukenLParams.moveHurtboxes);
@@ -317,6 +393,37 @@ void Player::InitDefaultParameters()
 		m_hadoukenHParams.projectileSpeed = 9.0f;
 		m_hadoukenHParams.damage = 500;
 		m_hadoukenHParams.attackLevel = AttackLevel::HIGH;
+	}
+
+	// --- 昇竜拳 (弱/中/強) の設定 ---
+	// 強いほど高く飛び、無敵が長く、外したときの隙も大きい
+	{
+		AttackParams* shoryuken[3] = { &m_shoryukenLParams, &m_shoryukenMParams, &m_shoryukenHParams };
+		const int totalFrames[3] = { 38, 42, 48 };
+		const int activeEndFrames[3] = { 10, 12, 14 };
+		const int invincibleFrames[3] = { 4, 6, 8 };
+		const int damages[3] = { 800, 1000, 1200 };
+		for (int i = 0; i < 3; ++i)
+		{
+			AttackParams& p = *shoryuken[i];
+			p.totalDuration = totalFrames[i] / 60.0f;
+			p.hitboxStart = 3.0f / 60.0f;
+			p.hitboxEnd = activeEndFrames[i] / 60.0f;
+			p.invincibleEnd = invincibleFrames[i] / 60.0f;
+			p.forwardSpeed = 3.0f + 1.0f * i;
+
+			p.hitboxes.clear();
+			AnimatedBox ab;
+			ab.keyframes.push_back({ 0.0f, { {0.55f, 2.0f}, {0.45f, 0.75f} } });
+			p.hitboxes.push_back(ab);
+			InitDefaultHurtboxes(p.moveHurtboxes);
+
+			p.damage = damages[i]; p.hitFrame = 5; p.blockFrame = -30; p.hitStop = 0.1f; p.knockback = 0.5f;
+			p.isDown = true;
+			p.attackLevel = AttackLevel::HIGH;
+			p.cancelEnabled = false;
+			p.speedModifiers.clear();
+		}
 	}
 }
 
@@ -366,6 +473,7 @@ void Player::PollInputs()
 			if (IsKeyTrigger(g_keyConfigP1.lightPunch)) m_inputs.LightPunch = true;
 			if (IsKeyTrigger(g_keyConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
 			if (IsKeyTrigger(g_keyConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsKeyTrigger(g_keyConfigP1.lightKick)) m_inputs.LightKick = true;
 			if (IsKeyTrigger(g_keyConfigP1.mediumKick)) m_inputs.MediumKick = true;
 			if (IsKeyTrigger(g_keyConfigP1.heavyKick)) m_inputs.HeavyKick = true;
 		}
@@ -380,6 +488,7 @@ void Player::PollInputs()
 			if (IsPadTrigger(padNo, g_padConfigP1.lightPunch)) m_inputs.LightPunch = true;
 			if (IsPadTrigger(padNo, g_padConfigP1.mediumPunch)) m_inputs.MediumPunch = true;
 			if (IsPadTrigger(padNo, g_padConfigP1.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP1.lightKick)) m_inputs.LightKick = true;
 			if (IsPadTrigger(padNo, g_padConfigP1.mediumKick)) m_inputs.MediumKick = true;
 			if (IsPadTrigger(padNo, g_padConfigP1.heavyKick)) m_inputs.HeavyKick = true;
 		}
@@ -398,6 +507,7 @@ void Player::PollInputs()
 			if (IsKeyTrigger(g_keyConfigP2.lightPunch)) m_inputs.LightPunch = true;
 			if (IsKeyTrigger(g_keyConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
 			if (IsKeyTrigger(g_keyConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsKeyTrigger(g_keyConfigP2.lightKick)) m_inputs.LightKick = true;
 			if (IsKeyTrigger(g_keyConfigP2.mediumKick)) m_inputs.MediumKick = true;
 			if (IsKeyTrigger(g_keyConfigP2.heavyKick)) m_inputs.HeavyKick = true;
 		}
@@ -412,6 +522,7 @@ void Player::PollInputs()
 			if (IsPadTrigger(padNo, g_padConfigP2.lightPunch)) m_inputs.LightPunch = true;
 			if (IsPadTrigger(padNo, g_padConfigP2.mediumPunch)) m_inputs.MediumPunch = true;
 			if (IsPadTrigger(padNo, g_padConfigP2.heavyPunch)) m_inputs.HeavyPunch = true;
+			if (IsPadTrigger(padNo, g_padConfigP2.lightKick)) m_inputs.LightKick = true;
 			if (IsPadTrigger(padNo, g_padConfigP2.mediumKick)) m_inputs.MediumKick = true;
 			if (IsPadTrigger(padNo, g_padConfigP2.heavyKick)) m_inputs.HeavyKick = true;
 		}
@@ -435,17 +546,13 @@ void Player::SetInjectedInputs(const PlayerInputs& in)
 void Player::UpdateInputBuffer(float tick)
 {
 	const float BUF = 0.1f; // about 6 frames of attack input buffer
-	bool raw[5] = { m_inputs.LightPunch, m_inputs.MediumPunch, m_inputs.HeavyPunch, m_inputs.MediumKick, m_inputs.HeavyKick };
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < ATTACK_BUTTON_COUNT; ++i)
 	{
-		if (raw[i]) m_atkBuf[i] = BUF;
+		const AttackButton button = (AttackButton)i;
+		if (IsButtonPressed(m_inputs, button)) m_atkBuf[i] = BUF;
 		else { m_atkBuf[i] -= tick; if (m_atkBuf[i] < 0.0f) m_atkBuf[i] = 0.0f; }
+		SetButtonPressed(m_inputs, button, m_atkBuf[i] > 0.0f);
 	}
-	m_inputs.LightPunch  = (m_atkBuf[0] > 0.0f);
-	m_inputs.MediumPunch = (m_atkBuf[1] > 0.0f);
-	m_inputs.HeavyPunch  = (m_atkBuf[2] > 0.0f);
-	m_inputs.MediumKick  = (m_atkBuf[3] > 0.0f);
-	m_inputs.HeavyKick   = (m_atkBuf[4] > 0.0f);
 }
 
 void Player::UpdatePhysics(float tick)
@@ -487,16 +594,7 @@ void Player::UpdateAnimation(float tick)
 		// 攻撃モーション中の場合、指定されたフレーム区間で再生速度を変動させる
 		if (m_pActiveAttackParams)
 		{
-			bool isControlledAnim = (
-				strcmp(m_currentAnim.name, "LightPunch") == 0 ||
-				strcmp(m_currentAnim.name, "MediumPunch") == 0 ||
-				strcmp(m_currentAnim.name, "HeavyPunch") == 0 ||
-				strcmp(m_currentAnim.name, "MediumKick") == 0 ||
-				strcmp(m_currentAnim.name, "HeavyKick") == 0 ||
-				strcmp(m_currentAnim.name, "Hadouken") == 0 ||
-				strcmp(m_currentAnim.name, "Down") == 0 ||
-				strcmp(m_currentAnim.name, "WakeUp") == 0
-				);
+			bool isControlledAnim = IsAttackAnimation(m_currentAnim.name);
 
 			if (!isControlledAnim)
 			{
@@ -884,7 +982,7 @@ bool Player::IsAttacking() const
 void Player::SetCurrentAttackParams(AttackParams* params)
 {
 	m_pActiveAttackParams = params;
-	for (int i = 0; i < 5; ++i) m_atkBuf[i] = 0.0f;
+	for (float& buffered : m_atkBuf) buffered = 0.0f;
 	m_attackTimer = 0.0f;
 	m_attackElapsedSec = 0.0f;
 }
@@ -1037,6 +1135,8 @@ void Player::UpdateCommandTimer(float tick)
 {
 	if (m_cmdTimerDown > 0) m_cmdTimerDown -= tick;
 	if (m_cmdTimerDownForward > 0) m_cmdTimerDownForward -= tick;
+	if (m_cmdTimerDownTap > 0) m_cmdTimerDownTap -= tick;
+	if (m_cmdTimerDownTwice > 0) m_cmdTimerDownTwice -= tick;
 
 	const PlayerInputs& in = GetInputs();
 
@@ -1053,6 +1153,19 @@ void Player::UpdateCommandTimer(float tick)
 			m_cmdTimerDownForward = CMD_WINDOW;
 		}
 	}
+
+	// 昇竜拳は下を2回押す。押しっぱなしでは出ないよう、押した瞬間だけを数える
+	const bool downPressed = in.moveDown && !m_prevMoveDown;
+	m_prevMoveDown = in.moveDown;
+	if (downPressed) {
+		if (m_cmdTimerDownTap > 0) {
+			m_cmdTimerDownTwice = CMD_WINDOW;
+			m_cmdTimerDownTap = 0.0f;
+		}
+		else {
+			m_cmdTimerDownTap = CMD_WINDOW;
+		}
+	}
 }
 
 // 波動拳のコマンド（下 -> 斜め前 -> 前＋パンチ）が成立しているかチェック
@@ -1062,6 +1175,13 @@ bool Player::CheckHadoukenCommand() const
 	bool forward = (m_rotation.y < 0.0f) ? in.moveRight : in.moveLeft;
 
 	return (m_cmdTimerDownForward > 0 && forward && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
+}
+
+// 昇竜拳のコマンド（下、下＋パンチ）が成立しているかチェック
+bool Player::CheckShoryukenCommand() const
+{
+	const PlayerInputs& in = GetInputs();
+	return (m_cmdTimerDownTwice > 0 && in.moveDown && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }
 
 // 現在ガード可能な状態か、後ろ入力がされているかを判定

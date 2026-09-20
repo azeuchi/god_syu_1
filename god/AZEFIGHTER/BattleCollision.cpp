@@ -220,7 +220,8 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std::vector<std::unique_ptr<HitEffect>>& effects, CollisionResult& result, float stageLimitX, bool isP1Attacking)
 {
 	Projectile* proj = attacker->GetProjectile();
-	if (proj && proj->IsActive())
+	// 無敵中（ダウン・起き上がり・昇竜拳の出始め）は弾がすり抜ける
+	if (proj && proj->IsActive() && !defender->IsInvincible())
 	{
 		auto hurtboxes = GetTargetHurtboxes(defender);
 		bool projHit = false;
