@@ -336,7 +336,7 @@ void Player::InitDefaultParameters()
 			{ NormalMove::CROUCH_HP, 6, 12, 32, { 0.50f, 1.80f }, { 0.35f, 0.55f }, 700, 3,  -8, 0.0667f, 0.3f, false, AttackLevel::HIGH, { 0, 0, 0, 0, 0, 0 }, false },
 			{ NormalMove::CROUCH_LK, 4,  6, 13, { 1.05f, 0.20f }, { 0.30f, 0.15f }, 150, 2,  -1, 0.0333f, 0.2f, false, AttackLevel::LOW,  { 1, 0, 0, 1, 0, 0 }, false },
 			{ NormalMove::CROUCH_MK, 7, 10, 24, { 1.22f, 0.20f }, { 0.33f, 0.15f }, 400, 3,  -4, 0.05f,   0.3f, false, AttackLevel::LOW,  { 0, 0, 0, 0, 0, 0 }, true  },
-			{ NormalMove::CROUCH_HK, 8, 11, 34, { 1.05f, 0.18f }, { 0.35f, 0.16f }, 800, 0, -14, 0.0667f, 0.5f, true,  AttackLevel::LOW,  { 0, 0, 0, 0, 0, 0 }, true  },
+			{ NormalMove::CROUCH_HK, 8, 11, 34, { 1.15f, 0.18f }, { 0.35f, 0.16f }, 800, 0, -14, 0.0667f, 0.5f, true,  AttackLevel::LOW,  { 0, 0, 0, 0, 0, 0 }, true  },
 		};
 		for (const NormalDefault& d : defaults)
 		{
@@ -370,8 +370,9 @@ void Player::InitDefaultParameters()
 			p.speedModifiers.clear();
 		}
 
-		// しゃがみ強Pは踏み込みながら打ち上げる。Maya 側では、この前進の分だけ後ろ足を引いてある
+		// しゃがみ強Pと足払いは踏み込みながら出す。Maya 側では、この前進の分だけ軸足を引いてある
 		GetNormalParams(NormalMove::CROUCH_HP).forwardSpeed = 3.0f;
+		GetNormalParams(NormalMove::CROUCH_HK).forwardSpeed = 2.5f;
 	}
 
 	// --- 波動拳 (弱/中/強) の設定 ---

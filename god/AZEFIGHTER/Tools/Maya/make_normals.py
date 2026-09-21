@@ -50,10 +50,11 @@ BASE = 'BASE'  # target that stays where the base pose has it (planted foot, res
 #     pose is planted: it also keeps its world orientation so it does not turn on the floor.
 #     A limb listed in any pose is IK'd for the whole clip; frames 0 and the last frame are BASE.
 # ---------------------------------------------------------------------------------------------
-# 踏み込み: CrouchHeavyPunch moves the character forward by physics while the fist rises
-# (forwardSpeed 3.0 x 6 frames = 0.3 game units = 21 cm at the 0.014 model scale).
-# The rear foot stays planted in the world, so in the clip it slides back by the same amount.
-STEP_IN_CM = 21.0
+# 踏み込み: the move carries the character forward by physics during its startup, so in the clip the
+# planted foot slides back by the same distance and stays where it is in the world.
+# forwardSpeed x startup frames / 60 = game units, and one game unit is 1 / 0.014 = 71.4 cm.
+STEP_IN_CM = 21.0    # CrouchHeavyPunch: 3.0 x 6 frames
+SWEEP_STEP_CM = 24.0 # CrouchHeavyKick: 2.5 x 8 frames
 
 MOVES = {
     # しゃがみ待機: the Mixamo crouch with both hands up in guard. The crouching attacks start and end
@@ -138,19 +139,22 @@ MOVES = {
         16: dict(hips_dy=-4.0, hips_dz=4.0, hips_rot=(-4.0, 6.0, 0.0),
                  l_foot=(16.0, -38.0, 58.0), r_foot=BASE),
     }),
-    # しゃがみ強K: the sweep. The rear leg swings from behind, around the side, to the front
-    # while the body pivots on the planted lead foot
+    # しゃがみ強K: the sweep. The rear leg swings from behind, around the side, to the front while the
+    # body steps in, sinks low over the planted lead foot and leans out along the sweeping leg,
+    # which is what carries the foot far without the leg looking stretched
     'CrouchHeavyKick': dict(base='CrouchIdle', end=34, base_guard=True, poses={
         3: dict(hips_dy=-6.0, hips_rot=(2.0, 18.0, 0.0), spine=(-2.0, 6.0), head=-6.0,
-                r_foot=(-42.0, -36.0, -22.0), l_foot=BASE),
-        6: dict(hips_dy=-8.0, hips_dz=10.0, hips_rot=(4.0, 32.0, 0.0), spine=(-3.0, 12.0), head=-8.0,
-                r_foot=(-72.0, -36.0, 18.0), l_foot=BASE),
-        8: dict(hips_dy=-8.0, hips_dz=14.0, hips_rot=(4.0, 42.0, 0.0), spine=(-3.0, 14.0), head=-8.0,
-                r_foot=(-34.0, -36.0, 72.0), l_foot=BASE),
-        11: dict(hips_dy=-8.0, hips_dz=14.0, hips_rot=(4.0, 44.0, 0.0), spine=(-3.0, 14.0), head=-8.0,
-                 r_foot=(-24.0, -36.0, 78.0), l_foot=BASE),
-        22: dict(hips_dy=-4.0, hips_dz=4.0, hips_rot=(2.0, 14.0, 0.0), spine=(-1.0, 4.0), head=-3.0,
-                 r_foot=(-24.0, -38.0, -12.0), l_foot=BASE),
+                r_foot=(-42.0, -34.0, -22.0), l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM * 0.35))),
+        6: dict(hips_dy=-10.0, hips_dz=16.0, hips_rot=(4.0, 32.0, 0.0), spine=(-3.0, 12.0), head=-8.0,
+                r_foot=(-72.0, -30.0, 24.0), l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM * 0.8))),
+        8: dict(hips_dy=-12.0, hips_dz=24.0, hips_rot=(4.0, 42.0, 0.0), spine=(-4.0, 14.0), head=-8.0,
+                r_foot=(-34.0, -28.0, 88.0), l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM))),
+        11: dict(hips_dy=-12.0, hips_dz=24.0, hips_rot=(4.0, 44.0, 0.0), spine=(-4.0, 14.0), head=-8.0,
+                 r_foot=(-24.0, -28.0, 94.0), l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM))),
+        22: dict(hips_dy=-6.0, hips_dz=8.0, hips_rot=(2.0, 14.0, 0.0), spine=(-1.0, 4.0), head=-3.0,
+                 r_foot=(-24.0, -34.0, -12.0), l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM))),
+        28: dict(hips_dy=-2.0,
+                 r_foot=BASE, l_foot=(BASE, (0.0, 0.0, -SWEEP_STEP_CM * 0.4))),
     }),
 }
 
