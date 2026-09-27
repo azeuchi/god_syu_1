@@ -53,6 +53,9 @@ public:
 	// ラウンドの区切りで記憶を消し、注入していた入力も空にする
 	void Reset(Player& self);
 
+	// ラウンドの残り時間。負の値は制限時間なし（トレーニングなど）
+	void SetTimeLeft(float seconds) { m_timeLeft = seconds; }
+
 	// 思考表示の文字列は、表示しているときだけ組み立てる
 	void SetDebugEnabled(bool enabled) { m_debugEnabled = enabled; }
 	const CpuDebugInfo& GetDebugInfo() const { return m_debug; }
@@ -149,6 +152,9 @@ private:
 	float LowGuessRate() const;
 	int ChooseStarter(const Player& self, const int* candidates, int count);
 	void UpdateDebugHeader(const Snapshot& seen);
+
+	// 残り時間とHP差から決まる、攻めたい度合い（-1:守りたい 〜 +1:攻めたい）
+	float TimePressure(const Player& self, const Player& opponent) const;
 	const CpuProfile& Profile() const { return GetProfile(m_level); }
 	float ReactionSec() const;
 	float ConfirmSec() const;
@@ -205,6 +211,9 @@ private:
 	Intent m_intent = Intent::WAIT;
 	bool m_guardLow = false;       // ガードを固めるときにしゃがむか
 	bool m_wasThreatened = false;  // 前のフレームで相手の技が届く間合いにいたか
+
+	float m_timeLeft = -1.0f;      // ラウンドの残り時間（秒）
+	float m_pressure = 0.0f;       // 直近の TimePressure。思考表示に出すために覚えておく
 
 	// 相手が使った中段・下段の回数。古いものほど軽くして、最近の癖を重く見る
 	float m_midUsage = 0.0f;

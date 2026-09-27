@@ -31,6 +31,12 @@ private:
 	// 次のラウンドのために位置やHPをリセットする関数
 	void ResetRound();
 
+	// KOと時間切れで共通のラウンド決着処理
+	void EndRound(int addWinP1, int addWinP2, bool timeUp);
+
+	// 残り時間と時間切れの文字を描く
+	void DrawRoundTimer();
+
 	// 決着後の選択メニュー
 	void ResetMatch();       // 試合全体をやり直す
 	void DrawResultMenu();   // 左側の選択メニューを描画
@@ -78,6 +84,7 @@ private:
 	ID3D11SamplerState* m_pSamplerState = nullptr;      // 影用サンプラー
 	D3D11_VIEWPORT m_shadowViewport = {};
 	ID3D11BlendState* m_pMultiplyBlend = nullptr;
+	ID3D11BlendState* m_pDepthOnlyBlend = nullptr; // 色は描かず深度だけ書く。グリッド線を文字の下に隠す用
 
 	ID3D11Buffer* m_quadVB = nullptr; // 床のポリゴン用
 
@@ -110,6 +117,7 @@ private:
 	int m_winCountP1 = 0;      // 1Pの勝利ラウンド数
 	int m_winCountP2 = 0;      // 2Pの勝利ラウンド数
 	bool m_isRoundOver = false; // ラウンドが終わったかどうかのフラグ
+	float m_roundTimer = 0.0f;  // ラウンドの残り時間（秒）
 	float m_roundEndTimer = 0.0f; // ラウンド終了後の待機タイマー (2秒)
 
 	// KO演出用

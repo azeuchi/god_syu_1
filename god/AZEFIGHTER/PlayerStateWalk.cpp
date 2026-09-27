@@ -21,10 +21,10 @@ void PlayerStateWalk::UpdateBehavior(Player* player, float tick)
 
 
 	if (inputs.moveLeft) {
-		vel.x = -player->GetMoveSpeed();
+		vel.x = -player->GetWalkSpeed(false);
 	}
 	else if (inputs.moveRight) {
-		vel.x = player->GetMoveSpeed();
+		vel.x = player->GetWalkSpeed(false);
 	}
 
 	player->SetVelocity(vel);

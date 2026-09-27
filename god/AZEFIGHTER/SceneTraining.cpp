@@ -62,7 +62,7 @@ void SceneTraining::Init()
 	Player* p1 = GetObj<Player>("Player");
 	p1->SetInputType(PlayerInputType::PLAYER_1);
 	PlayerParameterLoader::LoadSettings(p1);
-	p1->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
+	p1->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false);
 	PlayerAssetLoader::LoadCommonAnimations(p1);
 	p1->SetPosition({ -2.0f, 0.0f, 0.0f });
 	p1->SetRotation({ 0.0f, DirectX::XM_PI / -2.0f, 0.0f });
@@ -78,7 +78,7 @@ void SceneTraining::Init()
 	scaleP2.x *= -1.0f; // X軸反転で向かい合わせ
 	p2->SetScale(scaleP2);
 	PlayerParameterLoader::CopyParameters(p1, p2);
-	p2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
+	p2->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false);
 	PlayerAssetLoader::LoadCommonAnimations(p2);
 	p2->SetPosition({ 2.0f, 0.0f, 0.0f });
 	p2->SetRotation({ 0.0f, DirectX::XM_PI / 2.0f, 0.0f });

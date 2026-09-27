@@ -198,7 +198,7 @@ void SceneTitle::Update(float tick)
 			m_blendFactor += tick / TITLE_BLEND_TIME;
 			if (m_blendFactor > 1.0f) m_blendFactor = 1.0f;
 		}
-		m_pTitleModel->UpdateWithBlend(m_currentAnimName.c_str(), (int)m_currentFrame, m_prevAnimName.c_str(), (int)m_prevFrame, m_blendFactor);
+		m_pTitleModel->UpdateWithBlend(m_currentAnimName.c_str(), m_currentFrame, m_prevAnimName.c_str(), m_prevFrame, m_blendFactor);
 
 		if (m_currentAnimName == "Idle")
 		{

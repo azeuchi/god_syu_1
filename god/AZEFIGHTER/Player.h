@@ -246,6 +246,9 @@ public:
 	static bool s_variableSpeed; // 緩急（可変フレーム再生）のオン/オフ。等速と見比べる用
 	static constexpr float GRAVITY = 55.0f;       // 重力加速度。CPUが着地のタイミングを予測するのにも使う
 	static constexpr float JUMP_VELOCITY = 19.0f; // ジャンプの初速
+	static constexpr float MODEL_SCALE = 0.014f;   // モデルの cm をゲームの座標に直す倍率
+	// 後ろ歩きは前歩きより遅くする。下がりながら安全に間合いを外しにくくする、格闘ゲームの定番
+	static constexpr float BACK_WALK_SPEED_RATE = 0.8f;
 #ifdef _DEBUG
 	// デバッグコマンド用
 	void Debug_SetHp(int hp) { m_hp = hp; }
@@ -311,6 +314,7 @@ public:
 	bool GetIsColliding() const;
 	void SetMoveSpeed(float speed);
 	float GetMoveSpeed() const;
+	float GetWalkSpeed(bool back) const; // 前歩き・後ろ歩きの移動速度
 	void SetJumpSpeed(float speed);
 	float GetJumpSpeed() const;
 	void SetScale(const DirectX::XMFLOAT3& scale);
@@ -384,6 +388,10 @@ public:
 	bool IsGuardingLow() const;
 	bool TryGuard(AttackLevel atkLevel) const;
 
+	// 押し戻し。瞬間移動させず、数フレームかけて減速しながら滑らせる
+	void StartPushback(float distance);  // 符号つき。+X 方向が正
+	float TakePushbackStep(float tick);  // このフレームに動く量を返し、残りから引く
+
 private:
 	// 初期パラメータ設定用関数
 	void InitDefaultParameters();
@@ -416,6 +424,7 @@ private:
 	bool m_isColliding = false;
 	// 現在しゃがんでいるかどうかのフラグ
 	bool m_isCrouching = false;
+	float m_pushbackLeft = 0.0f; // まだ滑り終えていない押し戻しの量（符号つき）
 
 	// 複数の攻撃判定を保持
 	// 現在アクティブな攻撃判定と、攻撃モーション中専用のくらい判定
@@ -440,7 +449,7 @@ private:
 	AnimationState m_currentAnim;
 	AnimationState m_previousAnim;
 	float m_blendFactor = 1.0f;
-	const float m_transitionDuration = 0.1f;
+	float m_transitionDuration = 0.1f; // 前のモーションと混ぜる時間（秒）。切り替え先で変わる
 	bool m_isAnimPaused = false;
 
 	// 現在のアニメーション再生倍率

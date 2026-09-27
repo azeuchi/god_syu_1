@@ -2,9 +2,25 @@
 #include "DebugLog.h"
 #include "PlayerStateDamage.h"
 #include "PlayerStateDown.h"
+#include "PlayerStateGuard.h"
 
 namespace
 {
+	// ガードされたときのヒットストップはヒットより短くし、当たった・防がれたの手応えを分ける
+	constexpr float BLOCK_HITSTOP_RATE = 0.6f;
+
+	// ガードされたときの押し戻し。技の重さ（ヒットストップの長さ）に比例させる。弱で約0.25、強で約0.35
+	// ヒット時の押し戻し（knockback）は使わない。昇竜拳や足払いは当たると相手を大きく飛ばすが、
+	// ガードされたときまで離れると反撃が届かなくなり、外したときのリスクが消えてしまうため
+	float BlockPushback(float hitStop) { return 0.15f + hitStop * 3.0f; }
+
+	// 飛び道具は距離で有利フレームが変わるので、硬直は固定にしている
+	constexpr int PROJECTILE_HITSTUN = 15;
+	constexpr int PROJECTILE_BLOCKSTUN = 11;
+	constexpr float PROJECTILE_HITSTOP = 0.1f;
+	constexpr float PROJECTILE_KNOCKBACK = 0.5f;
+	constexpr float PROJECTILE_BLOCK_PUSHBACK = 0.35f;
+
 	// 2つの判定ボックスの重なり領域の中心を返す
 	DirectX::XMFLOAT3 OverlapCenter(const DirectX::BoundingBox& a, const DirectX::BoundingBox& b)
 	{
@@ -17,6 +33,26 @@ namespace
 }
 #include "Projectile.h"
 #include <algorithm>
+
+// 押し戻しを1フレーム分進める。壁に着いて進めなかった分は、押している側（相手）が下がる
+static void ApplyPushback(Player* pushed, Player* opponent, float tick, float stageLimitX)
+{
+	const float step = pushed->TakePushbackStep(tick);
+	if (step == 0.0f) return;
+
+	DirectX::XMFLOAT3 pos = pushed->GetPosition();
+	const float before = pos.x;
+	pos.x = std::clamp(pos.x + step, -stageLimitX, stageLimitX);
+	pushed->SetPosition(pos);
+
+	const float blockedByWall = step - (pos.x - before);
+	if (blockedByWall != 0.0f)
+	{
+		DirectX::XMFLOAT3 opp = opponent->GetPosition();
+		opp.x = std::clamp(opp.x - blockedByWall, -stageLimitX, stageLimitX);
+		opponent->SetPosition(opp);
+	}
+}
 
 CollisionResult BattleCollision::UpdateInteractions(Player* p1, Player* p2, float tick, std::vector<std::unique_ptr<HitEffect>>& effects, float stageLimitX)
 {
@@ -55,6 +91,9 @@ CollisionResult BattleCollision::UpdateInteractions(Player* p1, Player* p2, floa
 	DirectX::XMFLOAT3 pos2 = p2->GetPosition();
 	pos2.x = std::clamp(pos2.x, -stageLimitX, stageLimitX);
 	p2->SetPosition(pos2);
+
+	ApplyPushback(p1, p2, tick, stageLimitX);
+	ApplyPushback(p2, p1, tick, stageLimitX);
 
 	// 衝突判定と押し出し
 	ResolvePushback(p1, p2, stageLimitX);
@@ -152,41 +191,27 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 		AttackLevel atkLevel = (params != nullptr) ? params->attackLevel : AttackLevel::HIGH;
 		bool blocked = defender->TryGuard(atkLevel);
 		result.wasBlocked = blocked;
-		// make hitFrame the net frame advantage: add attacker remaining recovery to hitstun
+		// hitFrame / blockFrame は有利フレーム。攻撃側の残り硬直を足して、のけぞり・ガード硬直の長さにする
+		int blockStun = 10;
 		if (params != nullptr)
 		{
 			float remainF = (params->totalDuration - attacker->GetAttackElapsedSec()) * 60.0f;
 			int extra = (remainF > 0.0f) ? (int)(remainF + 0.5f) : 0;
 			stun = params->hitFrame + extra;
+			blockStun = params->blockFrame + extra;
 		}
 
 		defender->ReceiveDamage(dmg, atkLevel);
 		attacker->OnHit();
 
-		float kb = blocked ? 0.0f : ((params != nullptr) ? params->knockback : 0.0f);
-		float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-
-		DirectX::XMFLOAT3 defPos = defender->GetPosition();
-		float originalX = defPos.x;
-		float targetX = originalX + (dir * kb);
-		float clampedX = std::clamp(targetX, -stageLimitX, stageLimitX);
-		defPos.x = clampedX;
-		defender->SetPosition(defPos);
-
-		float movedDist = fabsf(clampedX - originalX);
-		float pushBackDist = kb - movedDist;
-
-		if (pushBackDist > 0.0f)
-		{
-			DirectX::XMFLOAT3 atkPos = attacker->GetPosition();
-			atkPos.x -= dir * pushBackDist;
-			atkPos.x = std::clamp(atkPos.x, -stageLimitX, stageLimitX);
-			attacker->SetPosition(atkPos);
-		}
+		const float hitStop = (params != nullptr) ? params->hitStop : 0.1f;
+		const float knockback = (params != nullptr) ? params->knockback : 0.0f;
+		const float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+		defender->StartPushback(dir * (blocked ? BlockPushback(hitStop) : knockback));
 
 		if (blocked)
 		{
-			// guard: block, no hitstun (chip only)
+			defender->SetState(std::make_unique<PlayerStateGuard>(blockStun, defender->GetInputs().moveDown));
 		}
 		else if (isDown)
 		{
@@ -197,8 +222,8 @@ void BattleCollision::CheckAttackHit(Player* attacker, Player* defender, std::ve
 			defender->SetState(std::make_unique<PlayerStateDamage>(stun));
 		}
 
-		result.dbgStun = stun;
-		float stopTime = (params != nullptr) ? params->hitStop : 0.1f;
+		result.dbgStun = blocked ? blockStun : stun;
+		const float stopTime = blocked ? hitStop * BLOCK_HITSTOP_RATE : hitStop;
 		result.hitStopTimer = stopTime;
 
 		if (isP1Attacking) result.shakeTimerP2 = stopTime;
@@ -242,38 +267,20 @@ void BattleCollision::CheckProjectileHit(Player* attacker, Player* defender, std
 			result.wasProjectile = true;
 			proj->Deactivate();
 			SpawnHitEffect(effects, projHitPos);
+			const bool blockedProj = defender->TryGuard(AttackLevel::HIGH);
+			result.wasBlocked = blockedProj;
 			defender->ReceiveDamage(proj->GetDamage(), AttackLevel::HIGH);
 
-			bool blockedProj = defender->TryGuard(AttackLevel::HIGH);
-				result.wasBlocked = blockedProj;
-				float kb = blockedProj ? 0.0f : 0.5f; // 飛び道具は固定のノックバックとするかパラメータ化するか
-			float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
-			DirectX::XMFLOAT3 defPos = defender->GetPosition();
-			float originalX = defPos.x;
-			float targetX = originalX + (dir * kb);
-			float clampedX = std::clamp(targetX, -stageLimitX, stageLimitX);
-			defPos.x = clampedX;
-			defender->SetPosition(defPos);
+			const float dir = (attacker->GetScale().x > 0.0f) ? 1.0f : -1.0f;
+			defender->StartPushback(dir * (blockedProj ? PROJECTILE_BLOCK_PUSHBACK : PROJECTILE_KNOCKBACK));
 
-			float movedDist = fabsf(clampedX - originalX);
-			float pushBackDist = kb - movedDist;
+			if (blockedProj) defender->SetState(std::make_unique<PlayerStateGuard>(PROJECTILE_BLOCKSTUN, defender->GetInputs().moveDown));
+			else             defender->SetState(std::make_unique<PlayerStateDamage>(PROJECTILE_HITSTUN));
 
-			if (pushBackDist > 0.0f)
-			{
-				DirectX::XMFLOAT3 atkPos = attacker->GetPosition();
-				atkPos.x -= dir * pushBackDist;
-				atkPos.x = std::clamp(atkPos.x, -stageLimitX, stageLimitX);
-				attacker->SetPosition(atkPos);
-			}
-
-			if (!defender->TryGuard(AttackLevel::HIGH))
-			{
-				defender->SetState(std::make_unique<PlayerStateDamage>(15));
-			}
-			result.hitStopTimer = 0.1f;
-
-			if (isP1Attacking) result.shakeTimerP2 = 0.1f;
-			else result.shakeTimerP1 = 0.1f;
+			const float stopTime = blockedProj ? PROJECTILE_HITSTOP * BLOCK_HITSTOP_RATE : PROJECTILE_HITSTOP;
+			result.hitStopTimer = stopTime;
+			if (isP1Attacking) result.shakeTimerP2 = stopTime;
+			else result.shakeTimerP1 = stopTime;
 
 			if (defender->GetHpRatio() <= 0.0f)
 			{

@@ -21,6 +21,7 @@
 
 #include <DirectXMath.h>
 #include <algorithm>
+#include <cmath>
 
 KeyConfig g_keyConfigP1 = { 'W', 'S', 'A', 'D', 'U', 'I', 'O', 'J', 'K', 'L' };
 KeyConfig g_keyConfigP2 = { VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD4, VK_NUMPAD6, VK_NUMPAD5, VK_NUMPAD3 };
@@ -46,6 +47,22 @@ namespace
 		for (const char* other : others)
 		{
 			if (strcmp(name, other) == 0) return true;
+		}
+		return false;
+	}
+
+	// 技・のけぞり・ガード・ジャンプは、入力や被弾にすぐ応えて見えるよう前の姿勢と混ぜる時間を短くする。
+	// 待機・歩き・しゃがみの行き来は、急に切り替わると姿勢が飛んで見えるので長めに混ぜる
+	constexpr float QUICK_BLEND_SEC = 2.0f / 60.0f;
+	constexpr float LOCOMOTION_BLEND_SEC = 6.0f / 60.0f;
+
+	bool IsQuickTransition(const char* name)
+	{
+		if (IsAttackAnimation(name)) return true;
+		const char* reactions[] = { "Damage", "Guard", "CrouchGuard", "Jump", "Death" };
+		for (const char* reaction : reactions)
+		{
+			if (strcmp(name, reaction) == 0) return true;
 		}
 		return false;
 	}
@@ -630,8 +647,8 @@ void Player::UpdateAnimation(float tick)
 void Player::UpdateModelBlend()
 {
 	m_model->UpdateWithBlend(
-		m_currentAnim.name, (int)m_currentAnim.frame,
-		m_previousAnim.name, (int)m_previousAnim.frame,
+		m_currentAnim.name, m_currentAnim.frame,
+		m_previousAnim.name, m_previousAnim.frame,
 		m_blendFactor);
 }
 
@@ -688,6 +705,7 @@ void Player::PlayAnimation(const char* name, bool forceRestart)
 	m_currentAnim.name = name;
 	m_currentAnim.frame = 0;
 	m_blendFactor = 0.0f;
+	m_transitionDuration = IsQuickTransition(name) ? QUICK_BLEND_SEC : LOCOMOTION_BLEND_SEC;
 }
 
 // アニメーションの再生速度倍率を設定
@@ -957,6 +975,12 @@ DirectX::BoundingBox Player::GetBoundingBox() const { return GetHurtbox(HurtboxT
 
 void Player::SetMoveSpeed(float speed) { m_moveSpeed = speed; }
 float Player::GetMoveSpeed() const { return m_moveSpeed; }
+
+float Player::GetWalkSpeed(bool back) const
+{
+	return back ? m_moveSpeed * BACK_WALK_SPEED_RATE : m_moveSpeed;
+}
+
 void Player::SetJumpSpeed(float speed) { m_jumpSpeed = speed; }
 float Player::GetJumpSpeed() const { return m_jumpSpeed; }
 void Player::SetScale(const DirectX::XMFLOAT3& scale) { m_scale = scale; }
@@ -1119,6 +1143,7 @@ void Player::Reset()
 	m_isAttacking = false;
 	m_hasHit = false;
 	m_velocity = { 0.0f, 0.0f, 0.0f };
+	m_pushbackLeft = 0.0f;
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 	if (m_projectile) m_projectile->Deactivate();
@@ -1188,6 +1213,9 @@ bool Player::CheckShoryukenCommand() const
 // 現在ガード可能な状態か、後ろ入力がされているかを判定
 bool Player::IsGuarding() const
 {
+	// ガード硬直中は、入力に関係なくガードが続く
+	if (m_currentState && m_currentState->IsBlockstun()) return true;
+
 	// ジャンプ中、攻撃中などはガード不可
 	if (m_isJumping || m_isAttacking || m_pActiveAttackParams != nullptr) return false;
 
@@ -1224,6 +1252,32 @@ bool Player::IsGuardingLow() const
 	const PlayerInputs& in = GetInputs();
 	// 後ろ入力かつ下にも入力している場合
 	return in.moveDown;
+}
+
+void Player::SetCurrentFrame(float frame)
+{
+	m_currentAnim.frame = frame;
+}
+
+void Player::StartPushback(float distance)
+{
+	m_pushbackLeft = distance;
+}
+
+float Player::TakePushbackStep(float tick)
+{
+	// 残りの一定割合ずつ進めるので、当たった直後が一番速く、だんだん止まる。約6Fで9割進む
+	// ヒットストップ中は tick が 0 なので動かず、止まりが解けてから滑り出す
+	constexpr float TIME_CONSTANT = 0.035f;
+	if (std::fabs(m_pushbackLeft) < 0.001f)
+	{
+		const float rest = m_pushbackLeft;
+		m_pushbackLeft = 0.0f;
+		return rest;
+	}
+	const float step = m_pushbackLeft * (1.0f - std::exp(-tick / TIME_CONSTANT));
+	m_pushbackLeft -= step;
+	return step;
 }
 
 // 相手の攻撃判定レベルに対してガードが成功するかを検証

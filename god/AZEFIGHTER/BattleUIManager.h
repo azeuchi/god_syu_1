@@ -10,7 +10,8 @@ enum class RoundPhase {
 	ROUND_CALL, // ラウンド数表示
 	FIGHT_CALL, // FIGHT表示
 	PLAYING,    // 試合中
-	KO_CALL     // KO表示
+	KO_CALL,    // KO表示
+	TIME_UP_CALL // 時間切れ表示
 };
 
 class BattleUIManager

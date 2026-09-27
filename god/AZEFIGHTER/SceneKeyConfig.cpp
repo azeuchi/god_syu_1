@@ -28,8 +28,8 @@ const float CAMERA_LIMIT_X = 4.0f;
 
 // トップメニューの配置。6項目が画面幅(1280)に収まるように幅と間隔を決めている
 const float TOP_ITEM_X = 30.0f;
-const float TOP_ITEM_STEP = 205.0f;
-const float TOP_ITEM_W = 190.0f;
+const float TOP_ITEM_STEP = 250.0f;
+const float TOP_ITEM_W = 230.0f;
 
 // キーコンフィグの1行の高さ。項目が画面の下にはみ出さない間隔にしている
 const int CONFIG_ROW_STEP = 42;
@@ -58,7 +58,6 @@ void SceneKeyConfig::Init()
 	m_topItems = {
 		{ L"Player 1 Config", TopMenuAction::ConfigP1 },
 		{ L"Player 2 Config", TopMenuAction::ConfigP2 },
-		{ L"Training Mode",   TopMenuAction::Training },
 		{ L"VS Player",       TopMenuAction::VsPlayer },
 		{ L"VS CPU",          TopMenuAction::VsCpu },
 		{ L"Debug Room",      TopMenuAction::Debug }
@@ -131,7 +130,7 @@ void SceneKeyConfig::Init()
 	Player* player = GetObj<Player>("Player");
 	player->SetInputType(PlayerInputType::AI); // キャラが動かないようAI（待機）に固定
 	PlayerParameterLoader::LoadSettings(player);
-	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
+	if (!player->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Error", MB_OK);
 	}
@@ -147,7 +146,7 @@ void SceneKeyConfig::Init()
 	player2->SetMoveSpeed(player->GetMoveSpeed());
 	player2->SetScale(player->GetScale());
 	PlayerParameterLoader::CopyParameters(player, player2);
-	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
+	if (!player2->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Error", MB_OK);
 	}
@@ -315,12 +314,6 @@ void SceneKeyConfig::Update(float tick)
 					m_configSelectedIndex = 0;
 					m_windowScaleY = 0.0f;
 					break;
-				case TopMenuAction::Training:
-					// トレーニングモードに移行し、両プレイヤーの操作権限を与える
-					m_menuState = MenuState::TrainingMode;
-					if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::PLAYER_1);
-					if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::PLAYER_2);
-					break;
 				case TopMenuAction::VsPlayer:
 					MatchConfig::vsCpu = false;
 					s_isConfigSet = true;
@@ -412,20 +405,6 @@ void SceneKeyConfig::Update(float tick)
 				{
 					m_menuState = MenuState::TopMenu;
 				}
-			}
-		}
-		else if (m_menuState == MenuState::TrainingMode)
-		{
-			// トレーニングモード中、ESCキーまたはBACKボタンで戻る
-			bool exitTraining = false;
-			if (IsKeyTrigger(VK_ESCAPE)) exitTraining = true;
-			for (int i = 0; i < 4; ++i) if (IsPadTrigger(i, XINPUT_GAMEPAD_BACK)) exitTraining = true;
-
-			if (exitTraining)
-			{
-				m_menuState = MenuState::TopMenu;
-				if (Player* p1 = GetObj<Player>("Player")) p1->SetInputType(PlayerInputType::AI);
-				if (Player* p2 = GetObj<Player>("Player2")) p2->SetInputType(PlayerInputType::AI);
 			}
 		}
 	}
@@ -634,100 +613,96 @@ void SceneKeyConfig::Draw()
 	DirectX::XMFLOAT4X4 proj = pCamera->GetProj();
 	m_hitEffects.Draw(view, proj);
 
-	// トレーニングモード以外の場合のみ、UIを描画する
-	if (m_menuState != MenuState::TrainingMode)
+	SimpleUI::Clear();
+
+	// 画面上部にトップメニュー用の少し明るめのネイビーブルー背景を描画
+	DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
+
+	if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
 	{
-		SimpleUI::Clear();
-
-		// 画面上部にトップメニュー用の少し明るめのネイビーブルー背景を描画
-		DrawRectPixel(0, 0, 1280, 150, { 0.0f, 0.15f, 0.3f, 0.8f });
-
-		if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
+		// トップメニューの項目枠を描画
+		for (int i = 0; i < m_topItems.size(); ++i)
 		{
-			// トップメニューの項目枠を描画
-			for (int i = 0; i < m_topItems.size(); ++i)
-			{
-				DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
-				DrawRectPixel(TOP_ITEM_X + i * TOP_ITEM_STEP, 50.0f, TOP_ITEM_W, 50.0f, color);
-			}
+			DirectX::XMFLOAT4 color = (i == m_topSelectedIndex) ? XMFLOAT4(0.0f, 0.8f, 1.0f, 0.9f) : XMFLOAT4(0.0f, 0.4f, 0.6f, 0.7f);
+			DrawRectPixel(TOP_ITEM_X + i * TOP_ITEM_STEP, 50.0f, TOP_ITEM_W, 50.0f, color);
 		}
-		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
-		{
-			// コンフィグ用のパネルを描画（中央から上下に伸びる演出計算）
-			float panelHeight = 540.0f * m_windowScaleY; // 項目が増えたので枠を広げる
-			float panelY = 150.0f + (540.0f - panelHeight) / 2.0f;
-
-			DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
-
-			// 枠の展開アニメーションが終わってから中身の項目枠を描画する
-			if (m_windowScaleY >= 1.0f)
-			{
-				std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
-				for (int i = 0; i < currentItems.size(); ++i)
-				{
-					DirectX::XMFLOAT4 color = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 0.7f, 0.0f, 0.9f) : XMFLOAT4(0.3f, 0.3f, 0.3f, 0.8f);
-					DrawRectPixel(70.0f, (float)(170 + i * CONFIG_ROW_STEP), 360.0f, 40.0f, color);
-				}
-			}
-		}
-
-		// 登録した四角形UIを一括描画
-		SimpleUI::DrawAll();
-
-		// ここからDirectWriteによるフォントの描画処理
-		SimpleFont::Begin();
-
-		if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
-		{
-			for (int i = 0; i < m_topItems.size(); ++i)
-			{
-				DirectX::XMFLOAT4 textColor = (i == m_topSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
-				SimpleFont::Draw(m_topItems[i].label, TOP_ITEM_X + i * TOP_ITEM_STEP + 14.0f, 62.0f, 22.0f, textColor);
-			}
-		}
-		else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
-		{
-			bool isP1 = (m_menuState == MenuState::ConfigP1);
-			SimpleFont::Draw(isP1 ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
-
-			// 枠のアニメーション終了後に各項目のテキストを描画
-			if (m_windowScaleY >= 1.0f)
-			{
-				std::vector<ConfigItem>& currentItems = isP1 ? m_p1Items : m_p2Items;
-				InputDeviceType currentDevice = isP1 ? g_inputDeviceP1 : g_inputDeviceP2;
-
-				for (int i = 0; i < currentItems.size(); ++i)
-				{
-					DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-
-					// アクション名を描画 (例: Light Punch)
-					SimpleFont::Draw(currentItems[i].label, 80.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
-
-					// 現在の割り当てキー、または待機中のメッセージを描画
-					if (currentItems[i].isDeviceSelect)
-					{
-						SimpleFont::Draw(GetDeviceName(currentDevice), 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
-					}
-					else if (currentItems[i].keyPtr != nullptr)
-					{
-						if (m_waitBindKeyPtr == currentItems[i].keyPtr)
-						{
-							SimpleFont::Draw(L"Press Any Button...", 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
-						}
-						else
-						{
-							const wchar_t* btnName = (currentDevice == InputDeviceType::KEYBOARD) ? GetKeyName(*currentItems[i].keyPtr) : GetPadButtonName(*currentItems[i].keyPtr);
-							SimpleFont::Draw(btnName, 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
-						}
-					}
-				}
-			}
-		}
-
-		SimpleFont::End();
-
-		if (m_menuState == MenuState::CpuSelect) DrawCpuSelect();
 	}
+	else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
+	{
+		// コンフィグ用のパネルを描画（中央から上下に伸びる演出計算）
+		float panelHeight = 540.0f * m_windowScaleY; // 項目が増えたので枠を広げる
+		float panelY = 150.0f + (540.0f - panelHeight) / 2.0f;
+
+		DrawRectPixel(50, panelY, 400, panelHeight, { 0.0f, 0.15f, 0.3f, 0.8f });
+
+		// 枠の展開アニメーションが終わってから中身の項目枠を描画する
+		if (m_windowScaleY >= 1.0f)
+		{
+			std::vector<ConfigItem>& currentItems = (m_menuState == MenuState::ConfigP1) ? m_p1Items : m_p2Items;
+			for (int i = 0; i < currentItems.size(); ++i)
+			{
+				DirectX::XMFLOAT4 color = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 0.7f, 0.0f, 0.9f) : XMFLOAT4(0.3f, 0.3f, 0.3f, 0.8f);
+				DrawRectPixel(70.0f, (float)(170 + i * CONFIG_ROW_STEP), 360.0f, 40.0f, color);
+			}
+		}
+	}
+
+	// 登録した四角形UIを一括描画
+	SimpleUI::DrawAll();
+
+	// ここからDirectWriteによるフォントの描画処理
+	SimpleFont::Begin();
+
+	if (m_menuState == MenuState::TopMenu || m_menuState == MenuState::CpuSelect)
+	{
+		for (int i = 0; i < m_topItems.size(); ++i)
+		{
+			DirectX::XMFLOAT4 textColor = (i == m_topSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.7f, 0.8f, 1.0f, 1.0f);
+			SimpleFont::Draw(m_topItems[i].label, TOP_ITEM_X + i * TOP_ITEM_STEP + 14.0f, 62.0f, 22.0f, textColor);
+		}
+	}
+	else if (m_menuState == MenuState::ConfigP1 || m_menuState == MenuState::ConfigP2)
+	{
+		bool isP1 = (m_menuState == MenuState::ConfigP1);
+		SimpleFont::Draw(isP1 ? L"Player 1 Config" : L"Player 2 Config", 50, 50, 32.0f, { 1.0f, 0.9f, 0.2f, 1.0f });
+
+		// 枠のアニメーション終了後に各項目のテキストを描画
+		if (m_windowScaleY >= 1.0f)
+		{
+			std::vector<ConfigItem>& currentItems = isP1 ? m_p1Items : m_p2Items;
+			InputDeviceType currentDevice = isP1 ? g_inputDeviceP1 : g_inputDeviceP2;
+
+			for (int i = 0; i < currentItems.size(); ++i)
+			{
+				DirectX::XMFLOAT4 textColor = (i == m_configSelectedIndex) ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+
+				// アクション名を描画 (例: Light Punch)
+				SimpleFont::Draw(currentItems[i].label, 80.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
+
+				// 現在の割り当てキー、または待機中のメッセージを描画
+				if (currentItems[i].isDeviceSelect)
+				{
+					SimpleFont::Draw(GetDeviceName(currentDevice), 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 0.0f, 1.0f, 0.5f, 1.0f });
+				}
+				else if (currentItems[i].keyPtr != nullptr)
+				{
+					if (m_waitBindKeyPtr == currentItems[i].keyPtr)
+					{
+						SimpleFont::Draw(L"Press Any Button...", 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, { 1.0f, 0.3f, 0.3f, 1.0f });
+					}
+					else
+					{
+						const wchar_t* btnName = (currentDevice == InputDeviceType::KEYBOARD) ? GetKeyName(*currentItems[i].keyPtr) : GetPadButtonName(*currentItems[i].keyPtr);
+						SimpleFont::Draw(btnName, 250.0f, (float)(175 + i * CONFIG_ROW_STEP), 20.0f, textColor);
+					}
+				}
+			}
+		}
+	}
+
+	SimpleFont::End();
+
+	if (m_menuState == MenuState::CpuSelect) DrawCpuSelect();
 
 	GetContext()->RSSetState(nullptr);
 }

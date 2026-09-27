@@ -5,6 +5,7 @@
 #include <assimp/postprocess.h>
 #include <unordered_set>
 #include <string>
+#include <cmath>
 
 // Matrix::Identity の定義
 const DirectX::SimpleMath::Matrix DirectX::SimpleMath::Matrix::Identity = {
@@ -428,12 +429,12 @@ void Model::CreateBone(const aiNode* node)
 
 }
 
-void Model::UpdateAnimation(const char* AnimationName, int Frame)
+void Model::UpdateAnimation(const char* AnimationName, float Frame)
 {
 	UpdateWithBlend(AnimationName, Frame, AnimationName, Frame, 1.0f);
 }
 
-void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor)
+void Model::UpdateWithBlend(const char* newAnimName, float newFrame, const char* oldAnimName, float oldFrame, float blendFactor)
 {
 	// 新しいアニメーションのローカル行列（親に対する姿勢）を取得
 	SampleAnimationKeys(newAnimName, newFrame, m_poseNew);
@@ -490,7 +491,7 @@ void Model::UpdateWithBlend(const char* newAnimName, int newFrame, const char* o
 	BoneUpdate();
 }
 
-void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose)
+void Model::CalculateAnimationPose(const char* animName, float frame, std::vector<Matrix>& outPose)
 {
 	// 補間なしの単一アニメーション再生用
 	// ローカル行列を取得
@@ -504,7 +505,7 @@ void Model::CalculateAnimationPose(const char* animName, int frame, std::vector<
 }
 
 // アニメーションデータから、各ボーンのローカル行列（親に対する変形）のみを抽出する関数
-void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices)
+void Model::SampleAnimationKeys(const char* animName, float frame, std::vector<Matrix>& outLocalMatrices)
 {
 	const aiScene* animation = nullptr;
 	// 指定されたアニメーションが存在するかチェック
@@ -528,6 +529,18 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 	// アニメーションは通常 0番目を使用
 	aiAnimation* anim = animation->mAnimations[0];
 
+	// キーは1フレームに1つ。小数部で次のキーへ補間するので、再生速度が1未満でも同じ姿勢で止まらない
+	const float whole = std::floor(frame);
+	const float t = frame - whole;
+	const int keyIndex = (whole > 0.0f) ? (int)whole : 0;
+
+	// 最後のキーからは折り返して補間しない。ループしない技の終わりに、最初の姿勢が混ざらないようにする
+	auto keyPair = [keyIndex](unsigned int count, unsigned int& k0, unsigned int& k1)
+	{
+		k0 = (unsigned int)keyIndex % count;
+		k1 = (k0 + 1 < count) ? k0 + 1 : k0;
+	};
+
 	// アニメーションチャンネル（ボーンごとの動き）を解析
 	for (unsigned int c = 0; c < anim->mNumChannels; c++)
 	{
@@ -538,17 +551,22 @@ void Model::SampleAnimationKeys(const char* animName, int frame, std::vector<Mat
 
 		const BONE& bone = boneIt->second;
 
-		// 現在のフレームにおける 回転(Rotation) を取得
-		int rotFrame = frame % nodeAnim->mNumRotationKeys;
-		aiQuaternion rot = nodeAnim->mRotationKeys[rotFrame].mValue;
+		unsigned int k0, k1;
+		keyPair(nodeAnim->mNumRotationKeys, k0, k1);
+		aiQuaternion rot;
+		aiQuaternion::Interpolate(rot, nodeAnim->mRotationKeys[k0].mValue, nodeAnim->mRotationKeys[k1].mValue, t);
 
-		// 現在のフレームにおける 位置(Translation) を取得
-		int posFrame = frame % nodeAnim->mNumPositionKeys;
-		aiVector3D pos = nodeAnim->mPositionKeys[posFrame].mValue;
+		keyPair(nodeAnim->mNumPositionKeys, k0, k1);
+		const aiVector3D& pos0 = nodeAnim->mPositionKeys[k0].mValue;
+		const aiVector3D pos = pos0 + (nodeAnim->mPositionKeys[k1].mValue - pos0) * t;
 
-		// 現在のフレームにおける スケール(Scaling) を取得
-		int scaleFrame = (nodeAnim->mNumScalingKeys > 0) ? (frame % nodeAnim->mNumScalingKeys) : 0;
-		aiVector3D scale = (nodeAnim->mNumScalingKeys > 0) ? nodeAnim->mScalingKeys[scaleFrame].mValue : aiVector3D(1.0f, 1.0f, 1.0f);
+		aiVector3D scale(1.0f, 1.0f, 1.0f);
+		if (nodeAnim->mNumScalingKeys > 0)
+		{
+			keyPair(nodeAnim->mNumScalingKeys, k0, k1);
+			const aiVector3D& scale0 = nodeAnim->mScalingKeys[k0].mValue;
+			scale = scale0 + (nodeAnim->mScalingKeys[k1].mValue - scale0) * t;
+		}
 
 		// 行列を作成
 		Matrix scaleMat = Matrix::CreateScale(scale.x, scale.y, scale.z);

@@ -20,10 +20,10 @@ void PlayerStateWalkBack::UpdateBehavior(Player* player, float tick)
 	const PlayerInputs& inputs = player->GetInputs();
 
 	if (inputs.moveLeft) {
-		vel.x = -player->GetMoveSpeed();
+		vel.x = -player->GetWalkSpeed(true);
 	}
 	else if (inputs.moveRight) {
-		vel.x = player->GetMoveSpeed();
+		vel.x = player->GetWalkSpeed(true);
 	}
 
 	player->SetVelocity(vel);

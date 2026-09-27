@@ -236,7 +236,7 @@ void SceneDebug::Init()
 	PlayerParameterLoader::LoadSettings(player);
 
 	// --- モデル・アニメーションロード---
-	player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false);
+	player->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false);
 	PlayerAssetLoader::LoadCommonAnimations(player);
 
 	// 初期状態は Idle (待機)

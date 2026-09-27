@@ -5,9 +5,13 @@
 #include "Player.h"
 // #include "Input.h"
 
+// 待機モーションは 30fps で打たれているので、1キーを1フレームで再生すると2倍速になる
+static const float IDLE_ANIM_SPEED = 0.5f;
+
 void PlayerStateIdle::OnEnter(Player* player)
 {
 	player->PlayAnimation("Idle");
+	player->SetAnimationSpeed(IDLE_ANIM_SPEED);
 }
 
 void PlayerStateIdle::UpdateBehavior(Player* player, float tick)
@@ -18,11 +22,12 @@ void PlayerStateIdle::UpdateBehavior(Player* player, float tick)
 
 	// 抽象化された入力を取得
 	const PlayerInputs& inputs = player->GetInputs();
+	const bool back = player->GetForwardMoveDot() < 0.0f;
 	if (inputs.moveLeft) {
-		vel.x = -player->GetMoveSpeed();
+		vel.x = -player->GetWalkSpeed(back);
 	}
 	else if (inputs.moveRight) {
-		vel.x = player->GetMoveSpeed();
+		vel.x = player->GetWalkSpeed(back);
 	}
 
 	player->SetVelocity(vel);

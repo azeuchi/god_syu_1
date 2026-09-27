@@ -42,11 +42,20 @@ const float CAMERA_LIMIT_X = 4.0f;
 
 // 定数定義
 const int ROUND_TO_WIN = 2;         // 2本先取で勝利
+const float ROUND_TIME = 99.0f;     // 1ラウンドの制限時間（秒）
 
 // フェード演出用定数
 const float WAIT_BEFORE_FADE = 1.0f; // ラウンド終了後、フェード開始までの待機時間
 const float FADE_DURATION = 2.0f;    // フェードにかける時間
 const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 (3.0秒)
+
+// ピクセル座標(左上基準、1280x720)の矩形を UI に登録する
+static void AddUIRect(float px, float py, float pw, float ph, const DirectX::XMFLOAT4& color)
+{
+	float ndcX = ((px + pw * 0.5f) / 1280.0f) * 2.0f - 1.0f;
+	float ndcY = 1.0f - ((py + ph * 0.5f) / 720.0f) * 2.0f;
+	SimpleUI::AddRect(ndcX, ndcY, (pw / 1280.0f) * 2.0f, (ph / 720.0f) * 2.0f, color, nullptr);
+}
 
 // 静的メンバ変数の実体定義
 bool SceneGame::s_isGameSet = false;
@@ -217,7 +226,7 @@ void SceneGame::Init()
 	// 設定ファイルからパラメータを読み込み
 	PlayerParameterLoader::LoadSettings(player);
 
-	if (!player->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
+	if (!player->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false))
 	{
 		MessageBox(NULL, "プレイヤーモデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
@@ -240,7 +249,7 @@ void SceneGame::Init()
 	// P1からパラメータをコピー
 	PlayerParameterLoader::CopyParameters(player, player2);
 
-	if (!player2->Load("Assets/Model/knight/Idle.fbx", 0.014f, true, false))
+	if (!player2->Load("Assets/Model/knight/Idle.fbx", Player::MODEL_SCALE, true, false))
 	{
 		MessageBox(NULL, "プレイヤー2モデルの読み込みに失敗しました。", "Model Load Error", MB_OK);
 	}
@@ -306,6 +315,10 @@ void SceneGame::Init()
 	mulBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&mulBlendDesc, &m_pMultiplyBlend);
 
+	D3D11_BLEND_DESC depthOnlyDesc = {};
+	depthOnlyDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+	GetDevice()->CreateBlendState(&depthOnlyDesc, &m_pDepthOnlyBlend);
+
 	// ----------------------------------------------------
 	// アウトライン用ラスタライザーステートの作成
 	// ----------------------------------------------------
@@ -349,6 +362,7 @@ void SceneGame::Uninit()
 	if (m_pDepthStateNoWrite) { m_pDepthStateNoWrite->Release(); m_pDepthStateNoWrite = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pMultiplyBlend) { m_pMultiplyBlend->Release(); m_pMultiplyBlend = nullptr; }
+	if (m_pDepthOnlyBlend) { m_pDepthOnlyBlend->Release(); m_pDepthOnlyBlend = nullptr; }
 	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
 
 	if (m_shadowMapTex) { m_shadowMapTex->Release(); m_shadowMapTex = nullptr; }
@@ -364,10 +378,97 @@ void SceneGame::Uninit()
  * @brief ラウンド開始・リセット処理
  * 位置、HP、向き、状態を初期状態に戻す
  */
+// KOでも時間切れでも、ラウンドの終わりにやることは同じ。違いは演出だけ
+void SceneGame::EndRound(int addWinP1, int addWinP2, bool timeUp)
+{
+	Player* player = GetObj<Player>("Player");
+	Player* player2 = GetObj<Player>("Player2");
+
+	m_isRoundOver = true;
+	m_winCountP1 += addWinP1;
+	m_winCountP2 += addWinP2;
+
+	if (player) player->SetInputType(PlayerInputType::AI);
+	if (player2) player2->SetInputType(PlayerInputType::AI);
+	if (m_cpu && player2) m_cpu->Reset(*player2);
+
+	m_currentPhase = timeUp ? RoundPhase::TIME_UP_CALL : RoundPhase::KO_CALL;
+	Sound::PlaySE("Assets/Sound/ko.wav");
+
+	// 時間切れは両者立ったままなので、倒れる瞬間に寄るスロー演出はしない
+	if (timeUp) return;
+
+	m_isSlowMotion = true;
+	m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
+	m_slowMotionTimer = m_slowMotionDuration;
+
+	// カメラのズームターゲット計算
+	CameraBase* pCamera = GetObj<CameraBase>("Camera");
+	if (pCamera && player && player2)
+	{
+		m_cameraZoomStartPos = pCamera->GetPos();
+		m_cameraZoomStartLook = pCamera->GetLook();
+
+		XMFLOAT3 p1Pos = player->GetPosition();
+		XMFLOAT3 p2Pos = player2->GetPosition();
+
+		// 中間地点を計算
+		float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
+		float centerY = (p1Pos.y + p2Pos.y) * 0.5f + 0.9f; // 注視点は胸の高さあたり
+
+		// 現在のカメラ位置から注視点へ向かう方向を求め、そこから一定距離の位置に寄せる
+		XMVECTOR vStartPos = XMLoadFloat3(&m_cameraZoomStartPos);
+		XMVECTOR vTargetLook = XMVectorSet(centerX, centerY, 0.0f, 0.0f);
+		XMVECTOR vDir = XMVector3Normalize(XMVectorSubtract(vStartPos, vTargetLook));
+
+		const float zoomDist = 2.5f;
+		XMStoreFloat3(&m_cameraZoomTargetPos, XMVectorAdd(vTargetLook, XMVectorScale(vDir, zoomDist)));
+		XMStoreFloat3(&m_cameraZoomTargetLook, { centerX, centerY, 0.0f });
+	}
+}
+
+// 残り時間は画面上部の中央、HPバーの間に出す。時間切れの文字は画面中央
+void SceneGame::DrawRoundTimer()
+{
+	// 切り上げ。0 が出るのは時間切れの瞬間だけにする
+	const int seconds = (int)std::ceil(m_roundTimer);
+
+	wchar_t text[8];
+	swprintf_s(text, L"%02d", seconds);
+
+	// 文字は Direct2D で描いていて深度を書かないため、あとから描かれるグリッド線に上を通られる。
+	// 文字の場所に、色は描かず深度だけを書く見えない板を置いて、グリッド線をそこだけ描かせない
+	SimpleUI::Clear();
+	AddUIRect(596.0f, 48.0f, 90.0f, 72.0f, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+	if (m_currentPhase == RoundPhase::TIME_UP_CALL)
+	{
+		AddUIRect(420.0f, 290.0f, 440.0f, 124.0f, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+	}
+	ID3D11BlendState* prevBlend = nullptr;
+	float prevFactor[4] = {};
+	UINT prevMask = 0;
+	GetContext()->OMGetBlendState(&prevBlend, prevFactor, &prevMask);
+	GetContext()->OMSetBlendState(m_pDepthOnlyBlend, prevFactor, 0xffffffff);
+	SimpleUI::DrawAll();
+	GetContext()->OMSetBlendState(prevBlend, prevFactor, prevMask);
+	if (prevBlend) prevBlend->Release();
+
+	// ステージが白いので文字は黒の太字。残りわずかのときだけ赤
+	const XMFLOAT4 red(0.80f, 0.06f, 0.06f, 1.0f);
+	SimpleFont::Begin();
+	SimpleFont::Draw(text, 600.0f, 46.0f, 60.0f, seconds <= 10 ? red : XMFLOAT4(0.05f, 0.05f, 0.07f, 1.0f), L"Arial Black");
+	if (m_currentPhase == RoundPhase::TIME_UP_CALL)
+	{
+		SimpleFont::Draw(L"TIME UP", 440.0f, 296.0f, 90.0f, red, L"Arial Black");
+	}
+	SimpleFont::End();
+}
+
 void SceneGame::ResetRound()
 {
 	m_isRoundOver = false;
 	m_roundEndTimer = 0.0f;
+	m_roundTimer = ROUND_TIME;
 	SceneRoot::s_sceneFade = 0.0f; // ラウンド切替の暗転を解除
 	m_hitStopTimer = 0.0f;
 	m_shakeTimerP1 = 0.0f;
@@ -690,7 +791,11 @@ void SceneGame::Update(float tick)
 		}
 
 		// 反応の遅れは実時間で数え、相手の技の進み具合はヒットストップで止まる時間で予測させる
-		if (m_cpu && player && player2) m_cpu->Update(*player2, *player, tick, playerTick);
+		if (m_cpu && player && player2)
+		{
+			m_cpu->SetTimeLeft(m_roundTimer);
+			m_cpu->Update(*player2, *player, tick, playerTick);
+		}
 
 		if (player) player->Update(playerTick);
 		if (player2) player2->Update(playerTick);
@@ -719,66 +824,24 @@ void SceneGame::Update(float tick)
 		// 結果の適用
 		if (result.isRoundOver)
 		{
-			m_isRoundOver = true;
-			m_winCountP1 += result.winCountP1ToAdd;
-			m_winCountP2 += result.winCountP2ToAdd;
-
-			if (player) player->SetInputType(PlayerInputType::AI);
-			if (player2) player2->SetInputType(PlayerInputType::AI);
-			if (m_cpu && player2) m_cpu->Reset(*player2);
-
-			// KOフェーズへ移行（UI描画用）
-			m_currentPhase = RoundPhase::KO_CALL;
-			Sound::PlaySE("Assets/Sound/ko.wav");
-
-			// スローモーション演出開始 
-			m_isSlowMotion = true;
-			m_slowMotionDuration = 1.5f; // 1.5秒間スローにする
-			m_slowMotionTimer = m_slowMotionDuration;
-
-			// カメラのズームターゲット計算
-			CameraBase* pCamera = GetObj<CameraBase>("Camera");
-			if (pCamera)
-			{
-				m_cameraZoomStartPos = pCamera->GetPos();
-				m_cameraZoomStartLook = pCamera->GetLook();
-
-				XMFLOAT3 p1Pos = player->GetPosition();
-				XMFLOAT3 p2Pos = player2->GetPosition();
-
-				// 中間地点を計算
-				float centerX = (p1Pos.x + p2Pos.x) * 0.5f;
-				float centerY = (p1Pos.y + p2Pos.y) * 0.5f + 0.9f; // 注視点は胸の高さあたり
-
-
-				// 現在のカメラ位置(StartPos)から、注視点(TargetLook)への方向ベクトルを求める
-				XMVECTOR vStartPos = XMLoadFloat3(&m_cameraZoomStartPos);
-				XMVECTOR vTargetLook = XMVectorSet(centerX, centerY, 0.0f, 0.0f);
-
-				XMVECTOR vDir = XMVectorSubtract(vStartPos, vTargetLook); // 注視点 -> カメラ へのベクトル
-				vDir = XMVector3Normalize(vDir);
-
-				// 注視点から一定距離（2.5f）離れた位置をターゲットとする
-
-				float zoomDist = 2.5f;
-				XMVECTOR vTargetPos = XMVectorAdd(vTargetLook, XMVectorScale(vDir, zoomDist));
-
-				XMStoreFloat3(&m_cameraZoomTargetPos, vTargetPos);
-				XMStoreFloat3(&m_cameraZoomTargetLook, { centerX, centerY, 0.0f });
-			}
+			EndRound(result.winCountP1ToAdd, result.winCountP2ToAdd, false);
 		}
 
 		if (result.hitStopTimer > 0.0f)
 		{
 			m_hitStopTimer = result.hitStopTimer;
 
-			// 攻撃の強さ（ヒットストップ長）からカメラの揺れ量を決める
-			float strength = CameraShake::TraumaFromHitStop(result.hitStopTimer);
-			// のけぞる側に応じて横方向の初撃を決める
-			float kickDir = 0.0f;
-			if (result.shakeTimerP2 > 0.0f)      kickDir =  1.0f; // 2Pがのけぞる
-			else if (result.shakeTimerP1 > 0.0f) kickDir = -1.0f; // 1Pがのけぞる
-			AddCameraTrauma(strength, kickDir);
+			// 画面が揺れるのはヒットしたときだけ。ガードは揺らさず、手応えの差をはっきりさせる
+			if (!result.wasBlocked)
+			{
+				// 攻撃の強さ（ヒットストップ長）からカメラの揺れ量を決める
+				float strength = CameraShake::TraumaFromHitStop(result.hitStopTimer);
+				// のけぞる側に応じて横方向の初撃を決める
+				float kickDir = 0.0f;
+				if (result.shakeTimerP2 > 0.0f)      kickDir =  1.0f; // 2Pがのけぞる
+				else if (result.shakeTimerP1 > 0.0f) kickDir = -1.0f; // 1Pがのけぞる
+				AddCameraTrauma(strength, kickDir);
+			}
 		}
 
 		if (result.shakeTimerP1 > 0.0f) m_shakeTimerP1 = result.shakeTimerP1;
@@ -788,6 +851,21 @@ void SceneGame::Update(float tick)
 		if (m_uiManager && player && player2)
 		{
 			m_uiManager->UpdateHPBars(player->GetHpRatio(), player2->GetHpRatio());
+		}
+
+		// 制限時間。ヒットストップで画面が止まっている間は減らさない
+		if (!m_isRoundOver && m_currentPhase == RoundPhase::PLAYING)
+		{
+			m_roundTimer -= playerTick;
+			if (m_roundTimer <= 0.0f)
+			{
+				m_roundTimer = 0.0f;
+
+				// 残りHPが多いほうの取り。同じなら引き分けで両者に1本
+				const float hp1 = player ? player->GetHpRatio() : 0.0f;
+				const float hp2 = player2 ? player2->GetHpRatio() : 0.0f;
+				EndRound(hp1 >= hp2 ? 1 : 0, hp2 >= hp1 ? 1 : 0, true);
+			}
 		}
 	}
 
@@ -1162,6 +1240,8 @@ void SceneGame::Draw()
 	{
 		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2, ROUND_TO_WIN);
 	}
+
+	if (!m_isResultMenu) DrawRoundTimer();
 
 	// 決着後の選択メニュー（KO画面の上に重ねて描画）
 	if (m_isResultMenu)

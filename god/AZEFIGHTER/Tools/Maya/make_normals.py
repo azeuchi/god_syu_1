@@ -61,6 +61,27 @@ MOVES = {
     # in this pose, so no arm has to swing up from the hanging idle during an attack
     'CrouchIdle': dict(base='CrouchIdle', end=1, base_guard=True, poses={}),
 
+    # ガード硬直: the hit lands on the arms, the body is shoved back and the chin tucks in, then it settles
+    # back into the stance. The game plays the clip over the whole blockstun, so the impact is always at
+    # the start and the last frame is the stance the character returns to. Feet stay planted; the game
+    # slides the whole character back by the block pushback
+    'Guard': dict(base='Idle', end=16, poses={
+        2: dict(hips_dy=-2.0, hips_dz=-5.0, hips_rot=(-6.0, 0.0, 0.0), spine=(-5.0, 0.0), head=6.0,
+                l_foot=BASE, r_foot=BASE),
+        4: dict(hips_dy=-3.0, hips_dz=-6.0, hips_rot=(-7.0, 0.0, 0.0), spine=(-6.0, 0.0), head=7.0,
+                l_foot=BASE, r_foot=BASE),
+        9: dict(hips_dy=-1.5, hips_dz=-3.0, hips_rot=(-3.0, 0.0, 0.0), spine=(-3.0, 0.0), head=3.0,
+                l_foot=BASE, r_foot=BASE),
+    }),
+    'CrouchGuard': dict(base='CrouchIdle', end=16, base_guard=True, poses={
+        2: dict(hips_dy=-1.0, hips_dz=-4.0, hips_rot=(-4.0, 0.0, 0.0), spine=(-5.0, 0.0), head=6.0,
+                l_foot=BASE, r_foot=BASE),
+        4: dict(hips_dy=-1.5, hips_dz=-5.0, hips_rot=(-5.0, 0.0, 0.0), spine=(-6.0, 0.0), head=7.0,
+                l_foot=BASE, r_foot=BASE),
+        9: dict(hips_dy=-0.5, hips_dz=-2.5, hips_rot=(-2.5, 0.0, 0.0), spine=(-3.0, 0.0), head=3.0,
+                l_foot=BASE, r_foot=BASE),
+    }),
+
     # 立ち弱K: a quick snap kick with the lead leg to the shin, body leaning back a little
     'LightKick': dict(base='Idle', end=14, poses={
         2: dict(hips_dy=-2.0, hips_rot=(-4.0, 8.0, 0.0),

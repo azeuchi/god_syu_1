@@ -684,6 +684,12 @@ bool CpuController::GuardAfterBlock(const Player& self, float tick, PlayerInputs
 void CpuController::ThinkNeutral(const Player& self, const Player& opponent, const Snapshot& seen, float tick, PlayerInputs& in)
 {
 	const CpuProfile& profile = Profile();
+
+	// 残り時間が少ないときだけ、攻め気とガードの固さを方針に寄せる
+	m_pressure = TimePressure(self, opponent);
+	const float aggression = std::clamp(profile.aggression + 0.35f * m_pressure, 0.0f, 1.0f);
+	const float guardRate = std::clamp(profile.guardRate - 0.30f * m_pressure, 0.0f, 1.0f);
+
 	const bool facingRight = FacingRight(self);
 	const XMFLOAT3 myPos = self.GetPosition();
 	const float distance = std::fabs(seen.x - myPos.x);
@@ -721,7 +727,7 @@ void CpuController::ThinkNeutral(const Player& self, const Player& opponent, con
 			m_intent = Intent::WAIT;
 			Explain(L"様子見", [] { return std::wstring(L"相手はダウン中で無敵"); });
 		}
-		else if (reachableCount > 0 && Roll(profile.aggression))
+		else if (reachableCount > 0 && Roll(aggression))
 		{
 			const int move = ChooseStarter(self, reachable, reachableCount);
 			PressMove(move, in);
@@ -739,7 +745,7 @@ void CpuController::ThinkNeutral(const Player& self, const Player& opponent, con
 		}
 		else if (threatened)
 		{
-			if (Roll(profile.guardRate))
+			if (Roll(guardRate))
 			{
 				// 立ちとしゃがみのどちらで待つかは読み。相手が最近よく使う段に合わせる
 				const float lowRate = LowGuessRate();
@@ -760,8 +766,8 @@ void CpuController::ThinkNeutral(const Player& self, const Player& opponent, con
 		{
 			// どちらの技も届かない間合い。攻め気が強いほど前に出る
 			const float r = Rand01();
-			if (r < profile.aggression)              m_intent = Intent::FORWARD;
-			else if (r < profile.aggression + 0.15f) m_intent = Intent::BACK;
+			if (r < aggression)              m_intent = Intent::FORWARD;
+			else if (r < aggression + 0.15f) m_intent = Intent::BACK;
 			else                                     m_intent = Intent::WAIT;
 
 			const wchar_t* label = (m_intent == Intent::FORWARD) ? L"前進" : (m_intent == Intent::BACK) ? L"後退" : L"様子見";
@@ -1010,10 +1016,28 @@ const wchar_t* CpuController::MoveName(int move)
 	return (move >= 0 && move < MOVE_COUNT) ? NAMES[move] : L"なし";
 }
 
+// 残り時間が少なくなったら、HPの差で方針を変える。
+// 負けていれば時間切れでそのまま負けるので多少強引でも攻め、勝っていれば固めて逃げ切る。
+// HPバーと残り時間は人間にも見えている情報なので、反応の遅れは入れずにそのまま使う
+float CpuController::TimePressure(const Player& self, const Player& opponent) const
+{
+	constexpr float PRESSURE_SECONDS = 15.0f; // 残りこれだけになってから効き始める
+
+	if (m_timeLeft < 0.0f || m_timeLeft > PRESSURE_SECONDS) return 0.0f;
+
+	const float urgency = 1.0f - m_timeLeft / PRESSURE_SECONDS;
+	const float hpLead = self.GetHpRatio() - opponent.GetHpRatio();
+	return urgency * std::clamp(-hpLead * 2.0f, -1.0f, 1.0f);
+}
+
 void CpuController::UpdateDebugHeader(const Snapshot& seen)
 {
 	const CpuProfile& profile = Profile();
 	m_debug.header = Format(L"CPU %s　反応 %dF　ヒット確認 %dF", profile.name, profile.reactionFrames, profile.confirmFrames);
+	if (m_pressure != 0.0f)
+	{
+		m_debug.header += Format(L"　残り %d 秒：%s", (int)std::ceil(m_timeLeft), m_pressure > 0.0f ? L"攻めを優先" : L"守って逃げ切る");
+	}
 
 	std::wstring state;
 	if (seen.dead)                   state = L"決着";

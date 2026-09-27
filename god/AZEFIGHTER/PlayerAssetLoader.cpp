@@ -12,6 +12,8 @@ namespace
 		{ "Assets/Model/knight/Walking.fbx",     "Walk" },
 		{ "Assets/Model/knight/WalkBack.fbx",    "WalkBack" },
 		{ "Assets/Model/knight/CrouchIdle.fbx",  "CrouchIdle" },
+		{ "Assets/Model/knight/Guard.fbx",       "Guard" },
+		{ "Assets/Model/knight/CrouchGuard.fbx", "CrouchGuard" },
 		{ "Assets/Model/knight/Jump.fbx",        "Jump" },
 		{ "Assets/Model/knight/Damage.fbx",      "Damage" },
 		{ "Assets/Model/knight/Down.fbx",        "Down" },

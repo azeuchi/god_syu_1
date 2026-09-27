@@ -18,7 +18,6 @@ enum class MenuState
 	TopMenu,     // トップメニュー
 	ConfigP1,    // 1Pのキーコンフィグ画面
 	ConfigP2,    // 2Pのキーコンフィグ画面
-	TrainingMode, // トレーニングモード（UI非表示で自由に動かせる）
 	CpuSelect     // CPU戦の強さを選ぶ
 };
 
@@ -27,7 +26,6 @@ enum class TopMenuAction
 {
 	ConfigP1,
 	ConfigP2,
-	Training,
 	VsPlayer,
 	VsCpu,
 	Debug

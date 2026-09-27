@@ -125,10 +125,10 @@ public:
 	void Draw(int texSlot = 0);
 	void SetTexture(const char* fileName);
 
-	void UpdateAnimation(const char* AnimationName, int Frame);
+	void UpdateAnimation(const char* AnimationName, float Frame);
 
 	// アニメーションをブレンドするための関数
-	void UpdateWithBlend(const char* newAnimName, int newFrame, const char* oldAnimName, int oldFrame, float blendFactor);
+	void UpdateWithBlend(const char* newAnimName, float newFrame, const char* oldAnimName, float oldFrame, float blendFactor);
 
 	void UpdateBoneMatrix(const aiNode* node, const Matrix& matrix);
 
@@ -148,11 +148,11 @@ private:
 	DirectX::SimpleMath::Matrix aiMtxToDxMtx(const aiMatrix4x4& aimatrix);
 
 	// 特定のアニメーション・フレームのボーン姿勢（Global行列）を計算するヘルパー関数
-	void CalculateAnimationPose(const char* animName, int frame, std::vector<Matrix>& outPose);
+	void CalculateAnimationPose(const char* animName, float frame, std::vector<Matrix>& outPose);
 
 	// アニメーションデータから「ローカル行列（親ボーンに対する S*R*T）」のみを取得する関数
-	// ローカル空間で補間を行います
-	void SampleAnimationKeys(const char* animName, int frame, std::vector<Matrix>& outLocalMatrices);
+	// frame は小数で渡し、前後のキーの間を補間する
+	void SampleAnimationKeys(const char* animName, float frame, std::vector<Matrix>& outLocalMatrices);
 
 	//  ローカル行列の配列を受け取り、親子関係を計算してグローバル行列にする再帰関数
 	void CalculateBoneMatrixRecursive(const aiNode* node, const Matrix& parentMatrix, const std::vector<Matrix>& animMatrices, std::vector<Matrix>& outPose);

@@ -45,6 +45,12 @@ public:
 	virtual bool IsHitstun() const { return false; }
 
 	/**
+	 * @brief この状態はガード硬直中か？
+	 * 硬直中は後ろを離してもガードが続く
+	 */
+	virtual bool IsBlockstun() const { return false; }
+
+	/**
 	 * @brief この状態は死亡状態か？
 	 * 上書き防止チェックのために追加
 	 */
