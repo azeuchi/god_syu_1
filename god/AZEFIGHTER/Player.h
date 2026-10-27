@@ -199,7 +199,7 @@ struct AttackParams
 	bool cancelToLightKick = false;
 	bool cancelToMediumKick = false;
 	bool cancelToHeavy = false;
-	// 必殺技（波動拳・昇龍拳）へキャンセルできるか
+	// 必殺技（波動拳・昇竜拳）へキャンセルできるか
 	bool cancelToSpecial = false;
 
 	// 攻撃モーション中の再生速度変化のリスト

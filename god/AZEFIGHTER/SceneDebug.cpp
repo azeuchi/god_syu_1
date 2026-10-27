@@ -530,10 +530,13 @@ void SceneDebug::DrawImGui()
 		int adv = NetAdv(a);
 		ImGui::Text("%s : ヒット時 %+d", starterNames[s_comboStarter], adv);
 
-		// キャンセル可否。通常技はボタンごとのフラグで決まり、必殺技はキャンセルの対象外
+		// キャンセル可否。通常技はボタンごとのフラグ、必殺技は「必殺技へ」のフラグで決まる。
+		// 波動拳もキャンセルで出せるが、弾が出るのが遅くつながらないので、ここには昇竜拳だけを出す
+		const int firstShoryuken = NORMAL_MOVE_COUNT + 3;
 		auto CanCancelTo = [&](const AttackParams* from, int targetIndex) -> bool {
-			if (!from->cancelEnabled || !IsNormalType(targetIndex)) return false;
-			return CanCancelInto(*from, GetNormalMoveInfo((NormalMove)targetIndex).button);
+			if (!from->cancelEnabled) return false;
+			if (IsNormalType(targetIndex)) return CanCancelInto(*from, GetNormalMoveInfo((NormalMove)targetIndex).button);
+			return from->cancelToSpecial && targetIndex >= firstShoryuken;
 		};
 
 		ImGui::Text("繋がる技:");
