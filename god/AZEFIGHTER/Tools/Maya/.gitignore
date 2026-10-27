@@ -1,3 +1,4 @@
 appdir/
 preview/
 maya_batch.log*
+__pycache__/

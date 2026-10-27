@@ -1161,8 +1161,9 @@ void Player::UpdateCommandTimer(float tick)
 {
 	if (m_cmdTimerDown > 0) m_cmdTimerDown -= tick;
 	if (m_cmdTimerDownForward > 0) m_cmdTimerDownForward -= tick;
-	if (m_cmdTimerDownTap > 0) m_cmdTimerDownTap -= tick;
-	if (m_cmdTimerDownTwice > 0) m_cmdTimerDownTwice -= tick;
+	if (m_cmdTimerForward > 0) m_cmdTimerForward -= tick;
+	if (m_cmdTimerForwardDown > 0) m_cmdTimerForwardDown -= tick;
+	if (m_cmdTimerDragon > 0) m_cmdTimerDragon -= tick;
 
 	const PlayerInputs& in = GetInputs();
 
@@ -1180,17 +1181,15 @@ void Player::UpdateCommandTimer(float tick)
 		}
 	}
 
-	// 昇竜拳は下を2回押す。押しっぱなしでは出ないよう、押した瞬間だけを数える
-	const bool downPressed = in.moveDown && !m_prevMoveDown;
-	m_prevMoveDown = in.moveDown;
-	if (downPressed) {
-		if (m_cmdTimerDownTap > 0) {
-			m_cmdTimerDownTwice = CMD_WINDOW;
-			m_cmdTimerDownTap = 0.0f;
-		}
-		else {
-			m_cmdTimerDownTap = CMD_WINDOW;
-		}
+	// 昇竜拳（前 → 下 → 斜め前）。前から始めた下と、そのあとの斜め前を順に数える
+	if (forward && !in.moveDown) {
+		m_cmdTimerForward = CMD_WINDOW;
+	}
+	else if (in.moveDown && !forward && m_cmdTimerForward > 0) {
+		m_cmdTimerForwardDown = CMD_WINDOW;
+	}
+	else if (in.moveDown && forward && m_cmdTimerForwardDown > 0) {
+		m_cmdTimerDragon = CMD_WINDOW;
 	}
 }
 
@@ -1203,11 +1202,12 @@ bool Player::CheckHadoukenCommand() const
 	return (m_cmdTimerDownForward > 0 && forward && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }
 
-// 昇竜拳のコマンド（下、下＋パンチ）が成立しているかチェック
+// 昇竜拳のコマンド（前 -> 下 -> 斜め前＋パンチ）が成立しているかチェック
+// 波動拳のコマンドも同時に成立するので、呼び出し側では昇竜拳を先に調べる
 bool Player::CheckShoryukenCommand() const
 {
 	const PlayerInputs& in = GetInputs();
-	return (m_cmdTimerDownTwice > 0 && in.moveDown && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
+	return (m_cmdTimerDragon > 0 && (in.LightPunch || in.MediumPunch || in.HeavyPunch));
 }
 
 // 現在ガード可能な状態か、後ろ入力がされているかを判定

@@ -19,7 +19,7 @@ public:
 	bool IsInvincible() const override { return m_stateTimer < m_invincibleEnd; }
 
 	// Shoryuken.fbx の中で足が地面を離れる／着く位置（全体に対する割合）。
-	// Maya のスクリプトで 24 フレーム中 2 フレーム目に離陸、18 フレーム目に着地させている。
+	// モーションは 24 フレームで、2 フレーム目に離陸、18 フレーム目に着地するように作ってある。
 	// 上昇速度はここから逆算するので、全体フレームを変えても見た目と物理の着地がずれない
 	static constexpr float TAKEOFF_RATIO = 2.0f / 24.0f;
 	static constexpr float LANDING_RATIO = 18.0f / 24.0f;

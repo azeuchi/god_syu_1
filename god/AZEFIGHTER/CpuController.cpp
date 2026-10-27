@@ -23,7 +23,7 @@ namespace
 	// 通常技が届かず、この距離より離れているときだけ波動拳を選択肢に入れる
 	const float FIREBALL_MIN_DISTANCE = 4.0f;
 
-	// 昇竜拳のコマンド（下2F → 離す1F → 下＋パンチ1F）を入れ終わるまでのフレーム数。
+	// 昇竜拳のコマンド（前2F → 下1F → 斜め前＋パンチ1F）を入れ終わるまでのフレーム数。
 	// 発生にこのぶんを足して、反撃や対空に間に合うかを判断する
 	const int SHORYUKEN_STEP_FRAMES[3] = { 2, 1, 1 };
 	const int SHORYUKEN_INPUT_FRAMES = SHORYUKEN_STEP_FRAMES[0] + SHORYUKEN_STEP_FRAMES[1] + SHORYUKEN_STEP_FRAMES[2];
@@ -568,7 +568,7 @@ bool CpuController::ThinkPunish(const Player& self, const Player& opponent, cons
 
 	if (best == MOVE_SHORYUKEN_H)
 	{
-		StartShoryukenScript(2);
+		StartShoryukenScript(facingRight, 2);
 		RunScript(in);
 	}
 	else
@@ -624,7 +624,7 @@ bool CpuController::ThinkAntiAir(const Player& self, const Snapshot& seen, Playe
 			if (!HitboxReaches(srk, myX, myY, facingRight, seen.hurt.data(), seen.hurtCount,
 				seen.vx * (dt + t), targetY - seen.y, ATTACK_REACH_SCALE)) continue;
 
-			StartShoryukenScript(2);
+			StartShoryukenScript(facingRight, 2);
 			RunScript(in);
 			Explain(L"昇竜拳で対空", [&] {
 				return Format(L"%dF後、高さ%.1fの相手に判定が重なる（無敵%dF）", ToFrames(t), targetY, ToFrames(srk.invincibleEnd));
@@ -880,22 +880,24 @@ void CpuController::StartFireballScript(bool facingRight, int strength)
 	m_scriptCommitted = false;
 }
 
-// 下 → 離す → 下＋パンチ。下を押した瞬間を2回数える判定なので、間に一度離す
-void CpuController::StartShoryukenScript(int strength)
+// 前 → 下 → 斜め前＋パンチ
+void CpuController::StartShoryukenScript(bool facingRight, int strength)
 {
+	PlayerInputs forward;
+	HoldForward(facingRight, forward);
+
 	PlayerInputs down;
 	down.moveDown = true;
 
-	PlayerInputs release;
+	PlayerInputs downForwardPunch = down;
+	HoldForward(facingRight, downForwardPunch);
+	if (strength == 0)      downForwardPunch.LightPunch = true;
+	else if (strength == 1) downForwardPunch.MediumPunch = true;
+	else                    downForwardPunch.HeavyPunch = true;
 
-	PlayerInputs downPunch = down;
-	if (strength == 0)      downPunch.LightPunch = true;
-	else if (strength == 1) downPunch.MediumPunch = true;
-	else                    downPunch.HeavyPunch = true;
-
-	m_script[0] = { down, SHORYUKEN_STEP_FRAMES[0] };
-	m_script[1] = { release, SHORYUKEN_STEP_FRAMES[1] };
-	m_script[2] = { downPunch, SHORYUKEN_STEP_FRAMES[2] };
+	m_script[0] = { forward, SHORYUKEN_STEP_FRAMES[0] };
+	m_script[1] = { down, SHORYUKEN_STEP_FRAMES[1] };
+	m_script[2] = { downForwardPunch, SHORYUKEN_STEP_FRAMES[2] };
 	m_scriptLength = 3;
 	m_scriptStep = 0;
 	m_scriptFrame = 0;

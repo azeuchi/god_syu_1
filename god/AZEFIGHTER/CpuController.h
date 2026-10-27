@@ -145,7 +145,7 @@ private:
 
 	// 補助
 	void StartFireballScript(bool facingRight, int strength);
-	void StartShoryukenScript(int strength);
+	void StartShoryukenScript(bool facingRight, int strength);
 	void InheritCombo(ComboDecision decision);
 	bool InThreatRange(const Player& self, const Player& opponent, const Snapshot& seen) const;
 	void RememberOpponentHabit(const Player& opponent, const Snapshot& seen);

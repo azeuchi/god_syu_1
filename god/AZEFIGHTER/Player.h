@@ -488,10 +488,10 @@ private:
 	// 必殺技コマンド入力を保持するタイマー
 	float m_cmdTimerDown = 0.0f;
 	float m_cmdTimerDownForward = 0.0f;
-	// 昇竜拳 (下、下) の途中経過
-	float m_cmdTimerDownTap = 0.0f;   // 1回目の下を押してからの受付時間
-	float m_cmdTimerDownTwice = 0.0f; // 2回目の下を押してからの受付時間
-	bool m_prevMoveDown = false;      // 押した瞬間を取るための、前のフレームの下入力
+	// 昇竜拳 (前、下、斜め前) の途中経過
+	float m_cmdTimerForward = 0.0f;     // 前を入れてからの受付時間
+	float m_cmdTimerForwardDown = 0.0f; // 前 → 下 まで入ってからの受付時間
+	float m_cmdTimerDragon = 0.0f;      // 前 → 下 → 斜め前 まで入ってからの受付時間
 	// コマンドの入力受付猶予時間
 	const float CMD_WINDOW = 0.3f;
 };
