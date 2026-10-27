@@ -18,6 +18,13 @@ public:
 	bool IsInterruptible() const override { return false; }
 	bool IsHitstun() const override { return true; }
 
+	// c‚è‚Ì‚Ì‚¯‚¼‚è‚ª sec •b‚æ‚è’Z‚¯‚ê‚ÎAsec •bc‚é‚Ü‚Å‰„‚Î‚·
+	void ExtendRemaining(float sec)
+	{
+		const float need = m_stateTimer + sec;
+		if (m_stunDuration < need) m_stunDuration = need;
+	}
+
 private:
 	float m_stateTimer = 0.0f;
 	float m_stunDuration = 0.0f; // d’¼ŠÔ (•b)

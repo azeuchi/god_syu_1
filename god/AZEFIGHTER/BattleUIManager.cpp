@@ -121,6 +121,8 @@ void BattleUIManager::Reset()
 	if (m_enemyhpBar) m_enemyhpBar->SetSize(m_barMaxWidth, m_barHeight);
 	if (m_hpBar) m_hpBar->SetPosition(m_hpBarPos.x, m_hpBarPos.y);
 	if (m_enemyhpBar) m_enemyhpBar->SetPosition(m_enemyHpBarPos.x, m_enemyHpBarPos.y);
+	if (m_hpBar) m_hpBar->SetUV(0.0f, 0.0f, 1.0f, 1.0f);
+	if (m_enemyhpBar) m_enemyhpBar->SetUV(0.0f, 0.0f, 1.0f, 1.0f);
 
 	m_currentFadeAlpha = 0.0f;
 	if (m_fadeBlack)
@@ -136,12 +138,15 @@ void BattleUIManager::UpdateHPBars(float p1Ratio, float p2Ratio)
 	float reduceWidth1 = m_barMaxWidth - currentWidth1;
 	m_hpBar->SetSize(currentWidth1, m_barHeight);
 	m_hpBar->SetPosition(m_hpBarPos.x + (reduceWidth1 / 2.0f), m_hpBarPos.y);
+	// 画像ごと縮めると中央側の斜めの端までつぶれて枠からはみ出す。残っている分だけ画像を切り出す
+	m_hpBar->SetUV(1.0f - p1Ratio, 0.0f, p1Ratio, 1.0f);
 
 	// P2
 	float currentWidth2 = m_barMaxWidth * p2Ratio;
 	float reduceWidth2 = m_barMaxWidth - currentWidth2;
 	m_enemyhpBar->SetSize(currentWidth2, m_barHeight);
 	m_enemyhpBar->SetPosition(m_enemyHpBarPos.x - (reduceWidth2 / 2.0f), m_enemyHpBarPos.y);
+	m_enemyhpBar->SetUV(0.0f, 0.0f, p2Ratio, 1.0f);
 }
 
 void BattleUIManager::SetFadeAlpha(float alpha)

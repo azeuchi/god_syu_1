@@ -48,6 +48,8 @@ public:
 	virtual void Uninit() = 0;
 	virtual void Update(float tick) = 0;
 	virtual void Draw() = 0;
+	// グリッド線を描いたあとに重ねる画面の文字など。グリッド線に上を通られたくないものをここで描く
+	virtual void DrawOverlay() {}
 
 private:
 	static Objects m_objects;

@@ -177,6 +177,9 @@ void SceneDebug::SavePlayerSettings()
 		// 弱Kへのキャンセル（弱Kを足したときに増えた項目なので末尾に置く）
 		ofs << params.cancelToLightKick << std::endl;
 
+		// 必殺技へのキャンセル（あとから足した項目なので末尾に置く）
+		ofs << params.cancelToSpecial << std::endl;
+
 		ofs.close();
 		};
 
@@ -289,10 +292,9 @@ void SceneDebug::Update(float tick)
 	if (m_isAttacking || HasFrameData(s_currentAttackType)) {
 		int totalAnimFrames = player->GetModel()->GetAnimationTotalFrame(animName);
 
+		// ゲーム中と同じ速さ（緩急込みでアニメ全体が全体時間に収まる速さ）
 		if (params) {
-			float targetFrames = params->totalDuration * 60.0f;
-			if (targetFrames <= 1.0f) targetFrames = 1.0f;
-			speed = (float)totalAnimFrames / targetFrames;
+			speed = AttackAnimBaseSpeed(*params, totalAnimFrames, Player::s_variableSpeed);
 		}
 	}
 
@@ -301,27 +303,20 @@ void SceneDebug::Update(float tick)
 	// --- アニメーション制御 ---
 	if (!m_isPaused && m_isAttacking)
 	{
+		// 再生中は経過フレームを数えるだけ。姿勢は下でコマ送りと同じ計算で出す
 		m_animTimer += tick;
-		if (m_animTimer >= FRAME_TIME_60FPS)
+		while (m_animTimer >= FRAME_TIME_60FPS)
 		{
-			while (m_animTimer >= FRAME_TIME_60FPS)
-			{
-				player->UpdateAnimation(FRAME_TIME_60FPS);
-				m_animTimer -= FRAME_TIME_60FPS;
-			}
-		}
-
-		float currentModelFrame = (float)player->Debug_GetFrame();
-		if (speed > 0.0f) {
-			m_currentFrame = static_cast<int>(currentModelFrame / speed);
-		}
-		else {
-			m_currentFrame = (int)currentModelFrame;
+			m_animTimer -= FRAME_TIME_60FPS;
+			m_currentFrame++;
 		}
 	}
-	else
+
+	// 姿勢は、ゲーム中と同じく緩急込みで1フレームずつ進めた位置にする（再生中もコマ送りも同じ）
 	{
-		int modelFrame = static_cast<int>(m_currentFrame * speed);
+		int modelFrame = params
+			? static_cast<int>(AnimFrameAtGameFrame(*params, speed, m_currentFrame, Player::s_variableSpeed))
+			: static_cast<int>(m_currentFrame * speed);
 		player->Debug_SetAnimation(animName, false);
 		player->Debug_SetFrame(modelFrame);
 	}
@@ -631,9 +626,10 @@ void SceneDebug::DrawImGui()
 		if (m_isPaused || !m_isAttacking)
 		{
 			ImGui::SameLine();
-			if (ImGui::Button("+1")) m_currentFrame++;
-			ImGui::SameLine();
+			// 下のフレーム入力欄（- / +）と並びを揃え、戻すボタンを左にする
 			if (ImGui::Button("-1")) m_currentFrame--;
+			ImGui::SameLine();
+			if (ImGui::Button("+1")) m_currentFrame++;
 
 			ImGui::InputInt("フレーム", &m_currentFrame);
 			if (m_currentFrame < 0) m_currentFrame = 0;
@@ -847,6 +843,7 @@ void SceneDebug::DrawImGui()
 				ImGui::Checkbox("弱K", &params.cancelToLightKick);
 				ImGui::SameLine(); ImGui::Checkbox("中K", &params.cancelToMediumKick);
 				ImGui::SameLine(); ImGui::Checkbox("強K", &params.cancelToHeavy);
+				ImGui::Checkbox("必殺技（波動拳・昇竜拳）", &params.cancelToSpecial);
 			}
 			ImGui::TreePop();
 		}

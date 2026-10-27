@@ -24,12 +24,10 @@ void NormalAttack::OnEnter(Player* player)
 	const NormalMoveInfo& info = GetNormalMoveInfo(m_move);
 	player->PlayAnimation(info.animName, true);
 
-	// アニメーション全体が、パラメータの全体時間にちょうど収まる再生速度にする
+	// アニメーション全体が、緩急をかけた状態でパラメータの全体時間にちょうど収まる再生速度にする
 	const AttackParams& params = player->GetNormalParams(m_move);
 	const int originalFrames = player->GetModel()->GetAnimationTotalFrame(info.animName);
-	float targetFrames = params.totalDuration * 60.0f;
-	if (targetFrames <= 1.0f) targetFrames = 1.0f;
-	player->SetAnimationSpeed((float)originalFrames / targetFrames);
+	player->SetAnimationSpeed(AttackAnimBaseSpeed(params, originalFrames, Player::s_variableSpeed));
 
 	m_stateTimer = 0.0f;
 	player->SetActiveHitbox(false);

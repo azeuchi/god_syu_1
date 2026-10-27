@@ -21,6 +21,20 @@ namespace
 	constexpr float PROJECTILE_KNOCKBACK = 0.5f;
 	constexpr float PROJECTILE_BLOCK_PUSHBACK = 0.35f;
 
+	// キャンセルで出した技が当たるまで、相手ののけぞりを延ばすときの余裕（秒）。フレームの揺れを吸収する
+	constexpr float CANCEL_GUARANTEE_MARGIN = 3.0f / 60.0f;
+
+	// 当てた技をキャンセルしたとき、相手がまだのけぞっていれば、次の技の判定が出るまでのけぞりを延ばす。
+	// キャンセルの受付中ならいつ押してもつながるので、技ごとにフレームを合わせなくてよい。
+	// のけぞりが解けてから出したキャンセル（ガードされた後など）は延ばさない
+	void GuaranteeCancel(Player* attacker, Player* defender)
+	{
+		if (!attacker->ConsumeCancel()) return;
+		const AttackParams* params = attacker->GetCurrentAttackParams();
+		if (params == nullptr || !defender->IsInHitstun()) return;
+		defender->ExtendHitstun(params->hitboxStart + CANCEL_GUARANTEE_MARGIN);
+	}
+
 	// 2つの判定ボックスの重なり領域の中心を返す
 	DirectX::XMFLOAT3 OverlapCenter(const DirectX::BoundingBox& a, const DirectX::BoundingBox& b)
 	{
@@ -94,6 +108,9 @@ CollisionResult BattleCollision::UpdateInteractions(Player* p1, Player* p2, floa
 
 	ApplyPushback(p1, p2, tick, stageLimitX);
 	ApplyPushback(p2, p1, tick, stageLimitX);
+
+	GuaranteeCancel(p1, p2);
+	GuaranteeCancel(p2, p1);
 
 	// 衝突判定と押し出し
 	ResolvePushback(p1, p2, stageLimitX);

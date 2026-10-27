@@ -21,6 +21,7 @@ public:
 	void Uninit(); // 終了
 	void Update(float tick); // 更新
 	void Draw();   // 描画
+	void DrawOverlay() override; // グリッド線のあとに重ねる文字（残り時間・メニュー）
 
 	// SceneRootから参照するための静的フラグ
 	static bool s_isGameSet;
@@ -84,7 +85,6 @@ private:
 	ID3D11SamplerState* m_pSamplerState = nullptr;      // 影用サンプラー
 	D3D11_VIEWPORT m_shadowViewport = {};
 	ID3D11BlendState* m_pMultiplyBlend = nullptr;
-	ID3D11BlendState* m_pDepthOnlyBlend = nullptr; // 色は描かず深度だけ書く。グリッド線を文字の下に隠す用
 
 	ID3D11Buffer* m_quadVB = nullptr; // 床のポリゴン用
 

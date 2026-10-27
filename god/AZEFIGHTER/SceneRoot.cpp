@@ -415,6 +415,9 @@ void SceneRoot::Draw()
 	pCamera->Draw();
 	pLight->Draw();
 
+	// グリッド線より手前に出したい文字などを、表示中のシーンに描かせる
+	if (m_pSubScene) m_pSubScene->DrawOverlay();
+
 	// フェードの黒い全画面矩形。グリッド線も含めた画面全体に最後にかける
 	// シーン遷移とゲーム内演出（ラウンド切替）の濃い方を採用する
 	float fade = (m_fadeAlpha > s_sceneFade) ? m_fadeAlpha : s_sceneFade;

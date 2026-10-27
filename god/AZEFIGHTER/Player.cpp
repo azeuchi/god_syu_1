@@ -620,14 +620,10 @@ void Player::UpdateAnimation(float tick)
 			}
 			else if (s_variableSpeed)
 			{
-				for (const auto& mod : m_pActiveAttackParams->speedModifiers)
-				{
-					if (m_currentAnim.frame >= mod.startFrame && m_currentAnim.frame < mod.endFrame)
-					{
-						currentSpeed *= mod.speed;
-						break;
-					}
-				}
+				// 速度変化の区間は、技を出してからのフレームで指定している（デバッグ画面のタイムラインと同じ）。
+				// アニメのコマで見ると、長いアニメでは最初のほんの一部にしか効かない
+				const float gameFrame = (m_attackElapsedSec - tick) * 60.0f;
+				currentSpeed *= SpeedModifierAt(*m_pActiveAttackParams, gameFrame);
 			}
 		}
 
@@ -680,6 +676,12 @@ bool Player::IsInvincible() const
 bool Player::IsInHitstun() const
 {
 	return m_currentState && m_currentState->IsHitstun();
+}
+
+void Player::ExtendHitstun(float sec)
+{
+	if (!IsInHitstun()) return;
+	static_cast<PlayerStateDamage*>(m_currentState.get())->ExtendRemaining(sec);
 }
 
 bool Player::IsActionable() const
@@ -1144,6 +1146,8 @@ void Player::Reset()
 	m_hasHit = false;
 	m_velocity = { 0.0f, 0.0f, 0.0f };
 	m_pushbackLeft = 0.0f;
+	m_justCancelled = false;
+	m_lightChain = 0;
 	m_activeHitboxes.clear();
 	m_activeHurtboxes.clear();
 	if (m_projectile) m_projectile->Deactivate();

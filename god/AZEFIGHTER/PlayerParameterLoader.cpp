@@ -154,6 +154,10 @@ void PlayerParameterLoader::LoadAttackParams(AttackParams& p, const char* filePa
 	bool cancelToLightKick = false;
 	if (ifs >> cancelToLightKick) p.cancelToLightKick = cancelToLightKick;
 
+	// 必殺技へのキャンセル。あとから足した項目なので末尾。古いファイルでは false のまま
+	bool cancelToSpecial = false;
+	if (ifs >> cancelToSpecial) p.cancelToSpecial = cancelToSpecial;
+
 	ifs.close();
 }
 

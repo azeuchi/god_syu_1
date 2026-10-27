@@ -13,6 +13,7 @@
 #include "PlayerAssetLoader.h"
 #include "Projectile.h"
 #include "DirectX.h"
+#include "CameraShake.h"
 #include <system/imgui/imgui.h>
 #include <algorithm>
 
@@ -28,7 +29,23 @@ namespace
 {
 	const float STAGE_LIMIT_X = 6.0f;
 	const float CAMERA_LIMIT_X = 4.0f;
+	const float REVIVE_DELAY = 2.0f; // 倒れてから起き上がるまでの秒数
 
+	// 当たった側を小刻みに揺らす（ゲーム本編と同じ揺れ幅）
+	void UpdateHitShake(float& timer, XMFLOAT3& offset, float tick)
+	{
+		if (timer > 0.0f)
+		{
+			timer -= tick;
+			float offsetX = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+			float offsetY = ((float)(rand() % 100) / 100.0f - 0.5f) * 0.1f;
+			offset = { offsetX, offsetY, 0.0f };
+		}
+		else
+		{
+			offset = { 0.0f, 0.0f, 0.0f };
+		}
+	}
 }
 
 void SceneTraining::Init()
@@ -87,6 +104,27 @@ void SceneTraining::Init()
 	// --- ヒットエフェクトのプール ---
 	m_hitEffects.Init(10);
 
+	// --- エフェクト描画用の設定（ゲーム本編と同じ）---
+	// カリングなし：直前に描いたキャラの向きで裏面扱いになり、エフェクトが消えるのを防ぐ
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.CullMode = D3D11_CULL_NONE;
+	rsDesc.DepthClipEnable = TRUE;
+	GetDevice()->CreateRasterizerState(&rsDesc, &m_pCullNone);
+
+	// 半透明合成：画像の透明部分が黒い四角で見えないようにする
+	D3D11_BLEND_DESC blendDesc = {};
+	blendDesc.AlphaToCoverageEnable = TRUE;
+	blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	GetDevice()->CreateBlendState(&blendDesc, &m_pBlendState);
+
 	// --- カメラ初期位置 ---
 	CameraBase* pCamera = GetObj<CameraBase>("Camera");
 	if (pCamera)
@@ -100,6 +138,8 @@ void SceneTraining::Init()
 
 void SceneTraining::Uninit()
 {
+	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
+	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 }
 
 PlayerInputs SceneTraining::BuildDummyInputs(Player* dummy, float tick)
@@ -163,6 +203,17 @@ void SceneTraining::ResetPositions()
 	m_dummyHomeX = 2.0f;
 }
 
+void SceneTraining::Revive(Player* p1, Player* p2)
+{
+	// 倒れた側は待機に戻し、もう片方もHPを満タンにして仕切り直す。立ち位置はそのまま
+	for (Player* p : { p1, p2 })
+	{
+		if (p->GetHpRatio() <= 0.0f) p->Reset();
+		else p->RefillHp();
+	}
+	m_reviveTimer = 0.0f;
+}
+
 void SceneTraining::Update(float tick)
 {
 	if (IsKeyTrigger(VK_TAB)) m_showImGui = !m_showImGui;
@@ -171,6 +222,13 @@ void SceneTraining::Update(float tick)
 	Player* p2 = GetObj<Player>("Player2");
 	if (!p1 || !p2) return;
 
+	// 倒れた側を起こす。無限HPを入れ直したらすぐ、そうでなければ倒れる動きを見せてから
+	if (p1->GetHpRatio() <= 0.0f || p2->GetHpRatio() <= 0.0f)
+	{
+		m_reviveTimer -= tick;
+		if (m_infiniteHp || m_reviveTimer <= 0.0f) Revive(p1, p2);
+	}
+
 	// 無限HP：当たり判定の前に満タンへ戻す（撃墜されない）
 	if (m_infiniteHp) { p1->RefillHp(); p2->RefillHp(); }
 
@@ -178,15 +236,52 @@ void SceneTraining::Update(float tick)
 	PlayerInputs dummyIn = BuildDummyInputs(p2, tick);
 	p2->SetInjectedInputs(dummyIn);
 
+	// ヒットストップ中はキャラの時間を止める（ゲーム本編と同じ）。
+	// 止めないと、当たった瞬間から押し返しで滑り出して見える
+	float playerTick = tick;
+	if (m_hitStopTimer > 0.0f)
+	{
+		m_hitStopTimer -= tick;
+		playerTick = 0.0f;
+	}
+
 	// プレイヤー更新
-	p1->Update(tick);
-	p2->Update(tick);
+	p1->Update(playerTick);
+	p2->Update(playerTick);
+
+	// 当たる直前にダミーがのけぞり中だったか。のけぞりが解けていればガードで割り込めたので、コンボに数えない
+	const bool dummyWasInHitstun = p2->IsInHitstun();
 
 	// 当たり判定
-	CollisionResult result = BattleCollision::UpdateInteractions(p1, p2, tick, m_hitEffects.Raw(), STAGE_LIMIT_X);
+	CollisionResult result = BattleCollision::UpdateInteractions(p1, p2, playerTick, m_hitEffects.Raw(), STAGE_LIMIT_X);
+
+	// ヒットストップと揺れ（ゲーム本編と同じ）
+	if (result.hitStopTimer > 0.0f)
+	{
+		m_hitStopTimer = result.hitStopTimer;
+		// 画面が揺れるのはヒットしたときだけ。のけぞる側へ横に揺らす
+		if (!result.wasBlocked)
+		{
+			CameraShake::AddTrauma(m_cameraTrauma, CameraShake::TraumaFromHitStop(result.hitStopTimer));
+			if (result.shakeTimerP2 > 0.0f)      m_cameraShakeKickDir = 1.0f;
+			else if (result.shakeTimerP1 > 0.0f) m_cameraShakeKickDir = -1.0f;
+		}
+	}
+	if (result.shakeTimerP1 > 0.0f) m_shakeTimerP1 = result.shakeTimerP1;
+	if (result.shakeTimerP2 > 0.0f) m_shakeTimerP2 = result.shakeTimerP2;
+	UpdateHitShake(m_shakeTimerP1, m_shakeOffsetP1, tick);
+	UpdateHitShake(m_shakeTimerP2, m_shakeOffsetP2, tick);
+	CameraShake::Tick(m_cameraTrauma, m_cameraShakeKickDir, tick, m_cameraShakeOffset);
+
+	// 撃破時の処理は対戦用で、両者の操作をAIに切り替えてしまう。トレーニングでは操作を戻す
+	if (result.isRoundOver)
+	{
+		p1->SetInputType(PlayerInputType::PLAYER_1);
+		p2->SetInputType(PlayerInputType::AI);
+		m_reviveTimer = REVIVE_DELAY;
+	}
 
 	// ダミーに当たった（ヒット/ガード問わず）らラッチ。途切れたら解除
-	m_comboTimer += tick;
 	if (result.shakeTimerP2 > 0.0f)
 	{
 		m_dummyHitLatch = true;
@@ -201,12 +296,11 @@ void SceneTraining::Update(float tick)
 		}
 		else
 		{
-			// 直近ヒットから間が短ければコンボ継続、空けばリセット
-			if (m_comboTimer < 0.4f) m_comboCount++;
+			// のけぞりが続いている間に当てたときだけコンボ継続。間が空いて割り込めたなら1からやり直す
+			if (dummyWasInHitstun) m_comboCount++;
 			else m_comboCount = 1;
 			if (m_comboCount > m_maxCombo) m_maxCombo = m_comboCount;
 		}
-		m_comboTimer = 0.0f;
 	}
 	else
 	{
@@ -231,8 +325,10 @@ void SceneTraining::Update(float tick)
 	{
 		float centerX = (p1->GetPosition().x + p2->GetPosition().x) * 0.5f;
 		centerX = std::clamp(centerX, -CAMERA_LIMIT_X, CAMERA_LIMIT_X);
-		pCamera->SetPos({ centerX, 1.5f, -5.0f });
-		pCamera->SetLook({ centerX, 1.2f, 0.0f });
+		// 揺れは位置と注視点を同じだけずらす（視線の向きは変えずに画面全体が揺れる）
+		const XMFLOAT3& s = m_cameraShakeOffset;
+		pCamera->SetPos({ centerX + s.x, 1.5f + s.y, -5.0f });
+		pCamera->SetLook({ centerX + s.x, 1.2f + s.y, 0.0f });
 
 		// スカイドームをカメラ位置に追従させる
 		if (m_skyDome) m_skyDome->Update(pCamera->GetPos());
@@ -249,10 +345,10 @@ void SceneTraining::Draw()
 	if (m_skyDome && pSkyCam) m_skyDome->DrawWithState(pSkyCam->GetView(), pSkyCam->GetProj());
 
 	// 先に全員のアウトライン、次に本体を描く
-	m_playerRenderer.DrawOutline(this, p1);
-	m_playerRenderer.DrawOutline(this, p2);
-	m_playerRenderer.DrawBody(this, p1);
-	m_playerRenderer.DrawBody(this, p2);
+	m_playerRenderer.DrawOutline(this, p1, m_shakeOffsetP1);
+	m_playerRenderer.DrawOutline(this, p2, m_shakeOffsetP2);
+	m_playerRenderer.DrawBody(this, p1, m_shakeOffsetP1);
+	m_playerRenderer.DrawBody(this, p2, m_shakeOffsetP2);
 
 #ifdef _DEBUG
 	if (p1) { p1->DrawBoundingBox(); p1->DrawHitbox(); p1->DrawActiveHurtboxes(); }
@@ -265,9 +361,16 @@ void SceneTraining::Draw()
 	{
 		XMFLOAT4X4 view = pCamera->GetView();
 		XMFLOAT4X4 proj = pCamera->GetProj();
+		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		if (m_pCullNone) GetContext()->RSSetState(m_pCullNone);
+		if (m_pBlendState) GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
+
 		if (p1 && p1->GetProjectile()) p1->GetProjectile()->Draw(view, proj);
 		if (p2 && p2->GetProjectile()) p2->GetProjectile()->Draw(view, proj);
 		m_hitEffects.Draw(view, proj);
+
+		GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
+		GetContext()->RSSetState(nullptr);
 	}
 
 	if (m_showImGui) DrawImGui();

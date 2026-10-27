@@ -199,6 +199,8 @@ struct AttackParams
 	bool cancelToLightKick = false;
 	bool cancelToMediumKick = false;
 	bool cancelToHeavy = false;
+	// 必殺技（波動拳・昇龍拳）へキャンセルできるか
+	bool cancelToSpecial = false;
 
 	// 攻撃モーション中の再生速度変化のリスト
 	std::vector<AnimSpeedModifier> speedModifiers;
@@ -234,6 +236,16 @@ public:
 
 	bool IsInvincible() const;
 	bool IsInHitstun() const;
+	// のけぞり中なら、残りが sec 秒より短いときに sec 秒まで延ばす
+	void ExtendHitstun(float sec);
+
+	// 当てた技をキャンセルして次の技を出した印。当たり判定の処理が1度だけ受け取る
+	void MarkCancel() { m_justCancelled = true; }
+	bool ConsumeCancel() { const bool c = m_justCancelled; m_justCancelled = false; return c; }
+
+	// 弱攻撃をキャンセルで何発続けているか（最初の1発を含む。弱以外を出すと0）
+	int GetLightChain() const { return m_lightChain; }
+	void SetLightChain(int count) { m_lightChain = count; }
 	// 自分の意思で次の行動を始められるか（攻撃中・のけぞり中・ダウン中・空中は不可）
 	bool IsActionable() const;
 
@@ -444,6 +456,8 @@ private:
 	bool m_guardAllLevels = false;
 	float m_atkBuf[ATTACK_BUTTON_COUNT] = {};
 	float m_attackElapsedSec = 0.0f;
+	bool m_justCancelled = false; // このフレームにキャンセルで次の技を出したか
+	int m_lightChain = 0;         // 弱攻撃をキャンセルで続けている数
 
 	// アニメーションブレンド用管理変数
 	AnimationState m_currentAnim;

@@ -11,6 +11,12 @@ void SimpleUI::AddRect(float x, float y, float w, float h, DirectX::XMFLOAT4 col
     s_rects.push_back({ x, y, w, h, color, tex });
 }
 
+void SimpleUI::AddRect(float x, float y, float w, float h, DirectX::XMFLOAT4 color, Texture* tex,
+                       DirectX::XMFLOAT2 uvPos, DirectX::XMFLOAT2 uvScale)
+{
+    s_rects.push_back({ x, y, w, h, color, tex, uvPos, uvScale });
+}
+
 void SimpleUI::SetMatrix(const DirectX::XMFLOAT4X4& world,
                          const DirectX::XMFLOAT4X4& view,
                          const DirectX::XMFLOAT4X4& proj)
@@ -36,6 +42,8 @@ void SimpleUI::DrawAll()
         sprite.SetSize({ rect.w, rect.h });
         sprite.SetColor(rect.color);
         sprite.SetTexture(rect.texture);
+        sprite.SetUVPos(rect.uvPos);
+        sprite.SetUVScale(rect.uvScale);
 
         // 画像付きUIの場合ログ出力（1回だけ）
         if (rect.texture != nullptr && !logged) {
@@ -45,6 +53,10 @@ void SimpleUI::DrawAll()
 
         sprite.Draw();
     }
+
+    // 切り出し設定を残さない（あとで描く画像に影響させない）
+    sprite.SetUVPos({ 0.0f, 0.0f });
+    sprite.SetUVScale({ 1.0f, 1.0f });
 }
 
 void SimpleUI::Clear()

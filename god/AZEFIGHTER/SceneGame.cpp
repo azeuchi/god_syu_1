@@ -49,14 +49,6 @@ const float WAIT_BEFORE_FADE = 1.0f; // ラウンド終了後、フェード開�
 const float FADE_DURATION = 2.0f;    // フェードにかける時間
 const float ROUND_WAIT_TIME = WAIT_BEFORE_FADE + FADE_DURATION; // リセットまでの合計時間 (3.0秒)
 
-// ピクセル座標(左上基準、1280x720)の矩形を UI に登録する
-static void AddUIRect(float px, float py, float pw, float ph, const DirectX::XMFLOAT4& color)
-{
-	float ndcX = ((px + pw * 0.5f) / 1280.0f) * 2.0f - 1.0f;
-	float ndcY = 1.0f - ((py + ph * 0.5f) / 720.0f) * 2.0f;
-	SimpleUI::AddRect(ndcX, ndcY, (pw / 1280.0f) * 2.0f, (ph / 720.0f) * 2.0f, color, nullptr);
-}
-
 // 静的メンバ変数の実体定義
 bool SceneGame::s_isGameSet = false;
 bool SceneGame::s_requestTitle = false;
@@ -315,10 +307,6 @@ void SceneGame::Init()
 	mulBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	GetDevice()->CreateBlendState(&mulBlendDesc, &m_pMultiplyBlend);
 
-	D3D11_BLEND_DESC depthOnlyDesc = {};
-	depthOnlyDesc.RenderTarget[0].RenderTargetWriteMask = 0;
-	GetDevice()->CreateBlendState(&depthOnlyDesc, &m_pDepthOnlyBlend);
-
 	// ----------------------------------------------------
 	// アウトライン用ラスタライザーステートの作成
 	// ----------------------------------------------------
@@ -362,7 +350,6 @@ void SceneGame::Uninit()
 	if (m_pDepthStateNoWrite) { m_pDepthStateNoWrite->Release(); m_pDepthStateNoWrite = nullptr; }
 	if (m_pBlendState) { m_pBlendState->Release(); m_pBlendState = nullptr; }
 	if (m_pMultiplyBlend) { m_pMultiplyBlend->Release(); m_pMultiplyBlend = nullptr; }
-	if (m_pDepthOnlyBlend) { m_pDepthOnlyBlend->Release(); m_pDepthOnlyBlend = nullptr; }
 	if (m_pCullNone) { m_pCullNone->Release(); m_pCullNone = nullptr; }
 
 	if (m_shadowMapTex) { m_shadowMapTex->Release(); m_shadowMapTex = nullptr; }
@@ -436,23 +423,7 @@ void SceneGame::DrawRoundTimer()
 	wchar_t text[8];
 	swprintf_s(text, L"%02d", seconds);
 
-	// 文字は Direct2D で描いていて深度を書かないため、あとから描かれるグリッド線に上を通られる。
-	// 文字の場所に、色は描かず深度だけを書く見えない板を置いて、グリッド線をそこだけ描かせない
-	SimpleUI::Clear();
-	AddUIRect(596.0f, 48.0f, 90.0f, 72.0f, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-	if (m_currentPhase == RoundPhase::TIME_UP_CALL)
-	{
-		AddUIRect(420.0f, 290.0f, 440.0f, 124.0f, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-	}
-	ID3D11BlendState* prevBlend = nullptr;
-	float prevFactor[4] = {};
-	UINT prevMask = 0;
-	GetContext()->OMGetBlendState(&prevBlend, prevFactor, &prevMask);
-	GetContext()->OMSetBlendState(m_pDepthOnlyBlend, prevFactor, 0xffffffff);
-	SimpleUI::DrawAll();
-	GetContext()->OMSetBlendState(prevBlend, prevFactor, prevMask);
-	if (prevBlend) prevBlend->Release();
-
+	// グリッド線を描いたあと（DrawOverlay）に呼ばれるので、線が文字の上を通ることはない
 	// ステージが白いので文字は黒の太字。残りわずかのときだけ赤
 	const XMFLOAT4 red(0.80f, 0.06f, 0.06f, 1.0f);
 	SimpleFont::Begin();
@@ -617,10 +588,11 @@ void SceneGame::Update(float tick)
 
 	// ==========================================================
 	// ラウンド開始演出 (フェーズ管理)
-	// ラウンド中(PLAYING)でもなく、KO演出中(KO_CALL)でもない場合は
+	// ラウンド中(PLAYING)でもなく、決着の演出中(KO_CALL/TIME_UP_CALL)でもない場合は
 	// 開始前演出（READY/ROUND/FIGHT）を行う
 	// ==========================================================
-	if (m_currentPhase != RoundPhase::PLAYING && m_currentPhase != RoundPhase::KO_CALL)
+	if (m_currentPhase != RoundPhase::PLAYING && m_currentPhase != RoundPhase::KO_CALL
+		&& m_currentPhase != RoundPhase::TIME_UP_CALL)
 	{
 		m_phaseTimer += tick;
 
@@ -1240,6 +1212,29 @@ void SceneGame::Draw()
 	{
 		m_uiManager->Draw(m_currentPhase, m_winCountP1, m_winCountP2, ROUND_TO_WIN);
 	}
+
+	// 残り時間・メニューなどの文字はグリッド線のあと（DrawOverlay）で描く
+
+	GetContext()->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
+	GetContext()->OMSetDepthStencilState(nullptr, 0);
+	GetContext()->RSSetState(nullptr);
+}
+
+/**
+ * @brief グリッド線のあとに重ねる文字とパネル
+ * Direct2D の文字は深度を書かないため、先に描くとグリッド線に上を通られる
+ */
+void SceneGame::DrawOverlay()
+{
+	// 半透明のパネルを重ねるので、ゲーム本編と同じ半透明合成にする
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	if (m_pBlendState) GetContext()->OMSetBlendState(m_pBlendState, blendFactor, 0xffffffff);
+	// HPバーは手前いっぱいの深度を書いているので、重なっても負けない LESS_EQUAL にする
+	if (m_pDepthState) GetContext()->OMSetDepthStencilState(m_pDepthState, 0);
+
+	DirectX::XMFLOAT4X4 identity;
+	DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
+	SimpleUI::SetMatrix(identity, identity, identity);
 
 	if (!m_isResultMenu) DrawRoundTimer();
 

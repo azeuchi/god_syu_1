@@ -41,7 +41,7 @@ void Image2D::Draw()
 	float ndcH = (m_height / SCREEN_H) * 2.0f;
 
 	// SimpleUI‚É“o˜^ 
-	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture.get());
+	SimpleUI::AddRect(ndcX, ndcY, ndcW, ndcH, m_color, m_texture.get(), m_uvPos, m_uvScale);
 }
 
 // êŠ‚Æ“§–¾“x‚ğw’è‚µ‚Ä•`‰æ

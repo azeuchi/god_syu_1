@@ -14,28 +14,8 @@ void PlayerStateGround::Update(Player* player, float tick)
 
 	const PlayerInputs& inputs = player->GetInputs();
 
-	// 昇竜拳を波動拳より先に判定する。2回目の下を斜め下前で入れると、波動拳のコマンドとも重なるため
-	if (player->CheckShoryukenCommand())
-	{
-		int strength = 0;
-		if (inputs.HeavyPunch) strength = 2;
-		else if (inputs.MediumPunch) strength = 1;
-
-		player->SetState(std::make_unique<Shoryuken>(strength));
-		return;
-	}
-
-	// 波動拳コマンドチェック
-	if (player->CanFireProjectile() && player->CheckHadoukenCommand())
-	{
-		int strength = 0;
-		if (inputs.HeavyPunch) strength = 2;
-		else if (inputs.MediumPunch) strength = 1;
-		else strength = 0;
-
-		player->SetState(std::make_unique<Hadouken>(strength));
-		return;
-	}
+	// 必殺技（昇竜拳・波動拳）
+	if (TryStartSpecial(player)) return;
 
 	// 通常技。下を入れていればしゃがみ技になる
 	for (int i = 0; i < ATTACK_BUTTON_COUNT; ++i)
@@ -43,6 +23,7 @@ void PlayerStateGround::Update(Player* player, float tick)
 		const AttackButton button = (AttackButton)i;
 		if (!IsButtonPressed(inputs, button)) continue;
 
+		player->SetLightChain(IsLightButton(button) ? 1 : 0);
 		NormalAttack::Start(player, FindNormalMove(button, inputs.moveDown));
 		return;
 	}

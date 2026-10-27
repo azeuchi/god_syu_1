@@ -1,6 +1,7 @@
 ﻿#include "NormalMoves.h"
 #include "Player.h"
 #include <iterator>
+#include <cmath>
 
 namespace
 {
@@ -77,4 +78,36 @@ bool CanCancelInto(const AttackParams& from, AttackButton button)
 	case AttackButton::HK: return from.cancelToHeavy;
 	default:               return false;
 	}
+}
+
+float SpeedModifierAt(const AttackParams& params, float gameFrame)
+{
+	for (const auto& mod : params.speedModifiers)
+	{
+		if (gameFrame >= mod.startFrame && gameFrame < mod.endFrame && mod.speed > 0.0f) return mod.speed;
+	}
+	return 1.0f;
+}
+
+float AttackAnimBaseSpeed(const AttackParams& params, int animFrames, bool variableSpeed)
+{
+	int targetFrames = (int)std::round(params.totalDuration * 60.0f);
+	if (targetFrames < 1) targetFrames = 1;
+	if (!variableSpeed || params.speedModifiers.empty()) return (float)animFrames / (float)targetFrames;
+
+	// 各フレームで進むコマ数は「基本速度 × 倍率」。全フレームの倍率を足した分で全コマを割れば、
+	// 遅くした区間・速くした区間があっても、技が終わる瞬間にアニメもちょうど終わる
+	float rateSum = 0.0f;
+	for (int g = 0; g < targetFrames; ++g) rateSum += SpeedModifierAt(params, (float)g);
+	return (rateSum > 0.0f) ? (float)animFrames / rateSum : (float)animFrames / (float)targetFrames;
+}
+
+float AnimFrameAtGameFrame(const AttackParams& params, float baseSpeed, int gameFrame, bool variableSpeed)
+{
+	float frame = 0.0f;
+	for (int g = 0; g < gameFrame; ++g)
+	{
+		frame += baseSpeed * (variableSpeed ? SpeedModifierAt(params, (float)g) : 1.0f);
+	}
+	return frame;
 }

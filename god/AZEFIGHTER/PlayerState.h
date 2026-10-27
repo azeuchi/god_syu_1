@@ -63,4 +63,10 @@ protected:
 	 * @return 遷移した場合は true を返す
 	 */
 	bool CheckCancel(Player* player, float stateTimer, const AttackParams& params);
+
+	/**
+	 * @brief 必殺技のコマンドが入っていれば出す（地上で出すときと、通常技からのキャンセルで共通）
+	 * @return 出した場合は true を返す
+	 */
+	static bool TryStartSpecial(Player* player);
 };

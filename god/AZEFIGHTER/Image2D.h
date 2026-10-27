@@ -34,11 +34,16 @@ public:
 	// 色や透明度を変更する関数
 	void SetColor(float r, float g, float b, float a) { m_color = { r, g, b, a }; }
 
+	// 画像のどこを切り出して貼るか（0?1）。HPバーの減った分を削るのに使う
+	void SetUV(float u, float v, float uw, float vh) { m_uvPos = { u, v }; m_uvScale = { uw, vh }; }
+
 private:
 	std::unique_ptr<Texture> m_texture;
 	float m_x, m_y;
 	float m_width, m_height;
 	DirectX::XMFLOAT4 m_color; // 色保存用
+	DirectX::XMFLOAT2 m_uvPos = { 0.0f, 0.0f };   // 切り出し開始位置
+	DirectX::XMFLOAT2 m_uvScale = { 1.0f, 1.0f }; // 切り出し範囲
 
 	const float SCREEN_W = 1280.0f;
 	const float SCREEN_H = 720.0f;
